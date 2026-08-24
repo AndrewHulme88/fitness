@@ -103,6 +103,7 @@ npm run ios
 - [docs/roadmap.md](docs/roadmap.md) — outcome-oriented product phases.
 - [docs/ai-safety.md](docs/ai-safety.md) — AI scope, safety controls, and escalation behavior.
 - [docs/testing-strategy.md](docs/testing-strategy.md) — automated, manual, security, AI, and performance validation.
+- [docs/design-system.md](docs/design-system.md) — selected visual direction, design tokens, accessibility, and visual review requirements.
 - [docs/adr/README.md](docs/adr/README.md) — architectural decision record index.
 
 ## Development principles
@@ -116,4 +117,4 @@ npm run ios
 
 ## Current status
 
-Foundation documentation and the minimal Expo SDK 57 client are established. Formatting, strict TypeScript, linting, a focused component smoke test, iOS bundling, and simulator launch have been verified. The next increment is the design foundation described in `PLAN.md`.
+Foundation documentation, the minimal Expo SDK 57 client, and the Midnight Indigo design foundation are established. Formatting, strict TypeScript, linting, focused component and token tests, iOS bundling, Dynamic Type behavior, and compact/large simulator layouts have been verified. The next increment is the navigation shell described in `PLAN.md`.

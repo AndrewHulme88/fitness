@@ -73,7 +73,7 @@ Verification completed on 2026-08-24:
 
 ### 1.2 Establish design foundations
 
-Status: pending
+Status: complete
 
 - Define semantic color, spacing, typography, radius, and motion tokens.
 - Use the iOS system typeface unless an intentional identity decision supersedes it.
@@ -85,6 +85,14 @@ Acceptance:
 - Tokens have focused tests where logic exists.
 - Light/dark behavior and Dynamic Type are reviewed in the simulator.
 - The result does not resemble a generic AI dashboard or template.
+
+Verification completed on 2026-08-24:
+
+- Midnight Indigo, bright rust/orange, warm text, spacing, typography, radius, motion, and layout tokens are defined without adding a UI framework or custom font.
+- Automated checks cover WCAG AA contrast for essential token pairings, the 44-point minimum touch target, and the scalable accessible application heading.
+- The identity screen was reviewed on iPhone 16 Plus and iPhone 16e simulators in light and dark system appearances.
+- Dynamic Type was reviewed at default and accessibility sizes; content reflows and remains scrollable without clipping.
+- No performance benchmark was added because this increment introduces no representative performance-sensitive interaction.
 
 ### 1.3 Build the navigation shell
 
@@ -227,4 +235,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Perform Phase 1.2 only: establish the original design tokens and the minimum visual primitives needed for the first screen, with accessibility and simulator review.
+Perform Phase 1.3 only: build the minimum navigation shell for onboarding and the initial workout flow, including loading, error, unavailable, and navigation test coverage.

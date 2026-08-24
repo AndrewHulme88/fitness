@@ -71,6 +71,7 @@ The application will not impose one universal training outcome. Onboarding will 
 The interface should feel like a well-made native fitness tool, not a themed AI chat product. The default design direction is:
 
 - iOS-native typography and interaction behavior.
+- A deliberate near-black Midnight Indigo foundation with bright rust/orange emphasis and warm off-white text.
 - Restrained color with strong semantic states.
 - Compact, legible workout controls designed for movement and one-handed use.
 - Clear hierarchy without excessive cards or decoration.
@@ -78,6 +79,8 @@ The interface should feel like a well-made native fitness tool, not a themed AI 
 - Complete empty, loading, error, interrupted, and offline experiences.
 
 The coach should appear where context makes it useful, but chat should not dominate the application shell.
+
+The initial client is intentionally dark. A light appearance should be designed and reviewed as its own accessible palette rather than generated through automatic inversion. The detailed tokens and review requirements live in [design-system.md](design-system.md).
 
 [Fitbod](https://fitbod.me/) is a directional reference for its fitness-first hierarchy, focused workout calls to action, readable exercise/set presentation, visible progress and recovery context, and confident native feel. It is not a template: this product will not copy Fitbod's branding, proprietary flows, screen layouts, iconography, illustrations, or exact visual system. We will develop an original identity using the qualities the reference helps articulate.
 

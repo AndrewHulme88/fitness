@@ -1,27 +1,49 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
+
+import { AppScreen } from "./src/components/AppScreen";
+import { AppText } from "./src/components/AppText";
+import { colors, spacing } from "./src/theme/tokens";
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text accessibilityRole="header" style={styles.title}>
-        Fitness Coach
-      </Text>
-      <StatusBar style="auto" />
-    </View>
+    <AppScreen>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.identity}>
+          <AppText tone="accent" variant="eyebrow">
+            Fitness Coach
+          </AppText>
+          <AppText accessibilityRole="header" variant="display">
+            Build strength that lasts.
+          </AppText>
+          <View accessibilityElementsHidden style={styles.accentRule} />
+        </View>
+      </ScrollView>
+      <StatusBar style="light" />
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
+  content: {
+    flexGrow: 1,
     justifyContent: "center",
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxxl,
   },
-  title: {
-    color: "#111",
-    fontSize: 24,
-    fontWeight: "600",
+  identity: {
+    gap: spacing.lg,
+    maxWidth: 340,
+  },
+  accentRule: {
+    width: 48,
+    height: 4,
+    marginTop: spacing.sm,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
   },
 });
