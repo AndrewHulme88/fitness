@@ -1,0 +1,39 @@
+# Architectural Decision Records
+
+ADRs capture decisions that have broad or long-lived technical consequences. `DEVELOPMENT.md` remains the chronological journal; an ADR describes the current decision in a compact, reviewable form.
+
+## Status vocabulary
+
+- Proposed — under active consideration.
+- Accepted — current direction.
+- Superseded — replaced by another ADR.
+- Deprecated — retained temporarily but should not guide new work.
+- Rejected — considered and intentionally not selected.
+
+## Records
+
+| ADR | Status | Decision |
+| --- | --- | --- |
+| [0001](0001-foundational-architecture.md) | Accepted | Expo client with an ASP.NET Core modular monolith and PostgreSQL |
+| [0002](0002-ios-first-delivery.md) | Accepted | Deliver iOS first and defer browser/Android releases |
+| [0003](0003-ai-coach-boundary.md) | Accepted | Keep the AI coach advisory, backend-mediated, and user-confirmed |
+
+## Template
+
+```markdown
+# ADR-NNNN: Title
+
+- Status: Proposed
+- Date: YYYY-MM-DD
+
+## Context
+
+## Decision
+
+## Consequences
+
+## Alternatives considered
+```
+
+Do not edit an accepted ADR to conceal a change in direction. Add a superseding ADR and link both records.
+

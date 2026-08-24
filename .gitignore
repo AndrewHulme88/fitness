@@ -1,0 +1,44 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+*.key
+*.pem
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+.npmrc
+secrets.json
+credentials.json
+**/appsettings.Local.json
+**/appsettings.*.local.json
+**/GoogleService-Info.plist
+**/google-services.json
+
+# JavaScript, React Native, and Expo
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# .NET
+bin/
+obj/
+TestResults/
+BenchmarkDotNet.Artifacts/
+*.user
+*.suo
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/

@@ -1,76 +1,220 @@
-Project Plan
+# Execution Plan
 
-High-level phases (small increments). Each phase below is decomposed into 1–4 focused, test-first tasks with clear acceptance criteria and a benchmark or test where applicable.
+This is the living implementation plan. Work from top to bottom in small increments, update statuses as facts change, and do not pull later infrastructure forward without a current requirement.
 
-1. Docs & repo scaffold (complete)
-	- Deliverables: `README.md`, `AGENT.md`, `DEVELOPMENT.md`, `PLAN.md`.
-	- Acceptance: files exist and reflect current constraints.
+Status values: `pending`, `in progress`, `complete`, `blocked`.
 
-2. Initialize Expo app (TypeScript)
-	- Task A: scaffold Expo TypeScript app with linting and Jest unit test setup.
-	  - Acceptance: `mobile/` contains working app skeleton; `npm test` runs and passes a trivial test.
-	- Task B: add CI job to run tests and lint on PRs.
+## Phase 0 — Foundation
 
-3. Create ASP.NET Core API skeleton
-	- Task A: scaffold `server/` with API project + xUnit test project.
-	  - Acceptance: `dotnet test` passes a trivial test and Swagger is available in dev.
-	- Task B: add CI job to build and test the API.
+### 0.1 Establish project operating documents
 
-4. Auth and user model
-	- Implement secure JWT-based auth with refresh tokens (or integrate Cognito later).
-	- Acceptance: signup/login endpoints with tests and protected endpoint requiring valid token.
+Status: complete
 
-5. Workout generator (AI prototype)
-	- Task A: create AI service adapter (pluggable) with mocked responses and unit tests.
-	- Task B: simple workout-generation endpoint and mobile UI consuming it.
-	- Acceptance: deterministic tests using mocked AI adapter pass; end-to-end smoke test.
+Deliverables:
 
-6. Persistence: Postgres + EF Core
-	- Add models, migrations, and repository layer.
-	- Acceptance: integration tests run against a Docker Postgres instance (CI) and pass.
+- Repository instructions and quality standards.
+- Product brief and scope.
+- Foundational architecture and ADRs.
+- AI safety boundary.
+- Testing and performance strategy.
+- Development journal and product roadmap.
 
-7. RAG and personalization
-	- Evaluate vector store: `pgvector` vs managed service; implement chosen option.
-	- Acceptance: embeddings stored/retrieved reliably; unit tests for RAG assembly.
+Acceptance:
 
-8. Reminders & background tasks
-	- Implement scheduled jobs (AWS-friendly approach: Lambda + EventBridge or container job).
-	- Acceptance: task scheduler invoked in dev; tests for job logic.
+- Documents agree on iOS-first delivery, the core stack, AI limitations, and the incremental workflow.
+- Open decisions are recorded rather than silently assumed.
+- No application dependencies or unused scaffold are introduced.
 
-9. Performance testing and benchmarks
-	- Microbenchmarks for critical paths (AI call latency, DB queries, mobile render hot paths).
-	- Acceptance: benchmark suite runs locally/CI; perf regressions fail CI when above threshold.
+### 0.2 Resolve pre-scaffold product choices
 
-10. Prepare MVP release
-	- Harden auth/privacy, finalize onboarding, add analytics, and prepare store assets.
-	- Acceptance: smoke tests, performance checks, and manual QA checklist completed.
+Status: pending
 
-Workflow rules
-- Test-first: every task requires tests that pass locally and in CI before merge.
-- Minimal surface area: do not add folders or dependencies until required by an accepted task.
-- Docs update: every significant decision or blocker is recorded in `DEVELOPMENT.md`.
+Questions requiring product input:
 
-Immediate next small step
-- Scaffold the Expo app skeleton (`mobile/`) with TypeScript and a passing unit test.
+- What working name should replace “Fitness Coach,” if any?
+- Is the first experience primarily general strength, hypertrophy, or a balanced strength-and-fitness product?
+- Should sign-in be required in the first local prototype, or introduced after the workout flow is proven?
+- Are progress photos excluded from the MVP by default?
 
-Confirmed choices and rationale
-- Mobile platform: **iOS first**. Focused platform reduces QA surface and speeds iteration for the initial MVP.
-- Auth: **AWS Cognito** for user management. Why: managed, secure, scales, integrates with AWS infra, avoids early custom auth maintenance.
-- Vector store: **pgvector** in Postgres initially. Why: minimal infra, local/dev parity, low cost, easy migration to a managed vector DB later.
-- CI & mobile builds: **GitHub Actions** for CI and **EAS Build** for iOS builds. Why: Actions integrates with the repo, EAS handles macOS/iOS cloud builds without self-hosted mac runners.
-- AI provider: deferred decision — evaluate OpenAI, Anthropic, AWS Bedrock when we have an AI prototype and clearer cost/latency needs.
+Acceptance:
 
-Performance & testing requirements
-- Test-first: every task requires unit/integration tests and passing CI before merging.
-- Benchmarks: include microbenchmarks for AI latency, DB queries, and mobile render hot paths; fail CI on significant regressions.
+- Answers are recorded in `DEVELOPMENT.md`.
+- Any consequential decision receives an ADR.
+- The MVP remains narrow enough to demonstrate end-to-end quality.
 
-Docs & traceability
-- Keep `DEVELOPMENT.md` updated with every design decision, blocker, and why alternatives were rejected.
-- Minimal repo surface: create files/folders only when required by accepted tasks.
+## Phase 1 — iOS client foundation
 
+Each item below is a separate increment.
 
-AI provider note
-- We will defer a final AI provider choice until we have a working prototype and clearer cost/latency requirements.
-- Candidates include OpenAI, Anthropic, and AWS Bedrock; evaluate on cost, latency, available models, safety tools, and integration path.
-- Acceptance: document the evaluation in `DEVELOPMENT.md` and pick a provider before full RAG implementation.
+### 1.1 Scaffold the minimum Expo TypeScript application
+
+Status: pending
+
+- Use the current stable Expo SDK and pin dependencies with a lockfile.
+- Enable strict TypeScript, linting, formatting, and a focused unit-test setup.
+- Add one meaningful smoke test for the application entry point.
+- Confirm the app starts in an iOS simulator.
+
+Acceptance:
+
+- Install, type-check, lint, test, and iOS start commands are documented and pass.
+- No product screens, state libraries, or UI framework are added yet.
+
+### 1.2 Establish design foundations
+
+Status: pending
+
+- Define semantic color, spacing, typography, radius, and motion tokens.
+- Use the iOS system typeface unless an intentional identity decision supersedes it.
+- Create only the primitives needed for the first screen.
+- Document accessibility expectations and a basic visual review checklist.
+
+Acceptance:
+
+- Tokens have focused tests where logic exists.
+- Light/dark behavior and Dynamic Type are reviewed in the simulator.
+- The result does not resemble a generic AI dashboard or template.
+
+### 1.3 Build the navigation shell
+
+Status: pending
+
+- Add only the routes needed for onboarding and the initial workout flow.
+- Define loading, error, and unavailable states.
+- Add navigation tests and an iOS simulator smoke check.
+
+## Phase 2 — API and persistence foundation
+
+### 2.1 Scaffold the ASP.NET Core API and tests
+
+Status: pending
+
+- Target .NET 10 LTS with nullable reference types and strict analyzers.
+- Add a minimal health endpoint and integration test.
+- Add structured logging with sensitive-body logging disabled.
+- Document local build, test, and run commands.
+
+### 2.2 Add PostgreSQL development infrastructure
+
+Status: pending
+
+- Add a pinned local PostgreSQL container configuration.
+- Configure EF Core through environment-based settings.
+- Prove connectivity and migration behavior with integration tests against PostgreSQL.
+- Commit no real connection strings or credentials.
+
+### 2.3 Establish the API contract workflow
+
+Status: pending
+
+- Publish an OpenAPI contract from the API.
+- Generate a typed TypeScript client rather than duplicating DTOs.
+- Add a CI check that detects contract or generated-client drift.
+
+## Phase 3 — Core fitness experience without AI
+
+### 3.1 Define profile and onboarding
+
+Status: pending
+
+- Capture only information needed for the initial workout experience.
+- Include goals, experience, available equipment, units, and relevant self-declared constraints.
+- Avoid collecting medical detail not required by the product.
+
+### 3.2 Establish the exercise catalogue
+
+Status: pending
+
+- Resolve source, licensing, taxonomy, and media policy first.
+- Add a small curated set sufficient for the initial experience.
+- Test search, filtering, validation, and stable identifiers.
+
+### 3.3 Build workout planning
+
+Status: pending
+
+- Create and edit a simple workout from the curated catalogue.
+- Keep validation and calculations deterministic.
+- Add domain, API, persistence, and client tests appropriate to the slice.
+
+### 3.4 Build active workout logging
+
+Status: pending
+
+- Optimize for minimal interaction during a session.
+- Support sets, repetitions, load, completion, and notes.
+- Measure interaction responsiveness once the flow is representative.
+- Define interruption and offline behavior before claiming reliability.
+
+### 3.5 Add history and basic progress
+
+Status: pending
+
+- Show accurate workout history and a small number of useful derived metrics.
+- Do not invent scores or trends that cannot be explained.
+- Benchmark important list and database queries with representative data.
+
+## Phase 4 — Identity and account lifecycle
+
+Status: pending
+
+- Write an ADR comparing standards-based managed identity options and local-development ergonomics.
+- Implement secure iOS authentication and API authorization.
+- Add ownership tests for every user-owned resource.
+- Design account export and deletion before public beta.
+
+Identity may move earlier if cross-device persistence becomes necessary during Phase 3. That move requires a recorded decision, not silent scope expansion.
+
+## Phase 5 — AI coach
+
+### 5.1 Implement the provider-independent product boundary
+
+Status: pending
+
+- Define product-level request and response contracts.
+- Use a fake provider for deterministic tests.
+- Implement context minimization, timeouts, cancellation, usage accounting, and safe failure behavior.
+
+### 5.2 Add read-only contextual coaching
+
+Status: pending
+
+- Answer questions using explicitly approved profile and workout context.
+- Apply the safety rules in `docs/ai-safety.md`.
+- Add adversarial, high-risk, privacy, and ordinary-use evaluation cases.
+
+### 5.3 Add structured proposals with confirmation
+
+Status: pending
+
+- Allow the model to propose a typed workout or program change.
+- Validate proposals using deterministic domain rules.
+- Present a clear diff and require explicit user confirmation.
+- Audit the accepted action without storing unnecessary sensitive reasoning.
+
+## Phase 6 — Beta hardening
+
+Status: pending
+
+- Resolve offline synchronization and conflict behavior.
+- Add monitoring, crash reporting, rate limits, backups, and restore verification.
+- Complete accessibility, threat-model, privacy, and AI-safety reviews.
+- Establish stable client, API, database, and AI performance baselines.
+- Prepare synthetic demo data, app-store materials, and a manual release checklist.
+- Test on supported physical iOS devices before beta distribution.
+
+## Later, evidence-driven possibilities
+
+- Android QA and release work.
+- Wearable and health-platform integrations.
+- Notifications and scheduling.
+- Curated evidence retrieval if structured context is insufficient.
+- A public marketing website.
+- Payments or subscriptions.
+
+These are not authorized implementation scope until promoted into an active phase.
+
+## Immediate next increment
+
+Resolve the four questions in Phase 0.2, record the answers, and then perform Phase 1.1 only.
 
