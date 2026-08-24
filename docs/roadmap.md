@@ -29,7 +29,7 @@ Outcome: a user can plan, perform, and review a workout without AI.
 
 Evidence:
 
-- Focused onboarding and a licensed exercise catalogue.
+- User-selected goals, focused onboarding, and a licensed exercise catalogue.
 - Reliable workout planning and active-session logging.
 - Accurate history and explainable progress.
 - Measured interaction and query performance on representative data.
@@ -80,4 +80,3 @@ These require evidence from the core product and are not commitments:
 - Broader training modalities.
 - Curated evidence retrieval.
 - Public launch, subscriptions, or a marketing website.
-

@@ -2,13 +2,14 @@
 
 Fitness Coach is the working title for an iOS-first fitness application that combines workout planning and logging with a context-aware AI coach. The product is intended to feel calm, trustworthy, fast, and genuinely useful during training.
 
-The repository is currently in its foundation phase. No application code has been scaffolded yet.
+The repository has completed its foundation phase and now contains a minimal, verified iOS client scaffold. Product UI work has not started.
 
 ## Product intent
 
 The initial product will help adults:
 
 - Set general strength and fitness goals.
+- Choose the training goals that matter to them rather than being placed into one fixed program type.
 - Create and follow structured workouts.
 - Log sets with minimal friction.
 - Review training history and progress.
@@ -27,7 +28,7 @@ The AI coach is a general wellness feature. It will not diagnose injuries, presc
 - A backend-only AI service boundary supporting OpenAI or an equivalent provider.
 - GitHub Actions for continuous integration is the current direction, to be confirmed when the projects are scaffolded.
 
-Not in the first release: injury rehabilitation, diagnosis, disease management, prescriptive nutrition, social features, wearables, subscriptions, a vector database, microservices, or a public web application.
+Not in the first release: injury rehabilitation, diagnosis, disease management, prescriptive nutrition, progress photos, social features, wearables, subscriptions, a vector database, microservices, or a public web application.
 
 ## Architecture at a glance
 
@@ -47,7 +48,7 @@ See [docs/architecture.md](docs/architecture.md) for the full boundary descripti
 
 ## Proposed repository layout
 
-Directories will be added only when their first increment begins.
+Directories are added only when their first increment begins.
 
 ```text
 apps/client/          Expo mobile application
@@ -57,6 +58,40 @@ docs/                 Product, architecture, safety, and decision records
 ```
 
 The generated TypeScript API client may later live under `packages/` if generation and consumption justify a separate package.
+
+Only `apps/client/` exists today. The other paths describe the intended structure and will not be created until needed.
+
+## Client development
+
+Prerequisites:
+
+- Node.js 22.13 or newer. Use a maintained Node.js release compatible with Expo SDK 57.
+- npm.
+- Xcode with an installed iOS Simulator runtime for native development on macOS.
+
+Install exactly from the lockfile:
+
+```bash
+cd apps/client
+npm ci
+```
+
+Run the quality checks:
+
+```bash
+npm run format:check
+npm run typecheck
+npm run lint
+npm test
+```
+
+Start the iOS application:
+
+```bash
+npm run ios
+```
+
+`npm run start` starts Metro without automatically selecting a platform. Product-facing Android and browser scripts are intentionally absent from the initial iOS scope.
 
 ## How work is organized
 
@@ -81,6 +116,4 @@ The generated TypeScript API client may later live under `packages/` if generati
 
 ## Current status
 
-Foundation documentation is established. The next increment is to resolve the small set of product and infrastructure choices listed in `PLAN.md`, then scaffold the minimum Expo project with its quality gates and one passing test.
-
-There are no build or run commands yet because application projects have not been created.
+Foundation documentation and the minimal Expo SDK 57 client are established. Formatting, strict TypeScript, linting, a focused component smoke test, iOS bundling, and simulator launch have been verified. The next increment is the design foundation described in `PLAN.md`.

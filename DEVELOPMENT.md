@@ -121,9 +121,70 @@ Scaffolding first and documenting later was rejected because important defaults 
 Consequences / follow-up:
 Documentation must remain concise and current. It is not a substitute for working code or tests.
 
+### D-005 — 2026-08-24 — Prove the core workout flow before identity and AI
+
+Status: accepted
+
+Context:
+Authentication and AI both add external dependencies, failure modes, security work, and interface complexity before the core training experience has been validated.
+
+Decision or finding:
+Build the first complete prototype as a local iOS flow: onboarding with user-selected goals, workout creation, workout logging, and session summary. Defer authentication until this flow is proven and introduce AI afterward. Exclude progress photos, nutrition, wearables, and social features from the MVP.
+
+Rationale:
+This creates a useful, testable product loop with minimal infrastructure and ensures the workout experience—not account setup or chat—is the foundation of the application.
+
+Alternatives considered:
+Starting with account infrastructure was deferred because cross-device persistence is not required to validate the initial flow. Starting with AI was rejected because it would obscure whether the underlying fitness product is useful and dependable.
+
+Consequences / follow-up:
+The local data model should use stable identifiers and avoid assumptions that make later account synchronization unnecessarily difficult. Before authentication is added, its provider, migration path for local data, privacy behavior, and account lifecycle require a separate ADR.
+
 ## Issue log
 
-No implementation issues have been encountered yet.
+### I-001 — 2026-08-24 — Expo SDK 57 transitive uuid advisory
+
+Status: open
+
+Context:
+After installing the current Expo SDK 57 scaffold, `npm audit --omit=dev` reported ten moderate findings. They resolve to one transitive chain: `expo@57.0.15` → `@expo/config-plugins@57.0.8` → `xcode@3.0.1` → `uuid@7.0.3`.
+
+Decision or finding:
+The underlying advisory is [GHSA-w5hq-g745-h8pq](https://github.com/advisories/GHSA-w5hq-g745-h8pq), affecting particular UUID buffer-writing APIs before `uuid@11.1.1`. The application does not call this transitive build-tool dependency directly. There are no high or critical findings. npm's proposed automatic resolution would downgrade Expo to version 46, which is incompatible with the selected SDK and is not an acceptable fix.
+
+Rationale:
+Do not use `npm audit fix --force`, downgrade Expo, or force an unverified major override into Expo's native configuration tooling. Retain the official current SDK dependency graph while tracking the upstream fix.
+
+Alternatives considered:
+Forcing `uuid@11.1.1` through an npm override was rejected because `xcode@3.0.1` declares the older API range and a major override could break native project generation. Downgrading Expo was rejected because it would abandon the current supported stack to satisfy an invalid automated remediation path.
+
+Consequences / follow-up:
+Re-run the production audit on Expo patch updates and before introducing native prebuild or release builds. Resolve the issue when Expo's supported dependency graph includes a patched UUID version. Escalate immediately if the advisory scope changes, direct runtime exposure is discovered, or severity increases.
+
+Evidence:
+`npm audit --omit=dev --json`, `npm explain uuid`, and `npm ls uuid xcode @expo/config-plugins` on 2026-08-24. Result: 10 moderate, 0 high, 0 critical vulnerabilities; all reported paths originate from the current Expo dependency graph.
+
+### I-002 — 2026-08-24 — Expo lint stack currently resolves to ESLint 9 after end of support
+
+Status: open
+
+Context:
+The official Expo SDK 57 lint setup installed `eslint@9.39.5`. [ESLint's support policy](https://eslint.org/version-support/) marks the v9 release line end-of-life as of 2026-08-06, and clean installation emits a deprecation warning.
+
+Decision or finding:
+Keep the working Expo-supported lint configuration temporarily rather than force ESLint 10 through an incompatible peer graph or introduce a second linter. `eslint-config-expo@57.0.1` accepts ESLint 10, but its current `eslint-plugin-react@7.37.5` dependency declares support only through ESLint 9.
+
+Rationale:
+Linting currently passes and remains valuable, but a forced unsupported upgrade could make checks unreliable. Adding another lint system at scaffold time would create duplicate policy and unnecessary configuration.
+
+Alternatives considered:
+Forcing ESLint 10 was rejected because the installed React plugin does not declare compatibility. Replacing Expo ESLint with a different tool was rejected until the official stack can be reassessed on the next Expo patch or SDK update.
+
+Consequences / follow-up:
+Check Expo and `eslint-plugin-react` updates regularly. Upgrade to ESLint 10 as soon as the resolved Expo lint stack declares compatible peers and all lint checks pass. Treat new security findings in the EOL line as higher priority.
+
+Evidence:
+`npm ci --no-audit` deprecation output; installed package peer metadata inspected on 2026-08-24; formatting, type-checking, linting, and tests all pass with the current versions.
 
 ## Performance log
 
@@ -134,12 +195,11 @@ No executable paths exist yet, so no meaningful baselines have been recorded. Ba
 These choices are intentionally unresolved until their requirements are clearer:
 
 - Product name and final visual identity.
-- The narrow initial training audience: general strength, hypertrophy, or a broader combination.
+- The supported goal taxonomy and whether free-form goal detail is allowed.
 - Authentication and identity provider.
 - Hosting provider and deployment topology.
 - AI provider and model selection.
 - Offline workout logging and synchronization design.
 - Source and licensing for the exercise catalogue and any media.
 - Analytics and crash-reporting providers.
-- Whether progress photos belong in the MVP.
 - Monetization, if the product proceeds beyond personal and portfolio use.

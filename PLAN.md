@@ -27,14 +27,16 @@ Acceptance:
 
 ### 0.2 Resolve pre-scaffold product choices
 
-Status: pending
+Status: complete
 
-Questions requiring product input:
+Decisions:
 
-- What working name should replace “Fitness Coach,” if any?
-- Is the first experience primarily general strength, hypertrophy, or a balanced strength-and-fitness product?
-- Should sign-in be required in the first local prototype, or introduced after the workout flow is proven?
-- Are progress photos excluded from the MVP by default?
+- Retain “Fitness Coach” as the working title until naming work is useful.
+- Let users choose their own goals from a supported onboarding taxonomy rather than imposing one training focus.
+- Prove a local prototype before introducing authentication.
+- Make onboarding → workout creation → workout logging → session summary the first complete journey.
+- Exclude progress photos, nutrition, wearables, and social features from the MVP.
+- Use Fitbod as a directional style reference while creating original branding and interaction design.
 
 Acceptance:
 
@@ -48,7 +50,7 @@ Each item below is a separate increment.
 
 ### 1.1 Scaffold the minimum Expo TypeScript application
 
-Status: pending
+Status: complete
 
 - Use the current stable Expo SDK and pin dependencies with a lockfile.
 - Enable strict TypeScript, linting, formatting, and a focused unit-test setup.
@@ -59,6 +61,15 @@ Acceptance:
 
 - Install, type-check, lint, test, and iOS start commands are documented and pass.
 - No product screens, state libraries, or UI framework are added yet.
+
+Verification completed on 2026-08-24:
+
+- Expo SDK 57.0.15 and React Native 0.86.2 installed from a committed npm lockfile.
+- Formatting, strict TypeScript, Expo ESLint, and the Jest component smoke test pass.
+- Expo dependency compatibility check passes against the locally bundled SDK map.
+- A production iOS bundle exports successfully.
+- Metro launches the project in Expo Go on an iPhone 16 Plus simulator running iOS 18.6 and serves the bundle successfully.
+- The open transitive dependency advisory is recorded as `I-001` in `DEVELOPMENT.md`.
 
 ### 1.2 Establish design foundations
 
@@ -216,5 +227,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Resolve the four questions in Phase 0.2, record the answers, and then perform Phase 1.1 only.
-
+Perform Phase 1.2 only: establish the original design tokens and the minimum visual primitives needed for the first screen, with accessibility and simulator review.

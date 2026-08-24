@@ -15,11 +15,11 @@ Many fitness applications are either passive workout logs, rigid program librari
 ## Initial audience
 
 - Adults aged 18 and over.
-- People pursuing general strength and fitness goals.
+- People pursuing their own supported strength, muscle-building, or general fitness goals.
 - Beginner-to-intermediate users who value guidance but retain control over their training.
 - Initially, one account represents one person; coach, clinician, team, and household accounts are out of scope.
 
-The exact balance between general strength, hypertrophy, and broader fitness is an open product decision.
+The application will not impose one universal training outcome. Onboarding will let the user choose their own goals from a clear supported set. The initial goal taxonomy and whether users may add free-form detail will be decided when onboarding is designed.
 
 ## Core jobs
 
@@ -41,7 +41,7 @@ The exact balance between general strength, hypertrophy, and broader fitness is 
 
 ## MVP capabilities
 
-- Focused onboarding for goals, experience, equipment, and preferred units.
+- Focused onboarding that lets users choose their goals, experience, equipment, and preferred units.
 - A curated exercise catalogue with clear, licensed content.
 - Creation and editing of simple workouts.
 - Active-session logging for sets, repetitions, load, completion, and notes.
@@ -59,6 +59,7 @@ The exact balance between general strength, hypertrophy, and broader fitness is 
 - Support for minors.
 - Social feeds, public profiles, competitions, or coach marketplaces.
 - Wearables or Apple Health integration.
+- Progress photos.
 - Browser and Android releases.
 - Computer-vision form assessment.
 - Autonomous program changes.
@@ -77,6 +78,8 @@ The interface should feel like a well-made native fitness tool, not a themed AI 
 - Complete empty, loading, error, interrupted, and offline experiences.
 
 The coach should appear where context makes it useful, but chat should not dominate the application shell.
+
+[Fitbod](https://fitbod.me/) is a directional reference for its fitness-first hierarchy, focused workout calls to action, readable exercise/set presentation, visible progress and recovery context, and confident native feel. It is not a template: this product will not copy Fitbod's branding, proprietary flows, screen layouts, iconography, illustrations, or exact visual system. We will develop an original identity using the qualities the reference helps articulate.
 
 ## Safety position
 
@@ -99,10 +102,8 @@ Before setting numeric targets, establish representative flows and measurement b
 ## Open product questions
 
 - What is the product's working and eventual public name?
-- Which training outcome should lead the first experience?
+- Which supported goals and combinations belong in the first onboarding taxonomy?
 - What is the smallest useful onboarding dataset?
 - Is authentication required for the first prototype?
-- Are progress photos excluded from the MVP?
 - What tone should the coach use, and how configurable should it be?
 - Which jurisdictions and app-store markets would a first public beta target?
-
