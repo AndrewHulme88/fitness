@@ -115,12 +115,22 @@ Verification completed on 2026-08-25:
 
 ### 2.1 Scaffold the ASP.NET Core API and tests
 
-Status: pending
+Status: complete
 
 - Target .NET 10 LTS with nullable reference types and strict analyzers.
 - Add a minimal health endpoint and integration test.
 - Add structured logging with sensitive-body logging disabled.
 - Document local build, test, and run commands.
+
+Verification completed on 2026-08-25:
+
+- The .NET 10 API and xUnit v3 integration-test projects are included in a solution with nullable reference types, implicit usings, recommended analyzers, code-style enforcement, and warnings treated as errors.
+- NuGet dependencies are captured in lockfiles and restore successfully in locked mode.
+- The API exposes only `GET /health`; PostgreSQL, EF Core, OpenAPI, authentication, and product endpoints remain deferred.
+- Four integration tests verify the health response and cache protection, unknown-route behavior, the privacy-safe structured logging configuration, and actual middleware logging without query-string leakage.
+- A real HTTPS process smoke test returned `200 Healthy` and emitted a JSON request record containing only method, path, status, and duration. A synthetic query-string marker was absent from the log.
+- Formatting, Release build, tests, and dependency-vulnerability checks pass.
+- No performance benchmark was added because an otherwise empty health endpoint is not representative of future application or persistence performance.
 
 ### 2.2 Add PostgreSQL development infrastructure
 
@@ -244,4 +254,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Perform Phase 2.1 only: scaffold the ASP.NET Core API and its test project with a minimal health endpoint, structured logging defaults, and documented local commands.
+Perform Phase 2.2 only: add pinned local PostgreSQL development infrastructure, environment-based EF Core configuration, and PostgreSQL-backed migration and connectivity tests without committing credentials.

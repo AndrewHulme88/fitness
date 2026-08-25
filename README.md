@@ -2,7 +2,7 @@
 
 Fitness Coach is the working title for an iOS-first fitness application that combines workout planning and logging with a context-aware AI coach. The product is intended to feel calm, trustworthy, fast, and genuinely useful during training.
 
-The repository has completed its foundation phase and now contains a verified iOS client foundation with the initial navigation shell. Product behavior remains intentionally skeletal while the backend foundation is established.
+The repository has completed its foundation phase and now contains verified iOS and API foundations. Product behavior remains intentionally skeletal while persistence and the first end-to-end feature slice are established.
 
 ## Product intent
 
@@ -51,15 +51,16 @@ See [docs/architecture.md](docs/architecture.md) for the full boundary descripti
 Directories are added only when their first increment begins.
 
 ```text
-apps/client/          Expo mobile application
-services/api/         ASP.NET Core API
-tests/                Cross-system or performance tests when required
-docs/                 Product, architecture, safety, and decision records
+frontend/                                   Expo mobile application
+backend/FitnessCoach.Api/                   ASP.NET Core API
+tests/FitnessCoach.Api.IntegrationTests/    API integration tests
+docs/                                       Product, architecture, safety, and decision records
+Directory.Build.props                       Shared .NET build and analysis policy
+FitnessCoach.slnx                           .NET solution
+global.json                                 .NET SDK selection policy
 ```
 
 The generated TypeScript API client may later live under `packages/` if generation and consumption justify a separate package.
-
-Only `apps/client/` exists today. The other paths describe the intended structure and will not be created until needed.
 
 ## Client development
 
@@ -72,7 +73,7 @@ Prerequisites:
 Install exactly from the lockfile:
 
 ```bash
-cd apps/client
+cd frontend
 npm ci
 ```
 
@@ -92,6 +93,30 @@ npm run ios
 ```
 
 `npm run start` starts Metro without automatically selecting a platform. Product-facing Android and browser scripts are intentionally absent from the initial iOS scope.
+
+## API development
+
+Prerequisites:
+
+- .NET 10 SDK. The repository's `global.json` accepts installed .NET 10 feature bands while preventing an accidental major-version change.
+- A trusted ASP.NET Core development certificate for local HTTPS. On macOS, run `dotnet dev-certs https --trust` once if the certificate is not already trusted.
+
+Restore exactly from the NuGet lockfiles and run the quality checks:
+
+```bash
+dotnet restore FitnessCoach.slnx --locked-mode
+dotnet format FitnessCoach.slnx --verify-no-changes --no-restore
+dotnet build FitnessCoach.slnx --configuration Release --no-restore
+dotnet test FitnessCoach.slnx --configuration Release --no-restore --no-build
+```
+
+Start the API over local HTTPS:
+
+```bash
+dotnet run --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj --launch-profile https --no-restore
+```
+
+The launch profile selects available loopback ports and prints them at startup. `GET /health` returns the API health status as plain text. Console logs use JSON; HTTP request logging is limited to method, path, response status, and duration. Headers, query strings, and request or response bodies are excluded because they can contain sensitive fitness or authentication data.
 
 ## How work is organized
 
@@ -117,4 +142,4 @@ npm run ios
 
 ## Current status
 
-Foundation documentation, the Expo SDK 57 client, the Midnight Indigo design system, and the initial Expo Router shell are established. The shell covers onboarding, workout creation, an active workout, session summary, and safe loading, error, and unavailable states. Formatting, strict TypeScript, linting, focused route/component/token tests, clean installation, iOS bundling, deep linking, Dynamic Type behavior, and simulator layouts have been verified. The next increment is the minimal ASP.NET Core API scaffold described in `PLAN.md`.
+Foundation documentation, the Expo SDK 57 client, the Midnight Indigo design system, the initial Expo Router shell, and the .NET 10 API scaffold are established. The API currently exposes only a health endpoint and has strict build analysis, privacy-safe structured request logging, locked dependencies, and HTTP-level integration tests. PostgreSQL, EF Core, OpenAPI, authentication, and product endpoints remain deliberately deferred to their planned increments. The next increment is the PostgreSQL development foundation described in `PLAN.md`.

@@ -57,13 +57,13 @@ Responsibilities:
 - Degrade safely when the API or AI provider is unavailable.
 - Avoid containing privileged provider credentials or authoritative business rules.
 
-The client uses Expo Router with its stable native stack and typed routes. Route files live under `apps/client/src/app`; the initial graph is deliberately limited to onboarding, workout creation, an active workout, a session summary, and route-level loading, error, and unavailable states. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
+The client uses Expo Router with its stable native stack and typed routes. Route files live under `frontend/src/app`; the initial graph is deliberately limited to onboarding, workout creation, an active workout, a session summary, and route-level loading, error, and unavailable states. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
 
 Android portability should be retained through standard React Native patterns. Android-specific implementation and QA are deferred.
 
 ## API
 
-The API will use ASP.NET Core on .NET 10 LTS with nullable reference types enabled.
+The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. The initial implementation is a Minimal API that exposes only `GET /health`. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. PostgreSQL, OpenAPI, authentication, and product endpoints remain deferred to their explicit plan increments.
 
 Responsibilities:
 

@@ -148,7 +148,7 @@ Context:
 Phase 1.3 requires a navigation foundation for onboarding and the first workout journey while preserving normal React Native portability.
 
 Decision or finding:
-Use Expo Router with the stable native stack and typed routes. Keep route modules under `apps/client/src/app`, with the root layout responsible for shared stack presentation and safe loading/error fallbacks. Use `+not-found` for unavailable-route recovery.
+Use Expo Router with the stable native stack and typed routes. Keep route modules under `frontend/src/app`, with the root layout responsible for shared stack presentation and safe loading/error fallbacks. Use `+not-found` for unavailable-route recovery.
 
 Rationale:
 Expo Router is aligned with the Expo toolchain and provides file-based routes, native deep-link support, typed destinations, and route integration testing without a custom navigation abstraction.
@@ -228,6 +228,50 @@ Keep the direct peer pins until the Expo Router test helper supports the asynchr
 
 Evidence:
 `npm ls`, npm peer-resolution errors, `npx expo install --check`, and the passing Router integration suite on 2026-08-25. The final graph uses `react-native-reanimated@4.5.1`, `react-native-worklets@0.10.1`, `react-dom@19.2.3`, `react-test-renderer@19.2.3`, and `@testing-library/react-native@13.3.3`.
+
+### I-004 — 2026-08-25 — Generated localhost dynamic ports prevented the API from starting
+
+Status: resolved
+
+Context:
+The .NET 10 web API template generated launch profiles using `localhost:0` so local runs could select an available port.
+
+Decision or finding:
+Kestrel does not support dynamic port binding for the `localhost` hostname and rejected both generated profiles at startup. The profiles now bind to the explicit IPv4 loopback address `127.0.0.1:0`, preserving dynamic port allocation without exposing the development server to the network.
+
+Rationale:
+Loopback-only dynamic ports avoid common local port conflicts and are compatible with Kestrel. Fixed ports provide no product benefit at this stage.
+
+Alternatives considered:
+Fixed localhost ports were rejected because parallel work and other local services can collide with them. Binding to all interfaces was rejected because it unnecessarily broadens development-server exposure.
+
+Consequences / follow-up:
+The selected ports are printed in the startup logs rather than being constant. Local tooling and documentation must not assume a fixed API port.
+
+Evidence:
+The original profile failed with `Dynamic port binding is not supported when binding to localhost`. The corrected HTTPS profile started both loopback listeners successfully, and a loopback HTTPS health request returned `200 Healthy`.
+
+### I-005 — 2026-08-25 — Health endpoint short-circuiting bypassed request logging
+
+Status: resolved
+
+Context:
+The initial health route used ASP.NET Core's endpoint short-circuit option. The route returned the expected response, but a real-process smoke test produced no HTTP request log.
+
+Decision or finding:
+Map the health check as a normal endpoint so it passes through the configured HTTP logging middleware. Keep the endpoint otherwise minimal and unauthenticated for future health probes.
+
+Rationale:
+Health traffic is operationally useful when diagnosing availability, and the selected log fields contain no headers, query strings, or bodies. Consistent middleware behavior is more valuable here than bypassing a negligible pipeline on an empty scaffold.
+
+Alternatives considered:
+Retaining short-circuiting and accepting missing request records was rejected because it contradicted the verified logging behavior. A separate custom logging path was rejected as unnecessary complexity.
+
+Consequences / follow-up:
+Future middleware added before the endpoint can run for health requests. Reassess the pipeline only if a measured performance or dependency-isolation requirement justifies a dedicated probe path.
+
+Evidence:
+Before the change, the real API returned `Healthy` without an HTTP logging record. After removing short-circuiting, the same request emitted JSON with method `GET`, path `/health`, status `200`, and duration; the synthetic query-string marker was absent.
 
 ## Performance log
 

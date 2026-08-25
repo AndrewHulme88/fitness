@@ -9,7 +9,7 @@ The iOS client needs a small navigation graph now and should retain a straightfo
 
 ## Decision
 
-Use Expo Router with its stable native stack and typed routes. Keep route modules under `apps/client/src/app` and add destinations only when an active product increment needs them. The root layout owns shared stack presentation plus loading and error fallbacks; `+not-found` owns unavailable-route recovery.
+Use Expo Router with its stable native stack and typed routes. Keep route modules under `frontend/src/app` and add destinations only when an active product increment needs them. The root layout owns shared stack presentation plus loading and error fallbacks; `+not-found` owns unavailable-route recovery.
 
 ## Consequences
 

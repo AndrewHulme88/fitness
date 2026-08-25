@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/FitnessCoach.Api/FitnessCoach.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FitnessCoach.Api.IntegrationTests/FitnessCoach.Api.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
