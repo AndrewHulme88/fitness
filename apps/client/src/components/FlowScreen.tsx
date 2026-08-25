@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 
-import { spacing } from "../theme/tokens";
+import { layout, spacing } from "../theme/tokens";
 import { AppScreen } from "./AppScreen";
 import { AppText } from "./AppText";
 import { PrimaryButton } from "./PrimaryButton";
@@ -54,13 +54,14 @@ export function FlowScreen({
 const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
+    alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xxxl,
   },
   copy: {
     width: "100%",
-    maxWidth: 380,
+    maxWidth: layout.readableContentWidth,
     gap: spacing.lg,
   },
 });

@@ -18,7 +18,7 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return (
     <RouteStatus
       actionLabel="Try again"
-      message="The screen could not be opened. Your workout data has not been changed."
+      message="We couldn't open this screen. Please try again."
       onAction={retry}
       title="Something went wrong"
     />

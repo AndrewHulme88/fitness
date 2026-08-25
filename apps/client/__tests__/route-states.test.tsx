@@ -6,7 +6,9 @@ describe("route states", () => {
   it("shows a clear loading state", () => {
     render(<SuspenseFallback />);
 
-    expect(screen.getByLabelText("Loading")).toBeVisible();
+    const progress = screen.getByLabelText("Loading");
+    expect(progress).toBeVisible();
+    expect(progress).toHaveProp("accessibilityRole", "progressbar");
     expect(screen.getByRole("header", { name: "Loading" })).toBeVisible();
   });
 
@@ -19,6 +21,9 @@ describe("route states", () => {
 
     expect(
       screen.getByRole("header", { name: "Something went wrong" }),
+    ).toBeVisible();
+    expect(
+      screen.getByText("We couldn't open this screen. Please try again."),
     ).toBeVisible();
     expect(screen.queryByText("sensitive detail")).not.toBeOnTheScreen();
 

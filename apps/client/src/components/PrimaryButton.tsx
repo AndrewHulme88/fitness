@@ -3,16 +3,32 @@ import { Pressable, StyleSheet, type PressableProps } from "react-native";
 import { colors, layout, radii, spacing } from "../theme/tokens";
 import { AppText } from "./AppText";
 
-type PrimaryButtonProps = Omit<PressableProps, "children" | "style"> & {
+type PrimaryButtonProps = Omit<
+  PressableProps,
+  "accessibilityRole" | "children" | "style"
+> & {
   label: string;
 };
 
-export function PrimaryButton({ label, ...props }: PrimaryButtonProps) {
+export function PrimaryButton({
+  accessibilityState,
+  disabled = false,
+  label,
+  ...props
+}: PrimaryButtonProps) {
+  const isDisabled = disabled === true;
+
   return (
     <Pressable
       {...props}
       accessibilityRole="button"
-      style={({ pressed }) => [styles.root, pressed && styles.pressed]}
+      accessibilityState={{ ...accessibilityState, disabled: isDisabled }}
+      disabled={isDisabled}
+      style={({ pressed }) => [
+        styles.root,
+        pressed && !isDisabled && styles.pressed,
+        isDisabled && styles.disabled,
+      ]}
     >
       <AppText style={styles.label} variant="label">
         {label}
@@ -32,6 +48,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.84,
+  },
+  disabled: {
+    opacity: 0.48,
   },
   label: {
     color: colors.onAccent,

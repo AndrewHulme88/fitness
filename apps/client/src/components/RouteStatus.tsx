@@ -1,17 +1,24 @@
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 
-import { colors, spacing } from "../theme/tokens";
+import { colors, layout, spacing } from "../theme/tokens";
 import { AppScreen } from "./AppScreen";
 import { AppText } from "./AppText";
 import { PrimaryButton } from "./PrimaryButton";
 
 type RouteStatusProps = {
-  actionLabel?: string;
   busy?: boolean;
   message: string;
-  onAction?: () => void;
   title: string;
-};
+} & (
+  | {
+      actionLabel: string;
+      onAction: () => void;
+    }
+  | {
+      actionLabel?: never;
+      onAction?: never;
+    }
+);
 
 export function RouteStatus({
   actionLabel,
@@ -31,6 +38,7 @@ export function RouteStatus({
           {busy ? (
             <ActivityIndicator
               accessibilityLabel="Loading"
+              accessibilityRole="progressbar"
               color={colors.accentHighlight}
               size="large"
             />
@@ -51,13 +59,14 @@ export function RouteStatus({
 const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
+    alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xxxl,
   },
   copy: {
     width: "100%",
-    maxWidth: 380,
+    maxWidth: layout.readableContentWidth,
     gap: spacing.lg,
   },
 });

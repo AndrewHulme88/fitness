@@ -106,7 +106,7 @@ Verification completed on 2026-08-25:
 
 - Expo Router's stable native stack and typed routes cover only onboarding, workout creation, active workout, session summary, and unavailable-route recovery.
 - Route-level loading and error fallbacks provide clear, non-sensitive recovery states.
-- Nine tests pass across the route journey, missing-route recovery, fallback states, accessibility-oriented design tokens, and touch targets.
+- Eleven tests pass across the route journey, navigation history, missing-route recovery, fallback states, primary-button behavior, accessibility-oriented design tokens, and touch targets.
 - A clean lockfile install, formatting, strict TypeScript, Expo ESLint, Expo dependency validation, and a production iOS export pass.
 - The onboarding route and a deep link to workout creation were visually verified in Expo Go on an iPhone 16 Plus simulator, including retained accessibility-size reflow and the restored standard text size.
 - No performance benchmark was added because this shell has no representative performance-sensitive interaction; navigation performance will be measured when the workout flow contains real state and workload.

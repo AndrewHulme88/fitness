@@ -1,4 +1,9 @@
-import { fireEvent, renderRouter, screen } from "expo-router/testing-library";
+import {
+  fireEvent,
+  renderRouter,
+  screen,
+  testRouter,
+} from "expo-router/testing-library";
 
 describe("initial navigation shell", () => {
   it("moves through onboarding and the initial workout flow", () => {
@@ -27,6 +32,10 @@ describe("initial navigation shell", () => {
     expect(
       screen.getByRole("header", { name: "Review your session." }),
     ).toBeVisible();
+
+    testRouter.back("/workout/session");
+
+    expect(screen.getByRole("header", { name: "Your workout." })).toBeVisible();
   });
 
   it("recovers from an unavailable route", () => {
@@ -42,5 +51,6 @@ describe("initial navigation shell", () => {
     fireEvent.press(screen.getByRole("button", { name: "Return to setup" }));
 
     expect(router.getPathname()).toBe("/onboarding");
+    expect(testRouter.canGoBack()).toBe(false);
   });
 });
