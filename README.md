@@ -55,6 +55,9 @@ frontend/                                   Expo mobile application
 backend/FitnessCoach.Api/                   ASP.NET Core API
 tests/FitnessCoach.Api.IntegrationTests/    API integration tests
 docs/                                       Product, architecture, safety, and decision records
+.config/dotnet-tools.json                   Pinned repository-local .NET tools
+.env.example                                Fake local environment template
+compose.yaml                                Local PostgreSQL service
 Directory.Build.props                       Shared .NET build and analysis policy
 FitnessCoach.slnx                           .NET solution
 global.json                                 .NET SDK selection policy
@@ -99,24 +102,48 @@ npm run ios
 Prerequisites:
 
 - .NET 10 SDK. The repository's `global.json` accepts installed .NET 10 feature bands while preventing an accidental major-version change.
+- Docker Desktop or another Docker-compatible engine with Compose support.
 - A trusted ASP.NET Core development certificate for local HTTPS. On macOS, run `dotnet dev-certs https --trust` once if the certificate is not already trusted.
 
-Restore exactly from the NuGet lockfiles and run the quality checks:
+Restore the repository-pinned EF Core tool and NuGet dependencies, then run the quality checks. The integration suite starts its own disposable PostgreSQL container, so Docker must be running; it does not use or modify the development database.
 
 ```bash
+dotnet tool restore
 dotnet restore FitnessCoach.slnx --locked-mode
 dotnet format FitnessCoach.slnx --verify-no-changes --no-restore
 dotnet build FitnessCoach.slnx --configuration Release --no-restore
 dotnet test FitnessCoach.slnx --configuration Release --no-restore --no-build
 ```
 
-Start the API over local HTTPS:
+Configure the local database once:
+
+```bash
+cp .env.example .env
+```
+
+Replace the placeholder password in both `POSTGRES_PASSWORD` and `ConnectionStrings__Postgres` with the same local-only value. Never commit `.env`. Then load the environment, start PostgreSQL, and apply pending migrations:
+
+```bash
+set -a
+source .env
+set +a
+docker compose up --detach --wait database
+dotnet tool run dotnet-ef database update \
+  --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj \
+  --startup-project backend/FitnessCoach.Api/FitnessCoach.Api.csproj
+```
+
+Start the API over local HTTPS from the same shell:
 
 ```bash
 dotnet run --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj --launch-profile https --no-restore
 ```
 
-The launch profile selects available loopback ports and prints them at startup. `GET /health` returns the API health status as plain text. Console logs use JSON; HTTP request logging is limited to method, path, response status, and duration. Headers, query strings, and request or response bodies are excluded because they can contain sensitive fitness or authentication data.
+The launch profile selects available loopback ports and prints them at startup. `GET /health` is a liveness endpoint and does not query PostgreSQL. Console logs use JSON; HTTP request logging is limited to method, path, response status, and duration. Headers, query strings, and request or response bodies are excluded because they can contain sensitive fitness or authentication data.
+
+Stop PostgreSQL while retaining local data with `docker compose down`. To deliberately reset the development database, use `docker compose down --volumes`; this permanently deletes the local Compose database volume.
+
+The pinned PostgreSQL image is for loopback-bound development and isolated tests only, not production deployment guidance. Current upstream image findings and follow-up requirements are recorded as `I-008` in `DEVELOPMENT.md`.
 
 ## How work is organized
 
@@ -142,4 +169,4 @@ The launch profile selects available loopback ports and prints them at startup. 
 
 ## Current status
 
-Foundation documentation, the Expo SDK 57 client, the Midnight Indigo design system, the initial Expo Router shell, and the .NET 10 API scaffold are established. The API currently exposes only a health endpoint and has strict build analysis, privacy-safe structured request logging, locked dependencies, and HTTP-level integration tests. PostgreSQL, EF Core, OpenAPI, authentication, and product endpoints remain deliberately deferred to their planned increments. The next increment is the PostgreSQL development foundation described in `PLAN.md`.
+Foundation documentation, the Expo SDK 57 client, the Midnight Indigo design system, the initial Expo Router shell, and the .NET 10 API and PostgreSQL foundations are established. The backend has strict build analysis, privacy-safe structured request logging, environment-only database configuration, a pinned local PostgreSQL service, EF Core migrations, locked dependencies, and HTTP- and PostgreSQL-level integration tests. OpenAPI, authentication, and product tables or endpoints remain deliberately deferred. The next increment is the API contract workflow described in `PLAN.md`.

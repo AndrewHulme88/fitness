@@ -11,14 +11,14 @@ using Microsoft.Extensions.Options;
 
 namespace FitnessCoach.Api.IntegrationTests;
 
-public sealed class HttpLoggingTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HttpLoggingTests : IClassFixture<ApiWebApplicationFactory>
 {
     private const string HttpLoggingCategory =
         "Microsoft.AspNetCore.HttpLogging.HttpLoggingMiddleware";
 
-    private readonly WebApplicationFactory<Program> factory;
+    private readonly ApiWebApplicationFactory factory;
 
-    public HttpLoggingTests(WebApplicationFactory<Program> factory)
+    public HttpLoggingTests(ApiWebApplicationFactory factory)
     {
         this.factory = factory;
     }

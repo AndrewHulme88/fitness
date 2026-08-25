@@ -134,12 +134,23 @@ Verification completed on 2026-08-25:
 
 ### 2.2 Add PostgreSQL development infrastructure
 
-Status: pending
+Status: complete
 
 - Add a pinned local PostgreSQL container configuration.
 - Configure EF Core through environment-based settings.
 - Prove connectivity and migration behavior with integration tests against PostgreSQL.
 - Commit no real connection strings or credentials.
+
+Verification completed on 2026-08-25:
+
+- Docker Compose and Testcontainers use PostgreSQL 18.6 on Alpine 3.24 pinned to the same immutable multi-architecture digest.
+- Compose binds only to IPv4 loopback on configurable host port 55432, persists development data in a named volume, and requires values from the ignored local environment. The committed `.env.example` contains clearly fake placeholders only.
+- EF Core 10.0.11 and Npgsql EF 10.0.3 are configured through `ConnectionStrings__Postgres`; the repository-local EF CLI is pinned, migrations are explicit, and the API does not migrate automatically at startup.
+- The initial infrastructure migration deliberately adds no product tables. It establishes the migration history and pipeline before a domain schema exists.
+- Six integration tests pass, including missing database configuration, a disposable real PostgreSQL container, connectivity, migration application, applied-migration detection, and absence of pending migrations.
+- A Compose smoke test reached healthy state, accepted the migration, and reported exactly one migration-history row through `psql`; its temporary container, network, and volume were removed afterward.
+- Locked restore, formatting, zero-warning Release build, Compose validation, NuGet vulnerability analysis, JSON checks, path checks, and secret-pattern checks pass. The open upstream findings in the local/test-only PostgreSQL image are documented as `I-008`; the lower-finding official variant was selected and is explicitly not approved for production.
+- No performance benchmark was added because an empty schema and container startup do not represent future application query performance.
 
 ### 2.3 Establish the API contract workflow
 
@@ -254,4 +265,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Perform Phase 2.2 only: add pinned local PostgreSQL development infrastructure, environment-based EF Core configuration, and PostgreSQL-backed migration and connectivity tests without committing credentials.
+Perform Phase 2.3 only: publish the API's OpenAPI contract, generate the TypeScript client deterministically, and detect contract or generated-client drift without adding product endpoints.

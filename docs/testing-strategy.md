@@ -48,6 +48,8 @@ Initial critical client journeys will include:
 
 Do not use mocked EF Core behavior as evidence that PostgreSQL behavior is correct.
 
+Persistence integration tests use Testcontainers with the same exact PostgreSQL image as local Compose development. Each test database is disposable and isolated from the developer's persistent Compose volume. Docker is therefore a prerequisite for the backend integration suite.
+
 ## AI tests and evaluations
 
 Automated application tests must use a fake provider and deterministic fixtures. They should verify:
@@ -161,4 +163,3 @@ CI configuration should not be added before there is a real command for it to ru
 - Relevant performance behavior was measured when the change touches a sensitive path.
 - Test commands and results are reported accurately.
 - The development journal and other documentation are updated when the increment produced a meaningful decision or lesson.
-

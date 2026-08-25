@@ -161,6 +161,44 @@ Add route files only for active product increments. Do not introduce route group
 
 Related ADR: [ADR-0004](docs/adr/0004-expo-router-navigation.md)
 
+### D-007 — 2026-08-25 — Separate persistent development PostgreSQL from disposable test PostgreSQL
+
+Status: accepted
+
+Context:
+Phase 2.2 requires reproducible local PostgreSQL infrastructure and credible persistence tests without allowing tests to depend on a developer's mutable database state.
+
+Decision or finding:
+Use the official `postgres:18.6-alpine3.24` image pinned to digest `sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2` in two modes: Docker Compose with a named volume for ordinary development, and Testcontainers with a disposable database and dynamic host port for integration tests. Both paths apply the same committed EF Core migrations.
+
+Rationale:
+Developers retain useful local data between sessions, while tests remain isolated and repeatable against real PostgreSQL behavior. Pinning the database and Alpine versions prevents silent major or base-image changes.
+
+Alternatives considered:
+A manually installed PostgreSQL server was rejected because setup and versions would vary by machine. Reusing the Compose database in tests was rejected because test outcomes would depend on local state and fixed ports. EF Core's in-memory provider was rejected because it cannot verify PostgreSQL mappings, migrations, or SQL behavior.
+
+Consequences / follow-up:
+Docker is required for persistence integration tests. PostgreSQL image upgrades must update Compose and the Testcontainers image together and rerun migration verification. CI must provide a Docker-compatible runtime when the workflow is added.
+
+### D-008 — 2026-08-25 — Keep liveness independent from database readiness
+
+Status: accepted
+
+Context:
+The API currently exposes only a process liveness check, while database configuration is supplied by the environment and test hosts must be able to provide isolated connection strings.
+
+Decision or finding:
+Resolve and validate `ConnectionStrings__Postgres` when `FitnessCoachDbContext` is created rather than during top-level application construction. The existing `/health` route remains a liveness check and does not resolve the database context.
+
+Rationale:
+This preserves a useful process-health signal during database outages and permits integration tests to inject per-container configuration through the normal host configuration pipeline. Any attempt to use persistence without configuration still fails immediately with a clear message.
+
+Alternatives considered:
+Reading the connection string before building the host was rejected because it bypassed `WebApplicationFactory` configuration and prevented isolated test setup. Treating the current liveness route as database readiness was rejected because it would conflate two operational signals.
+
+Consequences / follow-up:
+Add a separate readiness check before deployment or when the first database-backed endpoint is introduced. Deployment orchestration should use liveness and readiness for their distinct purposes.
+
 ## Issue log
 
 ### I-001 — 2026-08-24 — Expo SDK 57 transitive uuid advisory
@@ -272,6 +310,72 @@ Future middleware added before the endpoint can run for health requests. Reasses
 
 Evidence:
 Before the change, the real API returned `Healthy` without an HTTP logging record. After removing short-circuiting, the same request emitted JSON with method `GET`, path `/health`, status `200`, and duration; the synthetic query-string marker was absent.
+
+### I-006 — 2026-08-25 — Private EF tooling assets caused runtime assembly conflicts in tests
+
+Status: resolved
+
+Context:
+The first persistence build referenced EF Core Design 10.0.11 privately and Npgsql EF 10.0.3. Because design-time assets do not flow through the API project reference, the test project resolved the provider's lower minimum EF Core runtime versions instead of the versions used to compile the API.
+
+Decision or finding:
+Reference `Microsoft.EntityFrameworkCore` and `Microsoft.EntityFrameworkCore.Relational` 10.0.11 explicitly in the API alongside the private design package. This makes the intended runtime versions transitive and aligns the API and tests without suppressing warnings or forcing restore behavior.
+
+Rationale:
+The application should declare the runtime it compiles against. Relying on a private tooling dependency to select runtime versions produced both an assembly-version compiler error and an unresolved relational-assembly warning.
+
+Alternatives considered:
+Adding version overrides only to the test project was rejected because it would conceal an incomplete API dependency declaration. Downgrading EF tooling to the provider's minimum dependency was rejected because the current compatible .NET 10 patch is available.
+
+Consequences / follow-up:
+Keep Microsoft EF Core runtime, relational, design, and repository-local CLI tool versions aligned during upgrades. Npgsql can advance on its own compatible 10.x patch line.
+
+Evidence:
+The initial build failed with `CS1705` for EF Core 10.0.4 versus 10.0.11 and then reported `MSB3277` for EF Core Relational. After the explicit runtime references and lockfile refresh, the build completed with zero warnings and zero errors.
+
+### I-007 — 2026-08-25 — Default PostgreSQL host port conflicted with an existing service
+
+Status: resolved
+
+Context:
+The first Compose smoke test mapped PostgreSQL to the conventional host port 5432, which was already allocated on the development machine.
+
+Decision or finding:
+Use host port 55432 in `.env.example` while keeping container port 5432. The host port remains configurable through `POSTGRES_PORT`, and the connection-string example uses the same value.
+
+Rationale:
+A non-default host port avoids colliding with common native PostgreSQL installations while preserving a conventional internal container configuration.
+
+Alternatives considered:
+Stopping the unrelated service was rejected because local infrastructure should not disrupt other projects. Selecting a random Compose port was rejected because the API connection string needs a stable, understandable development default.
+
+Consequences / follow-up:
+Developers can change both `POSTGRES_PORT` and the connection-string port in their ignored `.env` if 55432 is also occupied.
+
+Evidence:
+The first Compose start failed with `Bind for 0.0.0.0:5432 failed: port is already allocated`. After changing the example to 55432, the container became healthy, the migration applied, and `__EFMigrationsHistory` contained exactly one row. The temporary smoke-test volume was then removed.
+
+### I-008 — 2026-08-25 — Official PostgreSQL images contain upstream high and critical findings
+
+Status: open
+
+Context:
+Docker Scout scanned the current official PostgreSQL 18.6 variants before the image was finalized. The initially selected Alpine 3.23 variant reported 5 critical and 23 high findings across inherited `curl` and the Go standard library embedded in `gosu`.
+
+Decision or finding:
+Use the official Alpine 3.24 variant for local development and disposable tests because it removes the inherited `curl` findings and has the lowest result among the current official variants checked. Its remaining scan result is 2 critical and 20 high findings attributed to the Go 1.24.6 standard library in the upstream `gosu` artifact. This image is not approved for production deployment.
+
+Rationale:
+The database is restricted to loopback for local development or an isolated Docker network during tests, uses synthetic credentials, and is never shipped as an application artifact. No current official PostgreSQL 18.6 variant tested has a clean high/critical result: Alpine 3.24 is lower than Alpine 3.23, while Debian Trixie reported 4 critical and 22 high findings. Maintaining an ad hoc database image would add a larger supply-chain and patching burden at this stage.
+
+Alternatives considered:
+Alpine 3.23 was rejected because it adds unfixed `curl` findings. Debian Trixie was rejected because its result was worse and its image surface was larger. Building a custom image was deferred because the remaining findings originate in an upstream startup helper and this image has no production exposure.
+
+Consequences / follow-up:
+Re-scan on every PostgreSQL image update and at least before public beta. Replace the pinned digest as soon as the official image rebuilds with a corrected `gosu` toolchain. A production database deployment requires a separate image or managed-service security review and cannot inherit this local image decision.
+
+Evidence:
+`docker scout cves --exit-code --only-severity critical,high` with Docker Scout 1.22.0 on 2026-08-25. Results: Alpine 3.23 = 5 critical / 23 high; Alpine 3.24 = 2 critical / 20 high; Debian Trixie = 4 critical / 22 high. Representative remaining critical identifiers are CVE-2025-68121 and CVE-2026-39821.
 
 ## Performance log
 

@@ -63,7 +63,7 @@ Android portability should be retained through standard React Native patterns. A
 
 ## API
 
-The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. The initial implementation is a Minimal API that exposes only `GET /health`. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. PostgreSQL, OpenAPI, authentication, and product endpoints remain deferred to their explicit plan increments.
+The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. The initial implementation is a Minimal API that exposes only `GET /health`. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. The health route is a liveness check and deliberately does not require database connectivity. OpenAPI, authentication, and product endpoints remain deferred to their explicit plan increments.
 
 Responsibilities:
 
@@ -80,6 +80,10 @@ Endpoints should be thin. Business behavior belongs in cohesive feature/applicat
 ## Persistence
 
 PostgreSQL is the source of truth, accessed through EF Core and Npgsql.
+
+Local development uses `postgres:18.6-alpine3.24` pinned to an immutable multi-architecture image digest through Docker Compose, bound to the IPv4 loopback interface on a configurable host port and backed by a named volume. The API receives its connection string only through `ConnectionStrings__Postgres`; no connection string or real credential is committed. EF migrations are explicit and are not applied automatically at API startup. This image is local/test infrastructure only and is not an approved production database image.
+
+Persistence integration tests use Testcontainers to start a disposable instance of the same PostgreSQL image on an isolated dynamic port. Tests apply the committed migrations and verify connectivity against PostgreSQL rather than substituting an in-memory provider. The initial migration intentionally contains no product tables; it establishes and tests the migration pipeline before the first domain model exists.
 
 Initial rules:
 
