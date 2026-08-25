@@ -57,7 +57,7 @@ Responsibilities:
 - Degrade safely when the API or AI provider is unavailable.
 - Avoid containing privileged provider credentials or authoritative business rules.
 
-Expo Router is the current navigation direction, to be confirmed when the client is scaffolded. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
+The client uses Expo Router with its stable native stack and typed routes. Route files live under `apps/client/src/app`; the initial graph is deliberately limited to onboarding, workout creation, an active workout, a session summary, and route-level loading, error, and unavailable states. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
 
 Android portability should be retained through standard React Native patterns. Android-specific implementation and QA are deferred.
 
@@ -181,4 +181,3 @@ Local development will use containerized PostgreSQL. The API should be container
 - Analytics and crash reporting.
 - Object storage.
 - Background job mechanism.
-

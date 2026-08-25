@@ -140,6 +140,27 @@ Starting with account infrastructure was deferred because cross-device persisten
 Consequences / follow-up:
 The local data model should use stable identifiers and avoid assumptions that make later account synchronization unnecessarily difficult. Before authentication is added, its provider, migration path for local data, privacy behavior, and account lifecycle require a separate ADR.
 
+### D-006 — 2026-08-25 — Use Expo Router's stable native stack
+
+Status: accepted
+
+Context:
+Phase 1.3 requires a navigation foundation for onboarding and the first workout journey while preserving normal React Native portability.
+
+Decision or finding:
+Use Expo Router with the stable native stack and typed routes. Keep route modules under `apps/client/src/app`, with the root layout responsible for shared stack presentation and safe loading/error fallbacks. Use `+not-found` for unavailable-route recovery.
+
+Rationale:
+Expo Router is aligned with the Expo toolchain and provides file-based routes, native deep-link support, typed destinations, and route integration testing without a custom navigation abstraction.
+
+Alternatives considered:
+Manually configured React Navigation would duplicate route configuration without a current benefit. Expo Router's experimental stack was rejected because this increment needs a stable foundation.
+
+Consequences / follow-up:
+Add route files only for active product increments. Do not introduce route groups, tabs, or additional navigators until a concrete journey requires them.
+
+Related ADR: [ADR-0004](docs/adr/0004-expo-router-navigation.md)
+
 ## Issue log
 
 ### I-001 — 2026-08-24 — Expo SDK 57 transitive uuid advisory
@@ -162,7 +183,7 @@ Consequences / follow-up:
 Re-run the production audit on Expo patch updates and before introducing native prebuild or release builds. Resolve the issue when Expo's supported dependency graph includes a patched UUID version. Escalate immediately if the advisory scope changes, direct runtime exposure is discovered, or severity increases.
 
 Evidence:
-`npm audit --omit=dev --json`, `npm explain uuid`, and `npm ls uuid xcode @expo/config-plugins` on 2026-08-24. Result: 10 moderate, 0 high, 0 critical vulnerabilities; all reported paths originate from the current Expo dependency graph.
+`npm audit --omit=dev --json`, `npm explain uuid`, and `npm ls uuid xcode @expo/config-plugins` on 2026-08-24. Result: 10 moderate, 0 high, 0 critical vulnerabilities; all reported paths originate from the current Expo dependency graph. Re-running the production audit after the Phase 1.3 Router install on 2026-08-25 produced the same totals and chain.
 
 ### I-002 — 2026-08-24 — Expo lint stack currently resolves to ESLint 9 after end of support
 
@@ -186,9 +207,31 @@ Check Expo and `eslint-plugin-react` updates regularly. Upgrade to ESLint 10 as 
 Evidence:
 `npm ci --no-audit` deprecation output; installed package peer metadata inspected on 2026-08-24; formatting, type-checking, linting, and tests all pass with the current versions.
 
+### I-003 — 2026-08-25 — Unpinned optional peers broke the Expo Router install and test stack
+
+Status: resolved
+
+Context:
+Installing Expo Router into the SDK 57 client allowed npm to select newer peer dependency patches than the versions paired with the installed Expo and React releases. The first resolution selected `react-native-reanimated@4.6.0`, `react-native-worklets@0.12.1`, `react-dom@19.2.8`, and later `react-test-renderer@19.2.8`; those conflicted with Expo SDK 57's native module ranges or the client's `react@19.2.3`. React Native Testing Library 14 also changed `render` to an asynchronous contract that Expo Router 57's test helper does not yet support.
+
+Decision or finding:
+Pin Router-related native packages to Expo's SDK 57 compatibility map, pin `react-dom` and `react-test-renderer` to the exact React version, and use React Native Testing Library `~13.3.3` for Router integration tests.
+
+Rationale:
+These versions satisfy declared peers and preserve the official Router testing path. Ignoring peer errors or replacing navigation integration tests with mocks would make clean installation or test behavior less trustworthy.
+
+Alternatives considered:
+Using `--force` or `--legacy-peer-deps` was rejected because it would conceal an invalid graph. Retaining React Native Testing Library 14 was rejected because Expo Router 57's helper treats its Promise as a synchronous render result.
+
+Consequences / follow-up:
+Keep the direct peer pins until the Expo Router test helper supports the asynchronous renderer and the Expo SDK compatibility map advances. Reassess these pins during Expo SDK upgrades.
+
+Evidence:
+`npm ls`, npm peer-resolution errors, `npx expo install --check`, and the passing Router integration suite on 2026-08-25. The final graph uses `react-native-reanimated@4.5.1`, `react-native-worklets@0.10.1`, `react-dom@19.2.3`, `react-test-renderer@19.2.3`, and `@testing-library/react-native@13.3.3`.
+
 ## Performance log
 
-No executable paths exist yet, so no meaningful baselines have been recorded. Baselines will be added when the relevant client and API paths are introduced.
+No representative performance-sensitive path exists yet, so no meaningful baseline has been recorded. Baselines will be added when client and API paths contain realistic state, data, and workload.
 
 ## Open decisions
 

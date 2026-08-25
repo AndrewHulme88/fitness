@@ -17,6 +17,7 @@ ADRs capture decisions that have broad or long-lived technical consequences. `DE
 | [0001](0001-foundational-architecture.md) | Accepted | Expo client with an ASP.NET Core modular monolith and PostgreSQL |
 | [0002](0002-ios-first-delivery.md) | Accepted | Deliver iOS first and defer browser/Android releases |
 | [0003](0003-ai-coach-boundary.md) | Accepted | Keep the AI coach advisory, backend-mediated, and user-confirmed |
+| [0004](0004-expo-router-navigation.md) | Accepted | Use Expo Router's stable native stack for mobile navigation |
 
 ## Template
 
@@ -36,4 +37,3 @@ ADRs capture decisions that have broad or long-lived technical consequences. `DE
 ```
 
 Do not edit an accepted ADR to conceal a change in direction. Add a superseding ADR and link both records.
-

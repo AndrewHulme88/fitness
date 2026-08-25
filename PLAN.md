@@ -96,11 +96,20 @@ Verification completed on 2026-08-24:
 
 ### 1.3 Build the navigation shell
 
-Status: pending
+Status: complete
 
 - Add only the routes needed for onboarding and the initial workout flow.
 - Define loading, error, and unavailable states.
 - Add navigation tests and an iOS simulator smoke check.
+
+Verification completed on 2026-08-25:
+
+- Expo Router's stable native stack and typed routes cover only onboarding, workout creation, active workout, session summary, and unavailable-route recovery.
+- Route-level loading and error fallbacks provide clear, non-sensitive recovery states.
+- Nine tests pass across the route journey, missing-route recovery, fallback states, accessibility-oriented design tokens, and touch targets.
+- A clean lockfile install, formatting, strict TypeScript, Expo ESLint, Expo dependency validation, and a production iOS export pass.
+- The onboarding route and a deep link to workout creation were visually verified in Expo Go on an iPhone 16 Plus simulator, including retained accessibility-size reflow and the restored standard text size.
+- No performance benchmark was added because this shell has no representative performance-sensitive interaction; navigation performance will be measured when the workout flow contains real state and workload.
 
 ## Phase 2 — API and persistence foundation
 
@@ -235,4 +244,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Perform Phase 1.3 only: build the minimum navigation shell for onboarding and the initial workout flow, including loading, error, unavailable, and navigation test coverage.
+Perform Phase 2.1 only: scaffold the ASP.NET Core API and its test project with a minimal health endpoint, structured logging defaults, and documented local commands.

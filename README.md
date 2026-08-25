@@ -2,7 +2,7 @@
 
 Fitness Coach is the working title for an iOS-first fitness application that combines workout planning and logging with a context-aware AI coach. The product is intended to feel calm, trustworthy, fast, and genuinely useful during training.
 
-The repository has completed its foundation phase and now contains a minimal, verified iOS client scaffold. Product UI work has not started.
+The repository has completed its foundation phase and now contains a verified iOS client foundation with the initial navigation shell. Product behavior remains intentionally skeletal while the backend foundation is established.
 
 ## Product intent
 
@@ -117,4 +117,4 @@ npm run ios
 
 ## Current status
 
-Foundation documentation, the minimal Expo SDK 57 client, and the Midnight Indigo design foundation are established. Formatting, strict TypeScript, linting, focused component and token tests, iOS bundling, Dynamic Type behavior, and compact/large simulator layouts have been verified. The next increment is the navigation shell described in `PLAN.md`.
+Foundation documentation, the Expo SDK 57 client, the Midnight Indigo design system, and the initial Expo Router shell are established. The shell covers onboarding, workout creation, an active workout, session summary, and safe loading, error, and unavailable states. Formatting, strict TypeScript, linting, focused route/component/token tests, clean installation, iOS bundling, deep linking, Dynamic Type behavior, and simulator layouts have been verified. The next increment is the minimal ASP.NET Core API scaffold described in `PLAN.md`.
