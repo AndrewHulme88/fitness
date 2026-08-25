@@ -63,7 +63,7 @@ Android portability should be retained through standard React Native patterns. A
 
 ## API
 
-The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. The initial implementation is a Minimal API that exposes only `GET /health`. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. The health route is a liveness check and deliberately does not require database connectivity. OpenAPI, authentication, and product endpoints remain deferred to their explicit plan increments.
+The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. The initial implementation is a Minimal API that exposes only `GET /health`. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. The health route is a liveness check and deliberately does not require database connectivity. ASP.NET Core publishes the versioned OpenAPI document in Development and generates the committed contract during the build. Authentication and product endpoints remain deferred to their explicit plan increments.
 
 Responsibilities:
 
@@ -99,9 +99,13 @@ Progress photos, if later approved, should use private object storage rather tha
 
 ## API contract
 
-The API's OpenAPI document is the canonical transport contract. A generated TypeScript client will be consumed by the mobile app. Generation should be deterministic and verified in CI to prevent contract drift.
+The API's OpenAPI 3.1 document is the canonical transport contract. The committed contract at `contracts/FitnessCoach.Api.json` generates TypeScript route and schema types under `frontend/src/api/generated`; the mobile application reaches them through a small typed fetch client rather than handwritten DTOs. The generator is isolated under `tools/api-contract` so its supported TypeScript 5 toolchain does not conflict with Expo's TypeScript 6 compiler.
+
+Generation is deterministic. Local and CI checks regenerate the contract and client types in a temporary directory and fail when either committed artifact differs. Runtime OpenAPI is available only in Development, and no interactive documentation UI is included.
 
 Domain entities will not be serialized directly. Transport types should expose only the data required by the client.
+
+See [ADR-0005](adr/0005-api-contract-workflow.md).
 
 ## AI coach boundary
 

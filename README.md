@@ -26,7 +26,7 @@ The AI coach is a general wellness feature. It will not diagnose injuries, presc
 - ASP.NET Core API on .NET 10 LTS.
 - EF Core with PostgreSQL.
 - A backend-only AI service boundary supporting OpenAI or an equivalent provider.
-- GitHub Actions for continuous integration is the current direction, to be confirmed when the projects are scaffolded.
+- GitHub Actions for continuous integration, beginning with deterministic API contract drift checks.
 
 Not in the first release: injury rehabilitation, diagnosis, disease management, prescriptive nutrition, progress photos, social features, wearables, subscriptions, a vector database, microservices, or a public web application.
 
@@ -46,7 +46,7 @@ The API owns authorization and business rules. PostgreSQL is the source of truth
 
 See [docs/architecture.md](docs/architecture.md) for the full boundary description.
 
-## Proposed repository layout
+## Repository layout
 
 Directories are added only when their first increment begins.
 
@@ -54,6 +54,10 @@ Directories are added only when their first increment begins.
 frontend/                                   Expo mobile application
 backend/FitnessCoach.Api/                   ASP.NET Core API
 tests/FitnessCoach.Api.IntegrationTests/    API integration tests
+contracts/FitnessCoach.Api.json             Committed canonical OpenAPI document
+tools/api-contract/                         Isolated TypeScript contract generator
+scripts/                                    Contract generation and verification commands
+.github/workflows/                          Continuous integration workflows
 docs/                                       Product, architecture, safety, and decision records
 .config/dotnet-tools.json                   Pinned repository-local .NET tools
 .env.example                                Fake local environment template
@@ -63,7 +67,7 @@ FitnessCoach.slnx                           .NET solution
 global.json                                 .NET SDK selection policy
 ```
 
-The generated TypeScript API client may later live under `packages/` if generation and consumption justify a separate package.
+Generated API types live with their only consumer under `frontend/src/api/generated`. They may move to a package only if another real consumer requires one.
 
 ## Client development
 
@@ -145,6 +149,32 @@ Stop PostgreSQL while retaining local data with `docker compose down`. To delibe
 
 The pinned PostgreSQL image is for loopback-bound development and isolated tests only, not production deployment guidance. Current upstream image findings and follow-up requirements are recorded as `I-008` in `DEVELOPMENT.md`.
 
+## API contract workflow
+
+The API owns the transport contract. ASP.NET Core generates the committed OpenAPI 3.1 document, and the mobile client consumes generated TypeScript route and schema types through a small typed fetch wrapper. Do not edit either generated artifact directly.
+
+Install the two locked JavaScript dependency sets and restore .NET before generating:
+
+```bash
+npm ci --prefix frontend
+npm ci --prefix tools/api-contract
+dotnet restore FitnessCoach.slnx --locked-mode
+```
+
+After changing an endpoint or its metadata, regenerate and review both files:
+
+```bash
+bash scripts/generate-api-contract.sh
+```
+
+Before completing the increment, run the same non-mutating drift check used by CI:
+
+```bash
+bash scripts/check-api-contract.sh
+```
+
+The runtime document is available at `/openapi/v1.json` only when the API runs in the Development environment. No interactive API documentation UI is installed.
+
 ## How work is organized
 
 - [AGENTS.md](AGENTS.md) — binding working, quality, security, and design rules.
@@ -169,4 +199,4 @@ The pinned PostgreSQL image is for loopback-bound development and isolated tests
 
 ## Current status
 
-Foundation documentation, the Expo SDK 57 client, the Midnight Indigo design system, the initial Expo Router shell, and the .NET 10 API and PostgreSQL foundations are established. The backend has strict build analysis, privacy-safe structured request logging, environment-only database configuration, a pinned local PostgreSQL service, EF Core migrations, locked dependencies, and HTTP- and PostgreSQL-level integration tests. OpenAPI, authentication, and product tables or endpoints remain deliberately deferred. The next increment is the API contract workflow described in `PLAN.md`.
+Foundation documentation, the Expo SDK 57 client, the Midnight Indigo design system, the initial Expo Router shell, and the .NET 10 API, PostgreSQL, and OpenAPI contract foundations are established. The backend has strict build analysis, privacy-safe structured request logging, environment-only database configuration, a pinned local PostgreSQL service, EF Core migrations, locked dependencies, and HTTP- and PostgreSQL-level integration tests. The committed OpenAPI document generates the frontend's typed API surface, and CI checks both artifacts for drift. Authentication and product tables or endpoints remain deliberately deferred. The next increment is profile and onboarding definition in Phase 3.1.

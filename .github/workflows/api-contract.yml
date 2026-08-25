@@ -1,0 +1,51 @@
+name: API contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drift-check:
+    name: Detect contract drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.5.0
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            tools/api-contract/package-lock.json
+
+      - name: Install contract tooling
+        run: npm ci --prefix tools/api-contract --no-audit
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend --no-audit
+
+      - name: Restore .NET dependencies
+        run: dotnet restore FitnessCoach.slnx --locked-mode
+
+      - name: Check generated API contract
+        run: bash scripts/check-api-contract.sh

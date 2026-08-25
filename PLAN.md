@@ -154,11 +154,20 @@ Verification completed on 2026-08-25:
 
 ### 2.3 Establish the API contract workflow
 
-Status: pending
+Status: complete
 
 - Publish an OpenAPI contract from the API.
 - Generate a typed TypeScript client rather than duplicating DTOs.
 - Add a CI check that detects contract or generated-client drift.
+
+Verification completed on 2026-08-25:
+
+- ASP.NET Core 10 publishes the versioned OpenAPI 3.1 document at `/openapi/v1.json` in Development only and emits the same canonical document during a non-incremental Release build.
+- The committed contract includes the liveness route's stable operation identifier and typed `200` and `503` responses; integration tests verify its shape and confirm it is absent in Production.
+- `openapi-typescript` 7.13.0 runs in an isolated TypeScript 5 tool package and produces the committed route/schema types consumed by an `openapi-fetch` client wrapper in the TypeScript 6 Expo application.
+- The local drift command and the GitHub Actions workflow regenerate into a temporary directory and compare both committed artifacts without modifying them.
+- Locked installs, formatting, strict TypeScript, Expo lint, the frontend suite, locked .NET restore, zero-warning Release build, the eight-test API integration suite, generation drift checks, and dependency vulnerability checks pass subject to the existing Expo advisory recorded as `I-001`.
+- No performance benchmark was added because contract generation and a liveness request are build-time or non-representative glue paths rather than product performance paths.
 
 ## Phase 3 — Core fitness experience without AI
 
@@ -265,4 +274,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Perform Phase 2.3 only: publish the API's OpenAPI contract, generate the TypeScript client deterministically, and detect contract or generated-client drift without adding product endpoints.
+Perform Phase 3.1 only: define the minimum profile and onboarding contract for user-selected goals, experience, available equipment, units, and necessary self-declared constraints without collecting unnecessary medical detail.

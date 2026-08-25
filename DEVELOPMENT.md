@@ -199,6 +199,27 @@ Reading the connection string before building the host was rejected because it b
 Consequences / follow-up:
 Add a separate readiness check before deployment or when the first database-backed endpoint is introduced. Deployment orchestration should use liveness and readiness for their distinct purposes.
 
+### D-009 — 2026-08-25 — Treat committed OpenAPI as the transport source of truth
+
+Status: accepted
+
+Context:
+The .NET API and Expo client need to evolve together without maintaining duplicate request and response definitions or discovering incompatibility only at runtime.
+
+Decision or finding:
+Generate the versioned OpenAPI 3.1 document from ASP.NET Core at build time, commit it at `contracts/FitnessCoach.Api.json`, and generate the mobile route and schema types under `frontend/src/api/generated`. Consume those types through a small `openapi-fetch` wrapper. Keep runtime OpenAPI available in Development only, and verify both committed artifacts by regenerating into a temporary directory in local checks and GitHub Actions.
+
+Rationale:
+The server remains authoritative, contract changes are visible in review, the frontend compiler catches route and payload changes, and the drift check is deterministic without modifying the working tree.
+
+Alternatives considered:
+Handwritten TypeScript DTOs were rejected because they create two sources of truth. Runtime-only contract fetching was rejected because generation would depend on a separately running server. A full generated SDK was not selected after the available compatible generator lines introduced current security advisories.
+
+Consequences / follow-up:
+Endpoint metadata and operation identifiers are part of the reviewed API surface. Install the isolated contract tool dependencies before generation. Reassess the `openapi-fetch` runtime if its maintenance status, security posture, or product requirements change.
+
+Related ADR: [ADR-0005](docs/adr/0005-api-contract-workflow.md)
+
 ## Issue log
 
 ### I-001 — 2026-08-24 — Expo SDK 57 transitive uuid advisory
@@ -376,6 +397,72 @@ Re-scan on every PostgreSQL image update and at least before public beta. Replac
 
 Evidence:
 `docker scout cves --exit-code --only-severity critical,high` with Docker Scout 1.22.0 on 2026-08-25. Results: Alpine 3.23 = 5 critical / 23 high; Alpine 3.24 = 2 critical / 20 high; Debian Trixie = 4 critical / 22 high. Representative remaining critical identifiers are CVE-2025-68121 and CVE-2026-39821.
+
+### I-009 — 2026-08-25 — TypeScript 6 prevented a safe in-app contract generator install
+
+Status: resolved
+
+Context:
+`openapi-typescript` 7.13.0 declares TypeScript 5 as its peer, while Expo SDK 57 uses TypeScript 6. A direct frontend install failed npm's dependency resolution. The evaluated TypeScript 6-compatible full-client generator versions either retained a generator advisory or pulled a `js-yaml` version with high-severity denial-of-service advisories.
+
+Decision or finding:
+Run `openapi-typescript` with TypeScript 5.9.3 in a separate, private, lockfile-pinned `tools/api-contract` package. Keep the Expo client on its supported TypeScript 6 compiler and pass only generated source between the two dependency graphs.
+
+Rationale:
+This avoids `--force`, `--legacy-peer-deps`, a client compiler downgrade, and known high-severity generator dependencies. The isolated generator installation reports zero vulnerabilities.
+
+Alternatives considered:
+Ignoring the peer declaration was rejected because it would conceal an unsupported tool graph. Downgrading the Expo compiler was rejected because it would depart from the selected SDK. The evaluated full-client generator was rejected after inspecting both its direct advisory and nested YAML parser findings.
+
+Consequences / follow-up:
+Contract generation requires `npm ci --prefix tools/api-contract` in addition to the frontend install. Re-evaluate the isolation when `openapi-typescript` officially supports TypeScript 6.
+
+Evidence:
+The direct install failed with `ERESOLVE` for `typescript@6.0.3` versus peer `^5.x`. npm advisory checks of the alternative generator found 4 high findings on its latest line. `npm audit` for the final isolated tool package reports 0 vulnerabilities; the frontend production audit remains at the 10 existing moderate Expo findings recorded in `I-001`.
+
+### I-010 — 2026-08-25 — Health-check middleware produced an empty OpenAPI contract
+
+Status: resolved
+
+Context:
+The first generated OpenAPI document contained no paths even after stable metadata was attached to `MapHealthChecks`. The health-check middleware endpoint is not surfaced through API Explorer as an ordinary route handler.
+
+Decision or finding:
+Map `/health` as a thin Minimal API handler over `HealthCheckService`. Preserve its `Healthy` response, unhealthy status mapping, no-store cache header, independence from PostgreSQL, and request logging while adding explicit OpenAPI response metadata.
+
+Rationale:
+The contract workflow needs one real route to prove endpoint discovery and typed response generation without inventing a product endpoint.
+
+Alternatives considered:
+Committing an empty contract was rejected because it would not prove endpoint generation. Adding a placeholder product route was rejected because Phase 2.3 does not authorize product behavior.
+
+Consequences / follow-up:
+The liveness adapter has direct HTTP and contract coverage. Add readiness separately when persistence-backed availability becomes relevant.
+
+Evidence:
+The initial generated document contained `"paths": { }`. After the adapter, it contains `GET /health` with operation `GetHealth` and typed `200` and `503` responses; existing health behavior tests and new OpenAPI integration tests pass.
+
+### I-011 — 2026-08-25 — Incremental builds skipped temporary contract output
+
+Status: resolved
+
+Context:
+The first drift check changed `OpenApiDocumentsDirectory` to a temporary directory, but MSBuild considered the API up to date and skipped document generation. The client generator then failed because the expected temporary contract did not exist.
+
+Decision or finding:
+Run the contract build with `--no-incremental` before generating client types.
+
+Rationale:
+Every drift check must materialize a fresh document in its requested directory, independent of previous build output and timestamps.
+
+Alternatives considered:
+Copying the committed contract into the temporary directory was rejected because it would compare generated client output against the artifact under test rather than freshly generated server metadata.
+
+Consequences / follow-up:
+Contract generation rebuilds the small API project each time. This adds under two seconds locally and removes reliance on stale MSBuild outputs.
+
+Evidence:
+Before the change, the drift command failed with `ENOENT` for the temporary `FitnessCoach.Api.json`. With `--no-incremental`, the document is emitted into the temporary directory and both comparisons pass.
 
 ## Performance log
 
