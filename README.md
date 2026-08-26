@@ -8,8 +8,7 @@ The repository has completed its foundation phase and now contains verified iOS 
 
 The initial product will help adults:
 
-- Set general strength and fitness goals.
-- Choose the training goals that matter to them rather than being placed into one fixed program type.
+- Choose strength, muscle-building, and general-fitness goals.
 - Create and follow structured workouts.
 - Log sets with minimal friction.
 - Review training history and progress.
@@ -93,7 +92,15 @@ npm run lint
 npm test
 ```
 
-Start the iOS application:
+The onboarding form calls the local API. After starting the API as described below, copy the public-only client example and replace its port with the HTTP port printed by `dotnet run`:
+
+```bash
+cp .env.example .env.local
+```
+
+`frontend/.env.local` is ignored by Git. `EXPO_PUBLIC_` values are embedded in the application bundle and must never contain credentials; the API URL is public configuration, not a secret.
+
+Then start the iOS application:
 
 ```bash
 npm run ios
@@ -173,7 +180,7 @@ Before completing the increment, run the same non-mutating drift check used by C
 bash scripts/check-api-contract.sh
 ```
 
-The runtime document is available at `/openapi/v1.json` only when the API runs in the Development environment. No interactive API documentation UI is installed.
+The runtime document and the unauthenticated local-prototype profile endpoints are available only when the API runs in the Development environment. Contract generation also selects Development explicitly so those routes remain represented in the mobile contract. No interactive API documentation UI is installed.
 
 ## How work is organized
 
@@ -199,4 +206,4 @@ The runtime document is available at `/openapi/v1.json` only when the API runs i
 
 ## Current status
 
-Foundation documentation, the Expo SDK 57 client, the Midnight Indigo design system, the initial Expo Router shell, and the .NET 10 API, PostgreSQL, and OpenAPI contract foundations are established. The backend has strict build analysis, privacy-safe structured request logging, environment-only database configuration, a pinned local PostgreSQL service, EF Core migrations, locked dependencies, and HTTP- and PostgreSQL-level integration tests. The committed OpenAPI document generates the frontend's typed API surface, and CI checks both artifacts for drift. Authentication and product tables or endpoints remain deliberately deferred. The next increment is profile and onboarding definition in Phase 3.1.
+Foundation work and Phase 3.1 are complete. The Expo client now has a deliberate, accessible onboarding form for the approved goals, experience, equipment, and unit choices. The .NET API validates and persists that profile through a normalized PostgreSQL schema, and the generated OpenAPI/TypeScript contract connects the two applications. Because identity is deliberately deferred, these prototype profile routes are mapped only in Development and the client does not yet treat the returned identifier as durable authorization. The next increment is the exercise catalogue source, licensing, taxonomy, and media decision in Phase 3.2.

@@ -1,3 +1,7 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+using FitnessCoach.Api.Features.Profiles;
 using FitnessCoach.Api.Persistence;
 
 using Microsoft.AspNetCore.HttpLogging;
@@ -9,6 +13,13 @@ var builder = WebApplication.CreateBuilder(args);
 const string postgresConnectionName = "Postgres";
 
 builder.Services.AddHealthChecks();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(
+        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
+    options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+});
 builder.Services.AddOpenApi("v1", options =>
     options.AddDocumentTransformer((document, _, _) =>
     {
@@ -50,6 +61,7 @@ app.UseHttpsRedirection();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapProfileEndpoints();
 }
 
 app.MapGet("/health", GetHealthAsync)

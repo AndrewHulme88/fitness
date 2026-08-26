@@ -173,11 +173,21 @@ Verification completed on 2026-08-25:
 
 ### 3.1 Define profile and onboarding
 
-Status: pending
+Status: complete
 
 - Capture only information needed for the initial workout experience.
-- Include goals, experience, available equipment, units, and relevant self-declared constraints.
+- Include goals, experience, available equipment, and units; defer exercise exclusions until stable catalogue identifiers exist.
 - Avoid collecting medical detail not required by the product.
+
+Verification completed on 2026-08-26:
+
+- The closed onboarding taxonomy supports multiple goals (`buildStrength`, `buildMuscle`, and `generalFitness`), one experience level, one or more supported equipment choices, and metric or imperial units. It adds no free-text, injury, or medical fields; exercise exclusions remain deferred until catalogue identifiers exist.
+- PostgreSQL stores profiles, goals, and equipment selections in normalized tables with stable identifiers, UTC creation time, string enum values, uniqueness constraints, foreign keys, and database checks. A committed EF Core migration owns the schema.
+- Development-only `POST /profiles` and `GET /profiles/{profileId}` endpoints validate the trust boundary, reject numeric enums and unknown fields, avoid echoing sensitive invalid input, support cancellation, and never map in Production before authentication exists.
+- The OpenAPI document and generated TypeScript types are the sole transport contract. The Expo onboarding route uses those types to submit the approved choices with bounded request time and safe loading, error, retry, disabled, and accessibility states.
+- The full Release backend suite passes 15 tests against disposable PostgreSQL, and the frontend passes formatting, strict TypeScript, lint, all 20 tests, and an iOS production export. Contract drift verification passes.
+- The initial screen was visually reviewed in Expo Go on an iPhone 16 Plus simulator. Its native type hierarchy, Midnight Indigo palette, legibility, touch controls, and scroll layout matched the established design direction; Expo's developer overlay is not application UI.
+- No benchmark was added because onboarding is a one-time form and does not introduce a representative performance-sensitive path. The API request is one bounded write transaction and can be measured with realistic workloads if it later becomes material.
 
 ### 3.2 Establish the exercise catalogue
 
@@ -274,4 +284,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Perform Phase 3.1 only: define the minimum profile and onboarding contract for user-selected goals, experience, available equipment, units, and necessary self-declared constraints without collecting unnecessary medical detail.
+Perform Phase 3.2 only: decide the exercise catalogue source, licensing, taxonomy, and media policy before adding a small curated dataset or product code.

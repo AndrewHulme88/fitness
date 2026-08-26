@@ -32,6 +32,7 @@ describe("design tokens", () => {
     ["primary text", colors.textPrimary, colors.canvas],
     ["secondary text", colors.textSecondary, colors.canvas],
     ["accent text", colors.accentHighlight, colors.canvas],
+    ["error text", colors.statusDanger, colors.canvas],
     ["text on the accent action", colors.onAccent, colors.accent],
   ])("keeps %s at WCAG AA contrast", (_name, foreground, background) => {
     expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);

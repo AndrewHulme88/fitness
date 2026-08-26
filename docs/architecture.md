@@ -63,7 +63,7 @@ Android portability should be retained through standard React Native patterns. A
 
 ## API
 
-The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. The initial implementation is a Minimal API that exposes only `GET /health`. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. The health route is a liveness check and deliberately does not require database connectivity. ASP.NET Core publishes the versioned OpenAPI document in Development and generates the committed contract during the build. Authentication and product endpoints remain deferred to their explicit plan increments.
+The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. It is a Minimal API with feature-oriented modules. `GET /health` is a liveness check and deliberately does not require database connectivity. The first Profile feature exposes development-only create and read endpoints for the unauthenticated local prototype; production does not map those routes. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. ASP.NET Core publishes the versioned OpenAPI document in Development and generates the committed contract during a build that explicitly uses the Development environment.
 
 Responsibilities:
 
@@ -83,7 +83,7 @@ PostgreSQL is the source of truth, accessed through EF Core and Npgsql.
 
 Local development uses `postgres:18.6-alpine3.24` pinned to an immutable multi-architecture image digest through Docker Compose, bound to the IPv4 loopback interface on a configurable host port and backed by a named volume. The API receives its connection string only through `ConnectionStrings__Postgres`; no connection string or real credential is committed. EF migrations are explicit and are not applied automatically at API startup. This image is local/test infrastructure only and is not an approved production database image.
 
-Persistence integration tests use Testcontainers to start a disposable instance of the same PostgreSQL image on an isolated dynamic port. Tests apply the committed migrations and verify connectivity against PostgreSQL rather than substituting an in-memory provider. The initial migration intentionally contains no product tables; it establishes and tests the migration pipeline before the first domain model exists.
+Persistence integration tests use Testcontainers to start a disposable instance of the same PostgreSQL image on an isolated dynamic port. Tests apply the committed migrations and verify connectivity against PostgreSQL rather than substituting an in-memory provider. The Profile feature stores one profile row plus normalized goal and equipment selections. Enum values are stored as readable strings, and database checks and composite keys reinforce the API's supported values and uniqueness rules.
 
 Initial rules:
 
@@ -104,6 +104,8 @@ The API's OpenAPI 3.1 document is the canonical transport contract. The committe
 Generation is deterministic. Local and CI checks regenerate the contract and client types in a temporary directory and fail when either committed artifact differs. Runtime OpenAPI is available only in Development, and no interactive documentation UI is included.
 
 Domain entities will not be serialized directly. Transport types should expose only the data required by the client.
+
+The initial profile contract deliberately contains only training goals, experience, available equipment, and unit preference. It contains no medical notes, injury history, body measurements, or free-form text. Exercise exclusion is deferred until the exercise catalogue supplies stable identifiers. See [ADR-0006](adr/0006-minimum-onboarding-profile.md).
 
 See [ADR-0005](adr/0005-api-contract-workflow.md).
 
@@ -128,7 +130,7 @@ See [ai-safety.md](ai-safety.md) and [ADR-0003](adr/0003-ai-coach-boundary.md).
 
 ## Authentication and authorization
 
-The identity provider has not been selected. The eventual design should use established OAuth 2.0/OpenID Connect flows suitable for native applications and allow the API to validate access tokens without custom cryptography.
+The identity provider has not been selected. The eventual design should use established OAuth 2.0/OpenID Connect flows suitable for native applications and allow the API to validate access tokens without custom cryptography. A database readiness probe must accompany the first deployable database-backed routes; it is not required for the development-only profile prototype.
 
 Requirements:
 
@@ -138,7 +140,7 @@ Requirements:
 - Account deletion and data-export design before public beta.
 - No authentication secrets embedded in the mobile bundle.
 
-An ADR is required before implementing identity because provider choice affects user experience, local development, recurring cost, and account lifecycle.
+An ADR is required before implementing identity because provider choice affects user experience, local development, recurring cost, and account lifecycle. Until that work is complete, user-owned prototype routes must remain unavailable outside Development and no local identifier is treated as authorization.
 
 ## Offline behavior
 

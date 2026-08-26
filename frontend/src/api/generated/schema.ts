@@ -21,10 +21,88 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/profiles": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Create a training profile from onboarding choices */
+    post: operations["CreateTrainingProfile"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/profiles/{profileId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a training profile */
+    get: operations["GetTrainingProfile"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: never;
+  schemas: {
+    CreateTrainingProfileRequest: {
+      goals: components["schemas"]["TrainingGoal"][];
+      experience: components["schemas"]["TrainingExperience"];
+      availableEquipment: components["schemas"]["EquipmentType"][];
+      unitSystem: components["schemas"]["UnitSystem"];
+    };
+    /** @enum {unknown} */
+    EquipmentType:
+      | "bodyweight"
+      | "dumbbells"
+      | "barbell"
+      | "bench"
+      | "squatRack"
+      | "cableMachine"
+      | "resistanceBands"
+      | "cardioEquipment";
+    HttpValidationProblemDetails: {
+      type?: null | string;
+      title?: null | string;
+      /** Format: int32 */
+      status?: null | number | string;
+      detail?: null | string;
+      instance?: null | string;
+      errors?: {
+        [key: string]: string[];
+      };
+    };
+    /** @enum {unknown} */
+    TrainingExperience: "beginner" | "intermediate" | "advanced";
+    /** @enum {unknown} */
+    TrainingGoal: "buildStrength" | "buildMuscle" | "generalFitness";
+    TrainingProfileResponse: {
+      /** Format: uuid */
+      id: string;
+      goals: components["schemas"]["TrainingGoal"][];
+      experience: components["schemas"]["TrainingExperience"];
+      availableEquipment: components["schemas"]["EquipmentType"][];
+      unitSystem: components["schemas"]["UnitSystem"];
+      /** Format: date-time */
+      createdAt: string;
+    };
+    /** @enum {unknown} */
+    UnitSystem: "metric" | "imperial";
+  };
   responses: never;
   parameters: never;
   requestBodies: never;
@@ -59,6 +137,68 @@ export interface operations {
         content: {
           "text/plain": string;
         };
+      };
+    };
+  };
+  CreateTrainingProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateTrainingProfileRequest"];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TrainingProfileResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+        };
+      };
+    };
+  };
+  GetTrainingProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TrainingProfileResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

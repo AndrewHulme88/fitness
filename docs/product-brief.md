@@ -16,10 +16,10 @@ Many fitness applications are either passive workout logs, rigid program librari
 
 - Adults aged 18 and over.
 - People pursuing their own supported strength, muscle-building, or general fitness goals.
-- Beginner-to-intermediate users who value guidance but retain control over their training.
+- Beginner through advanced users who value guidance but retain control over their training.
 - Initially, one account represents one person; coach, clinician, team, and household accounts are out of scope.
 
-The application will not impose one universal training outcome. Onboarding will let the user choose their own goals from a clear supported set. The initial goal taxonomy and whether users may add free-form detail will be decided when onboarding is designed.
+The application does not impose one universal training outcome. Initial onboarding supports any combination of build strength, build muscle, and general fitness. It also captures beginner, intermediate, or advanced experience; available equipment from the supported catalogue; and metric or imperial units. These are closed choices rather than free-form fields so the workout experience can use them deterministically.
 
 ## Core jobs
 
@@ -105,8 +105,5 @@ Before setting numeric targets, establish representative flows and measurement b
 ## Open product questions
 
 - What is the product's working and eventual public name?
-- Which supported goals and combinations belong in the first onboarding taxonomy?
-- What is the smallest useful onboarding dataset?
-- Is authentication required for the first prototype?
 - What tone should the coach use, and how configurable should it be?
 - Which jurisdictions and app-store markets would a first public beta target?

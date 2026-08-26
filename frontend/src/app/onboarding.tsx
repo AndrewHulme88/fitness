@@ -1,17 +1,16 @@
 import { useRouter } from "expo-router";
 
-import { FlowScreen } from "../components/FlowScreen";
+import { createTrainingProfile } from "../api/profiles";
+import type { OnboardingSubmission } from "../features/onboarding/onboarding-options";
+import { OnboardingForm } from "../features/onboarding/OnboardingForm";
 
 export default function OnboardingRoute() {
   const router = useRouter();
 
-  return (
-    <FlowScreen
-      actionLabel="Continue"
-      description="Choose your goals, experience, available equipment, and preferred units."
-      eyebrow="Your setup"
-      onAction={() => router.push("/workout/create")}
-      title="Make training fit your life."
-    />
-  );
+  const handleSubmit = async (submission: OnboardingSubmission) => {
+    await createTrainingProfile(submission);
+    router.replace("/workout/create");
+  };
+
+  return <OnboardingForm onSubmit={handleSubmit} />;
 }

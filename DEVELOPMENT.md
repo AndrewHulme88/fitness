@@ -220,6 +220,30 @@ Endpoint metadata and operation identifiers are part of the reviewed API surface
 
 Related ADR: [ADR-0005](docs/adr/0005-api-contract-workflow.md)
 
+### D-010 — 2026-08-26 — Keep the first onboarding profile closed, minimal, and development-only
+
+Status: accepted
+
+Context:
+Phase 3.1 needs enough profile data to shape the first workout experience without introducing authentication early or collecting health information the product does not currently use.
+
+Decision or finding:
+Support multi-select strength, muscle-building, and general-fitness goals; one of three experience levels; one or more choices from a fixed equipment vocabulary; and metric or imperial units. Persist multi-select values as normalized rows with database-enforced integrity. Do not accept free text, medical or injury details, or exercise exclusions before stable exercise identifiers exist. Map the unauthenticated prototype endpoints only in Development.
+
+Rationale:
+A small closed vocabulary is deterministic, testable, easy to evolve through the canonical contract, and sufficient for the next workout increments. Data minimization avoids creating sensitive fields without a concrete use. Development-only routing preserves the planned local prototype while preventing random profile identifiers from becoming an accidental authorization scheme.
+
+Alternatives considered:
+Free-form goal detail and health constraints were rejected as unnecessary and difficult to use safely. Array columns were rejected in favor of relational integrity and future queryability. Production-visible anonymous routes were rejected because possession of an identifier does not prove ownership.
+
+Consequences / follow-up:
+Authentication, ownership, durable device association, and migration of local prototype data still require the Phase 4 identity ADR before public deployment. Exercise exclusions can be added after Phase 3.2 supplies stable catalogue identifiers. Build-time contract generation explicitly selects Development because the profile routes do not exist in Production. Database readiness remains deferred while database-backed routes are development-only; it must be added before any deployable environment maps them, as required by D-008.
+
+Evidence:
+The Release backend integration suite passes 15 tests against disposable PostgreSQL, including persistence, malformed input, duplicate selection, safe-error, unknown-record, and Production-route cases. The frontend passes all 20 tests plus formatting, strict TypeScript, lint, and iOS export. The API contract drift check regenerates the development contract and generated client without differences.
+
+Related ADR: [ADR-0006](docs/adr/0006-minimum-onboarding-profile.md)
+
 ## Issue log
 
 ### I-001 — 2026-08-24 — Expo SDK 57 transitive uuid advisory
@@ -473,7 +497,6 @@ No representative performance-sensitive path exists yet, so no meaningful baseli
 These choices are intentionally unresolved until their requirements are clearer:
 
 - Product name and final visual identity.
-- The supported goal taxonomy and whether free-form goal detail is allowed.
 - Authentication and identity provider.
 - Hosting provider and deployment topology.
 - AI provider and model selection.

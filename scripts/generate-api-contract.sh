@@ -21,7 +21,7 @@ fi
 
 mkdir -p "${contract_output_directory}" "$(dirname "${client_output_file}")"
 
-dotnet build "${api_project}" \
+ASPNETCORE_ENVIRONMENT=Development dotnet build "${api_project}" \
   --configuration Release \
   --no-incremental \
   --no-restore \

@@ -11,6 +11,7 @@ export const colors = {
   onAccent: "#1A1310",
   border: "#36374F",
   focus: "#F0A083",
+  statusDanger: "#F2A3A3",
 } as const;
 
 export const spacing = {
