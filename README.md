@@ -52,6 +52,7 @@ Directories are added only when their first increment begins.
 ```text
 frontend/                                   Expo mobile application
 backend/FitnessCoach.Api/                   ASP.NET Core API
+backend/FitnessCoach.Api/Domain/            Small genuinely shared domain vocabulary
 tests/FitnessCoach.Api.IntegrationTests/    API integration tests
 contracts/FitnessCoach.Api.json             Committed canonical OpenAPI document
 tools/api-contract/                         Isolated TypeScript contract generator
@@ -144,6 +145,16 @@ dotnet tool run dotnet-ef database update \
   --startup-project backend/FitnessCoach.Api/FitnessCoach.Api.csproj
 ```
 
+Import the versioned exercise catalogue explicitly after migrations are current:
+
+```bash
+dotnet run --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj \
+  --no-launch-profile --no-restore -- \
+  --import-exercise-catalogue
+```
+
+The importer validates the entire embedded manifest before writing, runs transactionally, and is safe to repeat. Catalogue content changes must increment `catalogueVersion`; removal is refused until exercise retirement and workout-history behavior are designed.
+
 Start the API over local HTTPS from the same shell:
 
 ```bash
@@ -180,7 +191,7 @@ Before completing the increment, run the same non-mutating drift check used by C
 bash scripts/check-api-contract.sh
 ```
 
-The runtime document and the unauthenticated local-prototype profile endpoints are available only when the API runs in the Development environment. Contract generation also selects Development explicitly so those routes remain represented in the mobile contract. No interactive API documentation UI is installed.
+The runtime document and unauthenticated local-prototype Profile and Exercise endpoints are available only when the API runs in the Development environment. Contract generation also selects Development explicitly so those routes remain represented in the mobile contract. No interactive API documentation UI is installed.
 
 ## How work is organized
 
@@ -193,6 +204,7 @@ The runtime document and the unauthenticated local-prototype profile endpoints a
 - [docs/ai-safety.md](docs/ai-safety.md) — AI scope, safety controls, and escalation behavior.
 - [docs/testing-strategy.md](docs/testing-strategy.md) — automated, manual, security, AI, and performance validation.
 - [docs/design-system.md](docs/design-system.md) — selected visual direction, design tokens, accessibility, and visual review requirements.
+- [docs/exercise-catalogue-policy.md](docs/exercise-catalogue-policy.md) — exercise ownership, licensing, identity, review, and media rules.
 - [docs/adr/README.md](docs/adr/README.md) — architectural decision record index.
 
 ## Development principles
@@ -206,4 +218,4 @@ The runtime document and the unauthenticated local-prototype profile endpoints a
 
 ## Current status
 
-Foundation work and Phase 3.1 are complete. The Expo client now has a deliberate, accessible onboarding form for the approved goals, experience, equipment, and unit choices. The .NET API validates and persists that profile through a normalized PostgreSQL schema, and the generated OpenAPI/TypeScript contract connects the two applications. Because identity is deliberately deferred, these prototype profile routes are mapped only in Development and the client does not yet treat the returned identifier as durable authorization. The next increment is the exercise catalogue source, licensing, taxonomy, and media decision in Phase 3.2.
+Foundation work through Phase 3.2 is complete. The Expo client has an accessible onboarding form and generated typed clients for profiles and exercise search. The .NET API validates and persists profiles and an internally owned catalogue of 35 common exercises through PostgreSQL, with an explicit versioned import workflow and bounded search/detail endpoints. Prototype product routes remain Development-only until deployment and identity boundaries are intentionally introduced. The next increment is simple workout creation and editing in Phase 3.3.

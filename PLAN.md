@@ -191,11 +191,21 @@ Verification completed on 2026-08-26:
 
 ### 3.2 Establish the exercise catalogue
 
-Status: pending
+Status: complete
 
 - Resolve source, licensing, taxonomy, and media policy first.
 - Add a small curated set sufficient for the initial experience.
 - Test search, filtering, validation, and stable identifiers.
+
+Verification completed on 2026-08-27:
+
+- The project owns a version-controlled, text-only manifest of 35 original common exercises covering every onboarding equipment value, the approved movement taxonomy, strength and cardio categories, and five deterministic tracking modes. No third-party content, API, package, media, rehabilitation content, difficulty rating, goal tag, or custom-exercise behavior was added.
+- Every entry has a permanent UUID, unique slug and searchable names, required equipment, primary and secondary muscles, and bounded setup, execution, and general safety copy. The complete manifest validates before database access and is explicitly marked as requiring qualified fitness review before public release.
+- An explicit, idempotent import command writes the validated catalogue to PostgreSQL in one transaction and records its version, canonical hash, review status, and import time. It refuses version rollback, same-version content changes, identifier reassignment, and silent removal.
+- PostgreSQL stores filterable aliases, equipment, and muscles relationally with foreign keys, composite uniqueness, enum checks, and a committed migration. The shared equipment enum is the single vocabulary used by Profiles and Exercises.
+- Development-only `GET /exercises` and `GET /exercises/{exerciseId}` endpoints provide escaped name/alias search, combined taxonomy filters, equipment-subset matching, stable ordering, bounded pagination, details, cancellation, safe validation, and no tracking queries. The generated TypeScript API wrapper preserves typed camel-case filters and uses the shared bounded request behavior.
+- The Release backend suite passes 30 tests against disposable PostgreSQL, including manifest policy, import, escaped search, filters, invalid input, pagination, details, OpenAPI types, and Production-route coverage. The frontend passes formatting, strict TypeScript, lint, all 22 tests, and an iOS production export. Contract drift and migration-state checks pass.
+- No simulator review was required because Phase 3.2 adds no screen or visual behavior. No performance benchmark was added for the fixed 35-row reference dataset; the query is bounded to 50 results and a stable offset, and representative search performance should be measured when the catalogue UI and realistic growth exist.
 
 ### 3.3 Build workout planning
 
@@ -284,4 +294,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Perform Phase 3.2 only: decide the exercise catalogue source, licensing, taxonomy, and media policy before adding a small curated dataset or product code.
+Perform Phase 3.3 only: define and build simple workout creation and editing from the curated catalogue, including deterministic validation and the minimum profile/exercise relationships it genuinely needs.

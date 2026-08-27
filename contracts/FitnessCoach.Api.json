@@ -34,6 +34,176 @@
         }
       }
     },
+    "/exercises": {
+      "get": {
+        "tags": ["Exercises"],
+        "summary": "Search and filter the curated exercise catalogue",
+        "operationId": "SearchExercises",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "enum": ["strength", "cardio"]
+            }
+          },
+          {
+            "name": "movementPattern",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "squat",
+                "hinge",
+                "lunge",
+                "horizontalPush",
+                "verticalPush",
+                "horizontalPull",
+                "verticalPull",
+                "carry",
+                "coreStability",
+                "elbowFlexion",
+                "elbowExtension",
+                "calfRaise",
+                "locomotion"
+              ]
+            }
+          },
+          {
+            "name": "trackingMode",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "repetitions",
+                "repetitionsAndLoad",
+                "duration",
+                "distanceAndDuration",
+                "distanceDurationAndLoad"
+              ]
+            }
+          },
+          {
+            "name": "availableEquipment",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "bodyweight",
+                  "dumbbells",
+                  "barbell",
+                  "bench",
+                  "squatRack",
+                  "cableMachine",
+                  "resistanceBands",
+                  "cardioEquipment"
+                ]
+              }
+            }
+          },
+          {
+            "name": "primaryMuscle",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "quadriceps",
+                "hamstrings",
+                "glutes",
+                "calves",
+                "chest",
+                "back",
+                "shoulders",
+                "biceps",
+                "triceps",
+                "forearms",
+                "core"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "maximum": 10000,
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseSearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exercises/{exerciseId}": {
+      "get": {
+        "tags": ["Exercises"],
+        "summary": "Get one curated exercise",
+        "operationId": "GetExercise",
+        "parameters": [
+          {
+            "name": "exerciseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/profiles": {
       "post": {
         "tags": ["Profiles"],
@@ -146,6 +316,166 @@
           "cardioEquipment"
         ]
       },
+      "ExerciseCategory": {
+        "enum": ["strength", "cardio"]
+      },
+      "ExerciseDetailResponse": {
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "category",
+          "movementPattern",
+          "trackingMode",
+          "requiredEquipment",
+          "primaryMuscles",
+          "secondaryMuscles",
+          "setup",
+          "execution",
+          "safety"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ExerciseCategory"
+          },
+          "movementPattern": {
+            "$ref": "#/components/schemas/ExerciseMovementPattern"
+          },
+          "trackingMode": {
+            "$ref": "#/components/schemas/ExerciseTrackingMode"
+          },
+          "requiredEquipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquipmentType"
+            }
+          },
+          "primaryMuscles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          "secondaryMuscles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          "setup": {
+            "type": "string"
+          },
+          "execution": {
+            "type": "string"
+          },
+          "safety": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExerciseMovementPattern": {
+        "enum": [
+          "squat",
+          "hinge",
+          "lunge",
+          "horizontalPush",
+          "verticalPush",
+          "horizontalPull",
+          "verticalPull",
+          "carry",
+          "coreStability",
+          "elbowFlexion",
+          "elbowExtension",
+          "calfRaise",
+          "locomotion"
+        ]
+      },
+      "ExerciseSearchResponse": {
+        "required": ["items", "nextOffset"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExerciseSummaryResponse"
+            }
+          },
+          "nextOffset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExerciseSummaryResponse": {
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "category",
+          "movementPattern",
+          "trackingMode",
+          "requiredEquipment",
+          "primaryMuscles"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ExerciseCategory"
+          },
+          "movementPattern": {
+            "$ref": "#/components/schemas/ExerciseMovementPattern"
+          },
+          "trackingMode": {
+            "$ref": "#/components/schemas/ExerciseTrackingMode"
+          },
+          "requiredEquipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquipmentType"
+            }
+          },
+          "primaryMuscles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExerciseTrackingMode": {
+        "enum": [
+          "repetitions",
+          "repetitionsAndLoad",
+          "duration",
+          "distanceAndDuration",
+          "distanceDurationAndLoad"
+        ]
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -177,6 +507,21 @@
           }
         },
         "additionalProperties": false
+      },
+      "MuscleGroup": {
+        "enum": [
+          "quadriceps",
+          "hamstrings",
+          "glutes",
+          "calves",
+          "chest",
+          "back",
+          "shoulders",
+          "biceps",
+          "triceps",
+          "forearms",
+          "core"
+        ]
       },
       "TrainingExperience": {
         "enum": ["beginner", "intermediate", "advanced"]
@@ -232,6 +577,9 @@
   "tags": [
     {
       "name": "Program"
+    },
+    {
+      "name": "Exercises"
     },
     {
       "name": "Profiles"

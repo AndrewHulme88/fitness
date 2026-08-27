@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using FitnessCoach.Api.Features.Exercises;
 using FitnessCoach.Api.Features.Profiles;
 using FitnessCoach.Api.Persistence;
 
@@ -14,6 +15,7 @@ const string postgresConnectionName = "Postgres";
 
 builder.Services.AddHealthChecks();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<ExerciseCatalogueImporter>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(
@@ -55,12 +57,18 @@ builder.Services.AddHttpLogging(options =>
 
 var app = builder.Build();
 
+if (await ExerciseCatalogueImportCommand.TryRunAsync(app, args))
+{
+    return;
+}
+
 app.UseHttpLogging();
 app.UseHttpsRedirection();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapExerciseEndpoints();
     app.MapProfileEndpoints();
 }
 

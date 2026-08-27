@@ -1,3 +1,5 @@
+using FitnessCoach.Api.Domain;
+
 namespace FitnessCoach.Api.Features.Profiles;
 
 public sealed record CreateTrainingProfileRequest

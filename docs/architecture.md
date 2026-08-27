@@ -63,7 +63,7 @@ Android portability should be retained through standard React Native patterns. A
 
 ## API
 
-The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. It is a Minimal API with feature-oriented modules. `GET /health` is a liveness check and deliberately does not require database connectivity. The first Profile feature exposes development-only create and read endpoints for the unauthenticated local prototype; production does not map those routes. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. ASP.NET Core publishes the versioned OpenAPI document in Development and generates the committed contract during a build that explicitly uses the Development environment.
+The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. It is a Minimal API with feature-oriented modules. `GET /health` is a liveness check and deliberately does not require database connectivity. The Profile and Exercise features expose development-only endpoints for the unauthenticated local prototype; production does not map those routes. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. ASP.NET Core publishes the versioned OpenAPI document in Development and generates the committed contract during a build that explicitly uses the Development environment.
 
 Responsibilities:
 
@@ -83,7 +83,7 @@ PostgreSQL is the source of truth, accessed through EF Core and Npgsql.
 
 Local development uses `postgres:18.6-alpine3.24` pinned to an immutable multi-architecture image digest through Docker Compose, bound to the IPv4 loopback interface on a configurable host port and backed by a named volume. The API receives its connection string only through `ConnectionStrings__Postgres`; no connection string or real credential is committed. EF migrations are explicit and are not applied automatically at API startup. This image is local/test infrastructure only and is not an approved production database image.
 
-Persistence integration tests use Testcontainers to start a disposable instance of the same PostgreSQL image on an isolated dynamic port. Tests apply the committed migrations and verify connectivity against PostgreSQL rather than substituting an in-memory provider. The Profile feature stores one profile row plus normalized goal and equipment selections. Enum values are stored as readable strings, and database checks and composite keys reinforce the API's supported values and uniqueness rules.
+Persistence integration tests use Testcontainers to start a disposable instance of the same PostgreSQL image on an isolated dynamic port. Tests apply the committed migrations and verify connectivity against PostgreSQL rather than substituting an in-memory provider. The Profile feature stores one profile row plus normalized goal and equipment selections. The Exercise feature stores catalogue entries plus searchable aliases, equipment, muscles, and versioned import state. Enum values are stored as readable strings, and database checks and composite keys reinforce the API's supported values and uniqueness rules.
 
 Initial rules:
 
@@ -96,6 +96,16 @@ Initial rules:
 - Do not add pgvector or another vector store until a proven retrieval use case exists.
 
 Progress photos, if later approved, should use private object storage rather than database blobs. That capability is not currently in scope.
+
+## Exercise catalogue
+
+The project owns a curated manifest embedded in the Exercises feature. An explicit command validates the complete file before importing it into PostgreSQL; API startup never seeds or migrates the database automatically. PostgreSQL remains the runtime source of truth.
+
+The initial catalogue contains 35 common strength and cardio entries. Stable UUIDs are identity; names and slugs are presentation and search fields. Searchable and filterable relationships are normalized, while bounded setup, execution, and safety instructions remain scalar text. Search uses escaped case-insensitive matching, deterministic ordering, equipment-subset semantics, and a maximum page size of 50.
+
+Equipment is a genuine shared domain vocabulary used by onboarding and the catalogue. Other exercise taxonomies remain owned by the Exercises feature. Media and custom exercises are not represented until their licensing, storage, accessibility, ownership, and lifecycle behavior are approved.
+
+The manifest is marked as requiring qualified exercise-content review. Structural validation and code review are not a substitute for that release gate. See [exercise-catalogue-policy.md](exercise-catalogue-policy.md) and [ADR-0007](adr/0007-internal-exercise-catalogue.md).
 
 ## API contract
 

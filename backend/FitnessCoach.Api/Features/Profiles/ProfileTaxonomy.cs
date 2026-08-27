@@ -14,18 +14,6 @@ public enum TrainingExperience
     Advanced,
 }
 
-public enum EquipmentType
-{
-    Bodyweight,
-    Dumbbells,
-    Barbell,
-    Bench,
-    SquatRack,
-    CableMachine,
-    ResistanceBands,
-    CardioEquipment,
-}
-
 public enum UnitSystem
 {
     Metric,

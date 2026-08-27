@@ -21,6 +21,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/exercises": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Search and filter the curated exercise catalogue */
+    get: operations["SearchExercises"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/exercises/{exerciseId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get one curated exercise */
+    get: operations["GetExercise"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/profiles": {
     parameters: {
       query?: never;
@@ -75,6 +109,61 @@ export interface components {
       | "cableMachine"
       | "resistanceBands"
       | "cardioEquipment";
+    /** @enum {unknown} */
+    ExerciseCategory: "strength" | "cardio";
+    ExerciseDetailResponse: {
+      /** Format: uuid */
+      id: string;
+      slug: string;
+      name: string;
+      category: components["schemas"]["ExerciseCategory"];
+      movementPattern: components["schemas"]["ExerciseMovementPattern"];
+      trackingMode: components["schemas"]["ExerciseTrackingMode"];
+      requiredEquipment: components["schemas"]["EquipmentType"][];
+      primaryMuscles: components["schemas"]["MuscleGroup"][];
+      secondaryMuscles: components["schemas"]["MuscleGroup"][];
+      setup: string;
+      execution: string;
+      safety: string;
+    };
+    /** @enum {unknown} */
+    ExerciseMovementPattern:
+      | "squat"
+      | "hinge"
+      | "lunge"
+      | "horizontalPush"
+      | "verticalPush"
+      | "horizontalPull"
+      | "verticalPull"
+      | "carry"
+      | "coreStability"
+      | "elbowFlexion"
+      | "elbowExtension"
+      | "calfRaise"
+      | "locomotion";
+    ExerciseSearchResponse: {
+      items: components["schemas"]["ExerciseSummaryResponse"][];
+      /** Format: int32 */
+      nextOffset: null | number | string;
+    };
+    ExerciseSummaryResponse: {
+      /** Format: uuid */
+      id: string;
+      slug: string;
+      name: string;
+      category: components["schemas"]["ExerciseCategory"];
+      movementPattern: components["schemas"]["ExerciseMovementPattern"];
+      trackingMode: components["schemas"]["ExerciseTrackingMode"];
+      requiredEquipment: components["schemas"]["EquipmentType"][];
+      primaryMuscles: components["schemas"]["MuscleGroup"][];
+    };
+    /** @enum {unknown} */
+    ExerciseTrackingMode:
+      | "repetitions"
+      | "repetitionsAndLoad"
+      | "duration"
+      | "distanceAndDuration"
+      | "distanceDurationAndLoad";
     HttpValidationProblemDetails: {
       type?: null | string;
       title?: null | string;
@@ -86,6 +175,19 @@ export interface components {
         [key: string]: string[];
       };
     };
+    /** @enum {unknown} */
+    MuscleGroup:
+      | "quadriceps"
+      | "hamstrings"
+      | "glutes"
+      | "calves"
+      | "chest"
+      | "back"
+      | "shoulders"
+      | "biceps"
+      | "triceps"
+      | "forearms"
+      | "core";
     /** @enum {unknown} */
     TrainingExperience: "beginner" | "intermediate" | "advanced";
     /** @enum {unknown} */
@@ -137,6 +239,111 @@ export interface operations {
         content: {
           "text/plain": string;
         };
+      };
+    };
+  };
+  SearchExercises: {
+    parameters: {
+      query?: {
+        query?: string;
+        category?: "strength" | "cardio";
+        movementPattern?:
+          | "squat"
+          | "hinge"
+          | "lunge"
+          | "horizontalPush"
+          | "verticalPush"
+          | "horizontalPull"
+          | "verticalPull"
+          | "carry"
+          | "coreStability"
+          | "elbowFlexion"
+          | "elbowExtension"
+          | "calfRaise"
+          | "locomotion";
+        trackingMode?:
+          | "repetitions"
+          | "repetitionsAndLoad"
+          | "duration"
+          | "distanceAndDuration"
+          | "distanceDurationAndLoad";
+        availableEquipment?: (
+          | "bodyweight"
+          | "dumbbells"
+          | "barbell"
+          | "bench"
+          | "squatRack"
+          | "cableMachine"
+          | "resistanceBands"
+          | "cardioEquipment"
+        )[];
+        primaryMuscle?:
+          | "quadriceps"
+          | "hamstrings"
+          | "glutes"
+          | "calves"
+          | "chest"
+          | "back"
+          | "shoulders"
+          | "biceps"
+          | "triceps"
+          | "forearms"
+          | "core";
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExerciseSearchResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+        };
+      };
+    };
+  };
+  GetExercise: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        exerciseId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExerciseDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

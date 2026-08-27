@@ -1,3 +1,4 @@
+using FitnessCoach.Api.Features.Exercises;
 using FitnessCoach.Api.Persistence;
 
 using Microsoft.EntityFrameworkCore;
@@ -13,8 +14,8 @@ public sealed class PostgreSqlApiFixture : IAsyncLifetime
         "postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2";
 
     private readonly PostgreSqlContainer postgres = new PostgreSqlBuilder(PostgreSqlImage)
-        .WithDatabase("fitness_coach_profile_tests")
-        .WithUsername("fitness_coach_profile_tests")
+        .WithDatabase("fitness_coach_tests")
+        .WithUsername("fitness_coach_tests")
         .WithPassword("test-only-password")
         .Build();
     private ApiWebApplicationFactory? factory;
@@ -30,6 +31,9 @@ public sealed class PostgreSqlApiFixture : IAsyncLifetime
         await using var scope = factory.Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<FitnessCoachDbContext>();
         await dbContext.Database.MigrateAsync();
+        var catalogueImporter = scope.ServiceProvider
+            .GetRequiredService<ExerciseCatalogueImporter>();
+        await catalogueImporter.ImportAsync(CancellationToken.None);
     }
 
     public async ValueTask DisposeAsync()

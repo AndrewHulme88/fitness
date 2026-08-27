@@ -82,6 +82,8 @@ The coach should appear where context makes it useful, but chat should not domin
 
 The initial client is intentionally dark. A light appearance should be designed and reviewed as its own accessible palette rather than generated through automatic inversion. The detailed tokens and review requirements live in [design-system.md](design-system.md).
 
+The initial exercise catalogue is internally owned and text-only. It contains a small reviewed vocabulary of common strength and cardio exercises rather than relying on a third-party API. Its current instruction copy must receive qualified fitness review before public release. Media and user-created exercises remain outside the initial implementation.
+
 [Fitbod](https://fitbod.me/) is a directional reference for its fitness-first hierarchy, focused workout calls to action, readable exercise/set presentation, visible progress and recovery context, and confident native feel. It is not a template: this product will not copy Fitbod's branding, proprietary flows, screen layouts, iconography, illustrations, or exact visual system. We will develop an original identity using the qualities the reference helps articulate.
 
 ## Safety position

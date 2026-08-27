@@ -46,6 +46,47 @@ public sealed class OpenApiEndpointTests : IClassFixture<ApiWebApplicationFactor
         var responses = healthOperation.GetProperty("responses");
         Assert.True(responses.TryGetProperty("200", out _));
         Assert.True(responses.TryGetProperty("503", out _));
+
+        var exerciseOperation = root
+            .GetProperty("paths")
+            .GetProperty("/exercises")
+            .GetProperty("get");
+        Assert.Equal(
+            "SearchExercises",
+            exerciseOperation.GetProperty("operationId").GetString());
+
+        var parameters = exerciseOperation.GetProperty("parameters");
+        var categoryParameter = parameters.EnumerateArray().Single(parameter =>
+            parameter.GetProperty("name").GetString() == "category");
+        Assert.Equal(
+            ["strength", "cardio"],
+            categoryParameter
+                .GetProperty("schema")
+                .GetProperty("enum")
+                .EnumerateArray()
+                .Select(value => value.GetString()
+                    ?? throw new InvalidOperationException("Expected a string enum value."))
+                .ToArray());
+
+        var equipmentParameter = parameters.EnumerateArray().Single(parameter =>
+            parameter.GetProperty("name").GetString() == "availableEquipment");
+        Assert.Contains(
+            equipmentParameter
+                .GetProperty("schema")
+                .GetProperty("items")
+                .GetProperty("enum")
+                .EnumerateArray()
+                .Select(value => value.GetString()),
+            value => value == "cardioEquipment");
+
+        var limitParameter = parameters.EnumerateArray().Single(parameter =>
+            parameter.GetProperty("name").GetString() == "limit");
+        Assert.Equal(
+            "integer",
+            limitParameter.GetProperty("schema").GetProperty("type").GetString());
+        Assert.Equal(
+            50,
+            limitParameter.GetProperty("schema").GetProperty("maximum").GetInt32());
     }
 
     [Fact]

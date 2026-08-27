@@ -237,12 +237,36 @@ Alternatives considered:
 Free-form goal detail and health constraints were rejected as unnecessary and difficult to use safely. Array columns were rejected in favor of relational integrity and future queryability. Production-visible anonymous routes were rejected because possession of an identifier does not prove ownership.
 
 Consequences / follow-up:
-Authentication, ownership, durable device association, and migration of local prototype data still require the Phase 4 identity ADR before public deployment. Exercise exclusions can be added after Phase 3.2 supplies stable catalogue identifiers. Build-time contract generation explicitly selects Development because the profile routes do not exist in Production. Database readiness remains deferred while database-backed routes are development-only; it must be added before any deployable environment maps them, as required by D-008.
+Authentication, ownership, durable device association, and migration of local prototype data still require the Phase 4 identity ADR before public deployment. Phase 3.2 now provides the stable catalogue identifiers needed for a future exercise-exclusion feature. Build-time contract generation explicitly selects Development because the profile routes do not exist in Production. Database readiness remains deferred while database-backed routes are development-only; it must be added before any deployable environment maps them, as required by D-008.
 
 Evidence:
 The Release backend integration suite passes 15 tests against disposable PostgreSQL, including persistence, malformed input, duplicate selection, safe-error, unknown-record, and Production-route cases. The frontend passes all 20 tests plus formatting, strict TypeScript, lint, and iOS export. The API contract drift check regenerates the development contract and generated client without differences.
 
 Related ADR: [ADR-0006](docs/adr/0006-minimum-onboarding-profile.md)
+
+### D-011 — 2026-08-27 — Own and explicitly import the initial exercise catalogue
+
+Status: accepted
+
+Context:
+Phase 3.2 requires stable exercise identity, deterministic filtering, and appropriate content provenance without committing the product to a third-party catalogue or unresolved media source.
+
+Decision or finding:
+Own a text-only manifest of 35 original common strength and cardio exercises. Validate it completely and import it into PostgreSQL only through an explicit transactional command. Version and hash the imported content, preserve permanent UUIDs, refuse ambiguous removal or identity reassignment, and keep the initial content marked as requiring qualified fitness review. Normalize fields used by search and filtering; keep bounded display instructions as scalar text. Share only the equipment vocabulary with Profiles.
+
+Rationale:
+This provides deterministic local data, readable review, stable workout references, and no catalogue API key, runtime vendor, recurring cost, or third-party schema dependency. Explicit import makes content mutation visible and recoverable. The shared equipment enum prevents onboarding and catalogue filtering from drifting without creating a broad common layer.
+
+Alternatives considered:
+A third-party API, scraped content, automatic startup seeding, EF model seeding, and a JSON-only runtime catalogue were rejected for the licensing, reliability, review, migration, or query-integrity reasons recorded in ADR-0007. Media and custom exercises were deferred because their source and lifecycle are unresolved.
+
+Consequences / follow-up:
+Run the importer after migrations in each local environment. Increment the manifest version for every imported content change. A qualified fitness professional must review the instruction set before public release. Exercise retirement, media, custom exercises, and production routing require separate decisions. Stable UUIDs can now support exclusions and workout history without treating names as identity.
+
+Evidence:
+The Release backend suite passes 30 tests against disposable PostgreSQL, including manifest policy, transactional idempotent import, escaped alias search, combined filters, equipment-subset matching, pagination, invalid inputs, detail retrieval, OpenAPI types, and Production-route coverage. The frontend passes formatting, strict TypeScript, lint, all 22 tests, and iOS export. Migration-state and contract-drift checks pass.
+
+Related ADR: [ADR-0007](docs/adr/0007-internal-exercise-catalogue.md)
 
 ## Issue log
 
@@ -488,6 +512,28 @@ Contract generation rebuilds the small API project each time. This adds under tw
 Evidence:
 Before the change, the drift command failed with `ENOENT` for the temporary `FitnessCoach.Api.json`. With `--no-incremental`, the document is emitted into the temporary directory and both comparisons pass.
 
+### I-012 — 2026-08-27 — Default query enum binding disagreed with the JSON contract
+
+Status: resolved
+
+Context:
+The first exercise filter endpoint used enum and enum-array handler parameters. ASP.NET Core's query binder interpreted those using C# enum spelling, while JSON and the generated TypeScript contract expose camel-case values such as `horizontalPush` and `squatRack`.
+
+Decision or finding:
+Accept raw query strings at the HTTP boundary, parse them against the exact camel-case enum vocabulary, and return standard validation problems for unsupported values. Apply an endpoint-specific OpenAPI transformer so generated TypeScript filters retain their enum unions rather than degrading to arbitrary strings.
+
+Rationale:
+Transport values should behave consistently whether they appear in JSON or a query string. Explicit parsing also rejects numeric enum values and prevents framework binding diagnostics from becoming the product error contract.
+
+Alternatives considered:
+Pascal-case query values were rejected because they would disagree with every generated response and client enum. Leaving query filters as untyped strings was rejected because the mobile compiler would no longer catch invalid catalogue filters. Custom wrapper types were not selected because they would add transport-only types and less predictable OpenAPI schemas.
+
+Consequences / follow-up:
+New enum query filters should reuse this explicit boundary approach or a future shared binder only when a second concrete use justifies extracting one. The OpenAPI integration test protects the generated camel-case filter values.
+
+Evidence:
+The first PostgreSQL endpoint run returned framework binding failures for repeated lower-camel equipment values. After explicit parsing and schema transformation, all 13 focused exercise endpoint tests and the full 30-test backend suite pass.
+
 ## Performance log
 
 No representative performance-sensitive path exists yet, so no meaningful baseline has been recorded. Baselines will be added when client and API paths contain realistic state, data, and workload.
@@ -501,6 +547,6 @@ These choices are intentionally unresolved until their requirements are clearer:
 - Hosting provider and deployment topology.
 - AI provider and model selection.
 - Offline workout logging and synchronization design.
-- Source and licensing for the exercise catalogue and any media.
+- Whether and how licensed exercise media is added.
 - Analytics and crash-reporting providers.
 - Monetization, if the product proceeds beyond personal and portfolio use.
