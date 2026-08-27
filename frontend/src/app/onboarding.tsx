@@ -8,8 +8,11 @@ export default function OnboardingRoute() {
   const router = useRouter();
 
   const handleSubmit = async (submission: OnboardingSubmission) => {
-    await createTrainingProfile(submission);
-    router.replace("/workout/create");
+    const profile = await createTrainingProfile(submission);
+    router.replace({
+      pathname: "/workouts",
+      params: { profileId: profile.id },
+    });
   };
 
   return <OnboardingForm onSubmit={handleSubmit} />;

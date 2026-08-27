@@ -43,7 +43,14 @@
     "format:check": "prettier --check ."
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "resolver": "react-native-worklets/jest/resolver.js",
+    "setupFiles": [
+      "react-native-gesture-handler/jestSetup.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ]
   },
   "private": true
 }

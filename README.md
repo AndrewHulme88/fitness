@@ -2,7 +2,7 @@
 
 Fitness Coach is the working title for an iOS-first fitness application that combines workout planning and logging with a context-aware AI coach. The product is intended to feel calm, trustworthy, fast, and genuinely useful during training.
 
-The repository has completed its foundation phase and now contains verified iOS and API foundations. Product behavior remains intentionally skeletal while persistence and the first end-to-end feature slice are established.
+The repository has completed its foundation phase and the first three core-fitness increments. It now supports local onboarding, an internally owned exercise catalogue, and reusable workout planning across the Expo client, API, and PostgreSQL.
 
 ## Product intent
 
@@ -115,7 +115,7 @@ Prerequisites:
 
 - .NET 10 SDK. The repository's `global.json` accepts installed .NET 10 feature bands while preventing an accidental major-version change.
 - Docker Desktop or another Docker-compatible engine with Compose support.
-- A trusted ASP.NET Core development certificate for local HTTPS. On macOS, run `dotnet dev-certs https --trust` once if the certificate is not already trusted.
+- A trusted ASP.NET Core development certificate only if you choose to test local HTTPS. The Expo simulator workflow below uses loopback HTTP to avoid local certificate-trust failures.
 
 Restore the repository-pinned EF Core tool and NuGet dependencies, then run the quality checks. The integration suite starts its own disposable PostgreSQL container, so Docker must be running; it does not use or modify the development database.
 
@@ -141,9 +141,12 @@ source .env
 set +a
 docker compose up --detach --wait database
 dotnet tool run dotnet-ef database update \
+  --configuration Release \
   --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj \
   --startup-project backend/FitnessCoach.Api/FitnessCoach.Api.csproj
 ```
+
+Do not add `--no-build` unless the selected `--configuration` matches a build you just completed. EF discovers migrations from the compiled assembly; a stale configuration can incorrectly appear current for that older binary.
 
 Import the versioned exercise catalogue explicitly after migrations are current:
 
@@ -155,13 +158,13 @@ dotnet run --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj \
 
 The importer validates the entire embedded manifest before writing, runs transactionally, and is safe to repeat. Catalogue content changes must increment `catalogueVersion`; removal is refused until exercise retirement and workout-history behavior are designed.
 
-Start the API over local HTTPS from the same shell:
+Start the API over loopback HTTP from the same shell for Expo simulator development:
 
 ```bash
-dotnet run --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj --launch-profile https --no-restore
+dotnet run --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj --launch-profile http --no-restore
 ```
 
-The launch profile selects available loopback ports and prints them at startup. `GET /health` is a liveness endpoint and does not query PostgreSQL. Console logs use JSON; HTTP request logging is limited to method, path, response status, and duration. Headers, query strings, and request or response bodies are excluded because they can contain sensitive fitness or authentication data.
+The launch profile selects an available loopback port and prints it at startup; use that HTTP port in `frontend/.env.local`. Plain HTTP is only approved for this loopback-only local workflow. `GET /health` is a liveness endpoint and does not query PostgreSQL. Console logs use JSON; HTTP request logging is limited to method, path, response status, and duration. Headers, query strings, and request or response bodies are excluded because they can contain sensitive fitness or authentication data.
 
 Stop PostgreSQL while retaining local data with `docker compose down`. To deliberately reset the development database, use `docker compose down --volumes`; this permanently deletes the local Compose database volume.
 
@@ -191,7 +194,7 @@ Before completing the increment, run the same non-mutating drift check used by C
 bash scripts/check-api-contract.sh
 ```
 
-The runtime document and unauthenticated local-prototype Profile and Exercise endpoints are available only when the API runs in the Development environment. Contract generation also selects Development explicitly so those routes remain represented in the mobile contract. No interactive API documentation UI is installed.
+The runtime document and unauthenticated local-prototype Profile, Exercise, and Workout endpoints are available only when the API runs in the Development environment. Contract generation also selects Development explicitly so those routes remain represented in the mobile contract. No interactive API documentation UI is installed.
 
 ## How work is organized
 
@@ -218,4 +221,4 @@ The runtime document and unauthenticated local-prototype Profile and Exercise en
 
 ## Current status
 
-Foundation work through Phase 3.2 is complete. The Expo client has an accessible onboarding form and generated typed clients for profiles and exercise search. The .NET API validates and persists profiles and an internally owned catalogue of 35 common exercises through PostgreSQL, with an explicit versioned import workflow and bounded search/detail endpoints. Prototype product routes remain Development-only until deployment and identity boundaries are intentionally introduced. The next increment is simple workout creation and editing in Phase 3.3.
+Foundation work through Phase 3.3 is complete. The Expo client has accessible onboarding, a saved-workout list, catalogue discovery, explicit prescription editing, and drag plus VoiceOver reordering. The .NET API validates and persists profiles, an internally owned catalogue of 35 common exercises, and revisioned profile-owned workout templates through PostgreSQL. Prototype product routes remain Development-only until deployment and identity boundaries are intentionally introduced. The next increment to define is active workout logging in Phase 3.4.

@@ -89,6 +89,42 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/profiles/{profileId}/workouts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List reusable workout plans */
+    get: operations["ListWorkouts"];
+    put?: never;
+    /** Create a reusable workout plan */
+    post: operations["CreateWorkout"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/profiles/{profileId}/workouts/{workoutId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a reusable workout plan */
+    get: operations["GetWorkout"];
+    /** Update and reorder a reusable workout plan */
+    put: operations["UpdateWorkout"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -98,6 +134,10 @@ export interface components {
       experience: components["schemas"]["TrainingExperience"];
       availableEquipment: components["schemas"]["EquipmentType"][];
       unitSystem: components["schemas"]["UnitSystem"];
+    };
+    CreateWorkoutRequest: {
+      name: string;
+      exercises: components["schemas"]["WorkoutExerciseRequest"][];
     };
     /** @enum {unknown} */
     EquipmentType:
@@ -188,6 +228,14 @@ export interface components {
       | "triceps"
       | "forearms"
       | "core";
+    ProblemDetails: {
+      type?: null | string;
+      title?: null | string;
+      /** Format: int32 */
+      status?: null | number | string;
+      detail?: null | string;
+      instance?: null | string;
+    };
     /** @enum {unknown} */
     TrainingExperience: "beginner" | "intermediate" | "advanced";
     /** @enum {unknown} */
@@ -204,6 +252,81 @@ export interface components {
     };
     /** @enum {unknown} */
     UnitSystem: "metric" | "imperial";
+    UpdateWorkoutRequest: {
+      name: string;
+      /** Format: int32 */
+      expectedRevision: number | string;
+      exercises: components["schemas"]["WorkoutExerciseRequest"][];
+    };
+    WorkoutDetailResponse: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      profileId: string;
+      name: string;
+      /** Format: int32 */
+      revision: number | string;
+      exercises: components["schemas"]["WorkoutExerciseResponse"][];
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    WorkoutExerciseRequest: {
+      /** Format: uuid */
+      exerciseId: string;
+      /** Format: int32 */
+      plannedSets: number | string;
+      /** Format: int32 */
+      minimumRepetitions: null | number | string;
+      /** Format: int32 */
+      maximumRepetitions: null | number | string;
+      /** Format: double */
+      targetLoadKilograms: null | number | string;
+      /** Format: int32 */
+      targetDurationSeconds: null | number | string;
+      /** Format: double */
+      targetDistanceMetres: null | number | string;
+    };
+    WorkoutExerciseResponse: {
+      /** Format: uuid */
+      exerciseId: string;
+      /** Format: int32 */
+      position: number | string;
+      exerciseName: string;
+      trackingMode: components["schemas"]["ExerciseTrackingMode"];
+      primaryMuscles: components["schemas"]["MuscleGroup"][];
+      /** Format: int32 */
+      plannedSets: number | string;
+      /** Format: int32 */
+      minimumRepetitions: null | number | string;
+      /** Format: int32 */
+      maximumRepetitions: null | number | string;
+      /** Format: double */
+      targetLoadKilograms: null | number | string;
+      /** Format: int32 */
+      targetDurationSeconds: null | number | string;
+      /** Format: double */
+      targetDistanceMetres: null | number | string;
+    };
+    WorkoutListResponse: {
+      items: components["schemas"]["WorkoutSummaryResponse"][];
+      /** Format: int32 */
+      nextOffset: null | number | string;
+    };
+    WorkoutSummaryResponse: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** Format: int32 */
+      exerciseCount: number | string;
+      /** Format: int32 */
+      plannedSetCount: number | string;
+      /** Format: int32 */
+      revision: number | string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -406,6 +529,171 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  ListWorkouts: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path: {
+        profileId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkoutListResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CreateWorkout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateWorkoutRequest"];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkoutDetailResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  GetWorkout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+        workoutId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkoutDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  UpdateWorkout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+        workoutId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateWorkoutRequest"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkoutDetailResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
       };
     };
   };

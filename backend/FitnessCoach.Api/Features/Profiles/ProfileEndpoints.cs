@@ -55,6 +55,7 @@ internal static class ProfileEndpoints
     {
         var profile = await dbContext.Set<TrainingProfile>()
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(item => item.Goals)
             .Include(item => item.AvailableEquipment)
             .SingleOrDefaultAsync(item => item.Id == profileId, cancellationToken);

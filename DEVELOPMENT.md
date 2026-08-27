@@ -268,6 +268,32 @@ The Release backend suite passes 30 tests against disposable PostgreSQL, includi
 
 Related ADR: [ADR-0007](docs/adr/0007-internal-exercise-catalogue.md)
 
+### D-012 — 2026-08-27 — Model workouts as explicit reusable templates
+
+Status: accepted
+
+Context:
+Phase 3.3 needed workout creation and editing without prematurely defining active-session logging, generated coaching, deletion, or offline synchronization.
+
+Decision or finding:
+Store profile-owned workout templates with a name, explicit exercise order, and tracking-mode-specific prescriptions. Persist values canonically as kilograms, metres, and seconds while converting only at the client boundary for the profile's display units. Require 1–20 unique curated exercises and user-entered targets; do not generate default training recommendations. Use a monotonic revision as an EF concurrency token and return `409` when an edit was based on stale state. Keep the unauthenticated prototype routes Development-only.
+
+On mobile, use a compact list rather than a card-heavy layout. Exercise discovery and prescription editing use focused iOS sheets. Long-press drag is the primary direct-manipulation reorder behavior, with VoiceOver adjustable move actions as an equivalent non-drag path.
+
+Rationale:
+Templates create a durable deterministic input for later workout sessions without conflating intended plans with completed training. Canonical storage prevents unit preference from changing historical meaning. Explicit prescriptions keep product rules explainable and avoid presenting arbitrary values as coaching. Revisions prevent silent last-write-wins data loss while identity and cross-device synchronization remain deferred.
+
+Alternatives considered:
+Storing a workout as one JSON document was rejected because exercise references, integrity, querying, and later history relationships belong in relational data. Position-specific unique constraints were deferred because in-place swaps would require temporary values or multi-step persistence without adding an invariant not already enforced by the aggregate. Automatic prescription defaults were rejected because no deterministic programming policy or qualified review has approved them. Delete/archive was deferred until history references and lifecycle behavior are concrete.
+
+Consequences / follow-up:
+Phase 3.4 can create sessions from stable templates without changing template semantics. Authentication must eventually replace the route-carried local profile identifier and authorize every profile-owned operation. Offline editing, archive/delete, progression rules, and template-to-session snapshot behavior remain explicit future decisions.
+
+Evidence:
+ADR-0008; migration `20260827063847_AddWorkoutPlanning`; 43 passing backend integration tests; 39 passing frontend tests; generated-contract drift verification; production iOS export; and iPhone 16 Pro simulator review.
+
+Related ADR: [ADR-0008](docs/adr/0008-reusable-workout-templates.md)
+
 ## Issue log
 
 ### I-001 — 2026-08-24 — Expo SDK 57 transitive uuid advisory
@@ -533,6 +559,50 @@ New enum query filters should reuse this explicit boundary approach or a future 
 
 Evidence:
 The first PostgreSQL endpoint run returned framework binding failures for repeated lower-camel equipment values. After explicit parsing and schema transformation, all 13 focused exercise endpoint tests and the full 30-test backend suite pass.
+
+### I-013 — 2026-08-27 — EF no-build commands used a stale configuration assembly
+
+Status: resolved
+
+Context:
+During end-to-end workout planning review, an EF migration update run with `--no-build` reported that the local database was current even though `workout_plans` did not exist. The verified build had been produced in Release, while the EF command used the older default Debug output.
+
+Decision or finding:
+`--no-build` is safe only when the EF command explicitly selects the same configuration that was just built. The migration was applied from the current Release assembly with `--configuration Release --no-build`. The documented ordinary migration command continues to build current source; any optimized no-build variant must state its matching configuration.
+
+Rationale:
+EF discovers migrations from the compiled startup assembly, not directly from source. A successful command against a stale assembly can therefore be factually correct for that binary while misleading for the working tree.
+
+Alternatives considered:
+Deleting build outputs was unnecessary and would not prevent recurrence. Editing migration history manually was rejected because the database accurately reflected the migrations known to the stale binary.
+
+Consequences / follow-up:
+Migration verification and application commands must either build or use an explicitly matched configuration. Diagnose schema/history disagreement by checking both `__EFMigrationsHistory` and the compiled configuration before changing database state.
+
+Evidence:
+The default no-build command saw only the first three migrations and reported no work. `dotnet ef database update --configuration Release --no-build ...` discovered and applied `20260827063847_AddWorkoutPlanning`; subsequent API requests returned `200`.
+
+### I-014 — 2026-08-27 — Profile read produced a multiple-collection query warning
+
+Status: resolved
+
+Context:
+The workout editor loads goals and equipment from the current profile. Simulator review showed EF's `MultipleCollectionIncludeWarning` because both collections were loaded through one joined query.
+
+Decision or finding:
+Use `AsSplitQuery` for this bounded profile read. This avoids cartesian row multiplication while preserving one cohesive no-tracking load and the existing response contract.
+
+Rationale:
+Goals and equipment are separate collections with small independent cardinalities. Three small indexed queries are more predictable than a cross-product result as either taxonomy grows.
+
+Alternatives considered:
+Ignoring the warning was rejected because this route now runs whenever a planner opens. A handwritten projection was not selected because the current aggregate mapping is simple and split-query behavior directly expresses the required loading strategy.
+
+Consequences / follow-up:
+The route makes additional database round trips but transfers bounded rows without multiplicative duplication. Revisit only with representative measurements if profile taxonomies or latency conditions change.
+
+Evidence:
+The Development runtime emitted `MultipleCollectionIncludeWarning` before the change. The query now opts into split behavior; the full PostgreSQL integration suite remains the regression boundary.
 
 ## Performance log
 

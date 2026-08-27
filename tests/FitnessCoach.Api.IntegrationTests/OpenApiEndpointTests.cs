@@ -87,6 +87,35 @@ public sealed class OpenApiEndpointTests : IClassFixture<ApiWebApplicationFactor
         Assert.Equal(
             50,
             limitParameter.GetProperty("schema").GetProperty("maximum").GetInt32());
+
+        var workoutCollection = root
+            .GetProperty("paths")
+            .GetProperty("/profiles/{profileId}/workouts");
+        Assert.Equal(
+            "CreateWorkout",
+            workoutCollection.GetProperty("post").GetProperty("operationId").GetString());
+        var listWorkouts = workoutCollection.GetProperty("get");
+        Assert.Equal("ListWorkouts", listWorkouts.GetProperty("operationId").GetString());
+        var workoutLimit = listWorkouts
+            .GetProperty("parameters")
+            .EnumerateArray()
+            .Single(parameter => parameter.GetProperty("name").GetString() == "limit");
+        Assert.Equal(
+            "integer",
+            workoutLimit.GetProperty("schema").GetProperty("type").GetString());
+        Assert.Equal(
+            50,
+            workoutLimit.GetProperty("schema").GetProperty("maximum").GetInt32());
+
+        var workoutItem = root
+            .GetProperty("paths")
+            .GetProperty("/profiles/{profileId}/workouts/{workoutId}");
+        Assert.Equal(
+            "GetWorkout",
+            workoutItem.GetProperty("get").GetProperty("operationId").GetString());
+        Assert.Equal(
+            "UpdateWorkout",
+            workoutItem.GetProperty("put").GetProperty("operationId").GetString());
     }
 
     [Fact]

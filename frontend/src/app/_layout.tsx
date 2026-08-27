@@ -1,5 +1,6 @@
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { RouteStatus } from "../components/RouteStatus";
 import { colors } from "../theme/tokens";
@@ -27,7 +28,7 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
 
 export default function RootLayout() {
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: colors.canvas },
@@ -39,6 +40,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="workouts" options={{ headerShown: false }} />
         <Stack.Screen
           name="workout/create"
           options={{ title: "Create workout" }}
@@ -48,6 +50,6 @@ export default function RootLayout() {
         <Stack.Screen name="+not-found" options={{ title: "Unavailable" }} />
       </Stack>
       <StatusBar style="light" />
-    </>
+    </GestureHandlerRootView>
   );
 }

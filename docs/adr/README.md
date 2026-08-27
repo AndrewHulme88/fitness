@@ -21,6 +21,7 @@ ADRs capture decisions that have broad or long-lived technical consequences. `DE
 | [0005](0005-api-contract-workflow.md)       | Accepted | Generate the mobile API client from committed OpenAPI            |
 | [0006](0006-minimum-onboarding-profile.md)  | Accepted | Keep the initial onboarding profile closed, minimal, and local   |
 | [0007](0007-internal-exercise-catalogue.md) | Accepted | Own and explicitly import a curated exercise catalogue           |
+| [0008](0008-reusable-workout-templates.md)  | Accepted | Store explicit, revisioned, profile-owned workout templates      |
 
 ## Template
 

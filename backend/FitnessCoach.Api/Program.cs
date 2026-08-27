@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 
 using FitnessCoach.Api.Features.Exercises;
 using FitnessCoach.Api.Features.Profiles;
+using FitnessCoach.Api.Features.Workouts;
 using FitnessCoach.Api.Persistence;
 
 using Microsoft.AspNetCore.HttpLogging;
@@ -70,6 +71,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapExerciseEndpoints();
     app.MapProfileEndpoints();
+    app.MapWorkoutEndpoints();
 }
 
 app.MapGet("/health", GetHealthAsync)

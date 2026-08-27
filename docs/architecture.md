@@ -57,13 +57,13 @@ Responsibilities:
 - Degrade safely when the API or AI provider is unavailable.
 - Avoid containing privileged provider credentials or authoritative business rules.
 
-The client uses Expo Router with its stable native stack and typed routes. Route files live under `frontend/src/app`; the initial graph is deliberately limited to onboarding, workout creation, an active workout, a session summary, and route-level loading, error, and unavailable states. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
+The client uses Expo Router with its stable native stack and typed routes. Route files live under `frontend/src/app`; the current graph covers onboarding, the saved workout list and editor, placeholder active-workout and summary routes, and route-level loading, error, and unavailable states. The unauthenticated prototype carries the current profile identifier through route parameters only for the current flow; it is not durable identity or authorization. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
 
 Android portability should be retained through standard React Native patterns. Android-specific implementation and QA are deferred.
 
 ## API
 
-The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. It is a Minimal API with feature-oriented modules. `GET /health` is a liveness check and deliberately does not require database connectivity. The Profile and Exercise features expose development-only endpoints for the unauthenticated local prototype; production does not map those routes. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. ASP.NET Core publishes the versioned OpenAPI document in Development and generates the committed contract during a build that explicitly uses the Development environment.
+The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. It is a Minimal API with feature-oriented modules. `GET /health` is a liveness check and deliberately does not require database connectivity. The Profile, Exercise, and Workout features expose development-only endpoints for the unauthenticated local prototype; production does not map those routes. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. ASP.NET Core publishes the versioned OpenAPI document in Development and generates the committed contract during a build that explicitly uses the Development environment.
 
 Responsibilities:
 
@@ -83,7 +83,7 @@ PostgreSQL is the source of truth, accessed through EF Core and Npgsql.
 
 Local development uses `postgres:18.6-alpine3.24` pinned to an immutable multi-architecture image digest through Docker Compose, bound to the IPv4 loopback interface on a configurable host port and backed by a named volume. The API receives its connection string only through `ConnectionStrings__Postgres`; no connection string or real credential is committed. EF migrations are explicit and are not applied automatically at API startup. This image is local/test infrastructure only and is not an approved production database image.
 
-Persistence integration tests use Testcontainers to start a disposable instance of the same PostgreSQL image on an isolated dynamic port. Tests apply the committed migrations and verify connectivity against PostgreSQL rather than substituting an in-memory provider. The Profile feature stores one profile row plus normalized goal and equipment selections. The Exercise feature stores catalogue entries plus searchable aliases, equipment, muscles, and versioned import state. Enum values are stored as readable strings, and database checks and composite keys reinforce the API's supported values and uniqueness rules.
+Persistence integration tests use Testcontainers to start a disposable instance of the same PostgreSQL image on an isolated dynamic port. Tests apply the committed migrations and verify connectivity against PostgreSQL rather than substituting an in-memory provider. The Profile feature stores one profile row plus normalized goal and equipment selections. The Exercise feature stores catalogue entries plus searchable aliases, equipment, muscles, and versioned import state. The Workout feature stores reusable profile-owned plans and ordered exercise prescriptions. Enum values are stored as readable strings, and database checks and composite keys reinforce the API's supported values and uniqueness rules.
 
 Initial rules:
 
@@ -106,6 +106,16 @@ The initial catalogue contains 35 common strength and cardio entries. Stable UUI
 Equipment is a genuine shared domain vocabulary used by onboarding and the catalogue. Other exercise taxonomies remain owned by the Exercises feature. Media and custom exercises are not represented until their licensing, storage, accessibility, ownership, and lifecycle behavior are approved.
 
 The manifest is marked as requiring qualified exercise-content review. Structural validation and code review are not a substitute for that release gate. See [exercise-catalogue-policy.md](exercise-catalogue-policy.md) and [ADR-0007](adr/0007-internal-exercise-catalogue.md).
+
+## Workout planning
+
+Workout plans are reusable profile-owned templates, not completed sessions. A plan contains a bounded name, monotonic revision, UTC timestamps, and 1–20 unique curated exercises in explicit order. Each planned exercise stores sets and only the repetitions, load, duration, or distance targets permitted by its catalogue tracking mode.
+
+PostgreSQL stores canonical kilograms, metres, and seconds; the mobile boundary converts those values into the profile's metric or imperial display units. The planner never invents target values. API validation is authoritative, with matching client validation for immediate feedback and database checks for numeric and relational integrity.
+
+List, create, detail, and update routes are profile-scoped and Development-only until authentication exists. Updates use optimistic revisions and return `409` for stale edits. The current mobile profile identifier is ephemeral route state and must not be treated as authorization. Delete, archive, offline editing, template-to-session snapshots, and generated progression remain deferred.
+
+The mobile list and editor use compact rows and restrained dividers. Exercise discovery and target editing use focused sheets. Drag handles support long-press reordering, while VoiceOver users receive equivalent adjustable move actions. See [ADR-0008](adr/0008-reusable-workout-templates.md).
 
 ## API contract
 

@@ -10,18 +10,18 @@ The initial client uses a deliberate dark appearance. A light appearance will no
 
 ## Core colors
 
-| Role | Token | Value | Use |
-| --- | --- | --- | --- |
-| Canvas | `canvas` | `#111224` | Primary application background |
-| Surface | `surface` | `#191A2C` | Subtle separation when a bounded surface is necessary |
-| Raised surface | `surfaceRaised` | `#22233A` | Elevated or transient content only |
-| Primary text | `textPrimary` | `#F4F0E7` | Headings and essential content |
-| Secondary text | `textSecondary` | `#BAB9C7` | Supporting content that remains readable |
-| Accent | `accent` | `#D46A48` | Primary actions and strong emphasis |
-| Accent highlight | `accentHighlight` | `#E48B6E` | Accent text and smaller highlights |
-| On accent | `onAccent` | `#1A1310` | Text placed on the bright accent |
-| Border | `border` | `#36374F` | Dividers and restrained boundaries |
-| Focus | `focus` | `#F0A083` | Visible keyboard or accessibility focus indication |
+| Role             | Token             | Value     | Use                                                   |
+| ---------------- | ----------------- | --------- | ----------------------------------------------------- |
+| Canvas           | `canvas`          | `#111224` | Primary application background                        |
+| Surface          | `surface`         | `#191A2C` | Subtle separation when a bounded surface is necessary |
+| Raised surface   | `surfaceRaised`   | `#22233A` | Elevated or transient content only                    |
+| Primary text     | `textPrimary`     | `#F4F0E7` | Headings and essential content                        |
+| Secondary text   | `textSecondary`   | `#BAB9C7` | Supporting content that remains readable              |
+| Accent           | `accent`          | `#D46A48` | Primary actions and strong emphasis                   |
+| Accent highlight | `accentHighlight` | `#E48B6E` | Accent text and smaller highlights                    |
+| On accent        | `onAccent`        | `#1A1310` | Text placed on the bright accent                      |
+| Border           | `border`          | `#36374F` | Dividers and restrained boundaries                    |
+| Focus            | `focus`           | `#F0A083` | Visible keyboard or accessibility focus indication    |
 
 Color must communicate hierarchy without becoming decoration. Rust is reserved for primary actions, current navigation state, and small meaningful emphasis. It is not a general surface color.
 
@@ -54,6 +54,16 @@ For every affected screen:
 - Verify controls remain at least 44 by 44 points and usable one-handed where appropriate.
 - Check Reduce Motion behavior before adding non-essential animation.
 
+## Workout planning interaction
+
+- Keep saved plans and ordered exercises compact. Use dividers and spacing before adding bounded cards.
+- Keep the workout name, exercise count, planned-set count, order, and save action visible in a clear hierarchy. Put catalogue discovery and prescription editing in focused sheets.
+- Never prefill training targets that could be mistaken for a generated recommendation. A newly selected exercise starts with only one structural set and requires the user to provide tracking-specific targets.
+- Use a dedicated 44-point drag handle so row selection remains distinct from reordering. Long-press drag must have visible lifted and insertion states.
+- Expose VoiceOver adjustable move-up and move-down actions; dragging cannot be the only reorder mechanism.
+- Keep the save action stable at the bottom while allowing content and the keyboard to reflow safely above it.
+- Filter catalogue choices by the profile's available equipment, show text instructions before selection, and make duplicate choices visibly unavailable.
+
 ## Visual review checklist
 
 - Review on at least one compact and one large supported iPhone simulator.
@@ -63,4 +73,3 @@ For every affected screen:
 - Check loading, empty, error, offline, disabled, and interrupted states when the screen supports them.
 - Reject excessive cards, pills, gradients, glows, glass effects, oversized icons, and ornamental motion.
 - Confirm the coach is contextual and secondary to the fitness task.
-
