@@ -23,6 +23,7 @@ describe("WorkoutList", () => {
       <WorkoutList
         onCreate={onCreate}
         onEdit={jest.fn()}
+        onStart={jest.fn()}
         profileId={profileId}
       />,
     );
@@ -38,8 +39,9 @@ describe("WorkoutList", () => {
     );
   });
 
-  it("shows compact plan metadata and opens the selected workout", async () => {
+  it("shows compact metadata with separate start and edit actions", async () => {
     const onEdit = jest.fn();
+    const onStart = jest.fn();
     mockListWorkouts.mockResolvedValue({
       items: [
         {
@@ -58,14 +60,19 @@ describe("WorkoutList", () => {
       <WorkoutList
         onCreate={jest.fn()}
         onEdit={onEdit}
+        onStart={onStart}
         profileId={profileId}
       />,
     );
 
-    const row = await screen.findByRole("button", { name: /Upper strength/ });
+    expect(await screen.findByText("Upper strength")).toBeVisible();
     expect(screen.getByText("5 exercises · 16 sets")).toBeVisible();
-    fireEvent.press(row);
+    fireEvent.press(screen.getByRole("button", { name: "Start" }));
+    fireEvent.press(screen.getByRole("button", { name: "Edit" }));
 
+    expect(onStart).toHaveBeenCalledWith(
+      "20000000-0000-0000-0000-000000000002",
+    );
     expect(onEdit).toHaveBeenCalledWith("20000000-0000-0000-0000-000000000002");
   });
 
@@ -78,6 +85,7 @@ describe("WorkoutList", () => {
       <WorkoutList
         onCreate={jest.fn()}
         onEdit={jest.fn()}
+        onStart={jest.fn()}
         profileId={profileId}
       />,
     );

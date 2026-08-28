@@ -28,6 +28,12 @@ export default function WorkoutsRoute() {
     <WorkoutList
       onCreate={() => openPlanner()}
       onEdit={openPlanner}
+      onStart={(workoutId) =>
+        router.push({
+          pathname: "/workout/session",
+          params: { profileId, workoutId },
+        })
+      }
       profileId={profileId}
     />
   );

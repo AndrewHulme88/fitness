@@ -11,10 +11,16 @@ import { colors, layout, spacing } from "../../theme/tokens";
 type WorkoutListProps = {
   onCreate: () => void;
   onEdit: (workoutId: string) => void;
+  onStart: (workoutId: string) => void;
   profileId: string;
 };
 
-export function WorkoutList({ onCreate, onEdit, profileId }: WorkoutListProps) {
+export function WorkoutList({
+  onCreate,
+  onEdit,
+  onStart,
+  profileId,
+}: WorkoutListProps) {
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -102,7 +108,11 @@ export function WorkoutList({ onCreate, onEdit, profileId }: WorkoutListProps) {
           </View>
         }
         renderItem={({ item }) => (
-          <WorkoutRow onPress={() => onEdit(item.id)} workout={item} />
+          <WorkoutRow
+            onEdit={() => onEdit(item.id)}
+            onStart={() => onStart(item.id)}
+            workout={item}
+          />
         )}
         showsVerticalScrollIndicator={false}
       />
@@ -111,22 +121,19 @@ export function WorkoutList({ onCreate, onEdit, profileId }: WorkoutListProps) {
 }
 
 function WorkoutRow({
-  onPress,
+  onEdit,
+  onStart,
   workout,
 }: {
-  onPress: () => void;
+  onEdit: () => void;
+  onStart: () => void;
   workout: WorkoutSummary;
 }) {
   const exerciseCount = Number(workout.exerciseCount);
   const setCount = Number(workout.plannedSetCount);
 
   return (
-    <Pressable
-      accessibilityHint="Open workout editor"
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-    >
+    <View style={styles.row}>
       <View style={styles.rowCopy}>
         <AppText variant="title" style={styles.rowTitle}>
           {workout.name}
@@ -139,10 +146,30 @@ function WorkoutRow({
           Updated {formatUpdatedAt(workout.updatedAt)}
         </AppText>
       </View>
-      <AppText tone="accent" variant="label">
-        Edit
-      </AppText>
-    </Pressable>
+      <View style={styles.rowActions}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onStart}
+          style={styles.startButton}
+        >
+          <AppText style={styles.startLabel} variant="label">
+            Start
+          </AppText>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onEdit}
+          style={({ pressed }) => [
+            styles.editButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <AppText tone="secondary" variant="label">
+            Edit
+          </AppText>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -196,6 +223,22 @@ const styles = StyleSheet.create({
   rowCopy: {
     flex: 1,
     gap: spacing.xs,
+  },
+  rowActions: { alignItems: "center", gap: spacing.xs },
+  startButton: {
+    minHeight: 44,
+    minWidth: 72,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: colors.accent,
+  },
+  startLabel: { color: colors.onAccent },
+  editButton: {
+    minHeight: 44,
+    minWidth: 72,
+    alignItems: "center",
+    justifyContent: "center",
   },
   rowTitle: {
     fontSize: 20,

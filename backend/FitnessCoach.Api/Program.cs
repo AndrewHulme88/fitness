@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 
 using FitnessCoach.Api.Features.Exercises;
 using FitnessCoach.Api.Features.Profiles;
+using FitnessCoach.Api.Features.Sessions;
 using FitnessCoach.Api.Features.Workouts;
 using FitnessCoach.Api.Persistence;
 
@@ -71,6 +72,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapExerciseEndpoints();
     app.MapProfileEndpoints();
+    app.MapWorkoutSessionEndpoints();
     app.MapWorkoutEndpoints();
 }
 

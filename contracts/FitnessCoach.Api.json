@@ -276,6 +276,267 @@
         }
       }
     },
+    "/profiles/{profileId}/workout-sessions": {
+      "post": {
+        "tags": ["Workout sessions"],
+        "summary": "Start a workout session from an immutable plan snapshot",
+        "operationId": "StartWorkoutSession",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartWorkoutSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSessionResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSessionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/{profileId}/workout-sessions/active": {
+      "get": {
+        "tags": ["Workout sessions"],
+        "summary": "Get the profile's active workout session",
+        "operationId": "GetActiveWorkoutSession",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSessionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/profiles/{profileId}/workout-sessions/{sessionId}": {
+      "get": {
+        "tags": ["Workout sessions"],
+        "summary": "Get a workout session",
+        "operationId": "GetWorkoutSession",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSessionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Workout sessions"],
+        "summary": "Synchronize an active workout session",
+        "operationId": "UpdateWorkoutSession",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkoutSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSessionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Workout sessions"],
+        "summary": "Permanently discard an active workout session",
+        "operationId": "DiscardWorkoutSession",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/profiles/{profileId}/workouts": {
       "post": {
         "tags": ["Workouts"],
@@ -788,6 +1049,21 @@
         },
         "additionalProperties": false
       },
+      "StartWorkoutSessionRequest": {
+        "required": ["sessionId", "workoutPlanId"],
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workoutPlanId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "TrainingExperience": {
         "enum": ["beginner", "intermediate", "advanced"]
       },
@@ -853,6 +1129,45 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WorkoutExerciseRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateWorkoutSessionRequest": {
+        "required": [
+          "expectedRevision",
+          "clientMutationId",
+          "status",
+          "finishedAt",
+          "notes",
+          "exercises"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "clientMutationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkoutSessionStatus"
+          },
+          "finishedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "notes": {
+            "type": ["null", "string"]
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSessionExerciseRequest"
             }
           }
         },
@@ -1040,6 +1355,284 @@
         },
         "additionalProperties": false
       },
+      "WorkoutSessionExerciseRequest": {
+        "required": ["exerciseId", "isSkipped", "notes", "sets"],
+        "type": "object",
+        "properties": {
+          "exerciseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isSkipped": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": ["null", "string"]
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSessionSetRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkoutSessionExerciseResponse": {
+        "required": [
+          "exerciseId",
+          "position",
+          "exerciseName",
+          "trackingMode",
+          "primaryMuscles",
+          "plannedSets",
+          "minimumRepetitions",
+          "maximumRepetitions",
+          "targetLoadKilograms",
+          "targetDurationSeconds",
+          "targetDistanceMetres",
+          "isSkipped",
+          "notes",
+          "sets"
+        ],
+        "type": "object",
+        "properties": {
+          "exerciseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "exerciseName": {
+            "type": "string"
+          },
+          "trackingMode": {
+            "$ref": "#/components/schemas/ExerciseTrackingMode"
+          },
+          "primaryMuscles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          "plannedSets": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "minimumRepetitions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "maximumRepetitions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "targetLoadKilograms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "targetDurationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "targetDistanceMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "isSkipped": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": ["null", "string"]
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSessionSetResponse"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkoutSessionResponse": {
+        "required": [
+          "id",
+          "profileId",
+          "workoutPlanId",
+          "workoutPlanRevision",
+          "workoutName",
+          "revision",
+          "status",
+          "startedAt",
+          "updatedAt",
+          "finishedAt",
+          "notes",
+          "exercises"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workoutPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workoutPlanRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "workoutName": {
+            "type": "string"
+          },
+          "revision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkoutSessionStatus"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "notes": {
+            "type": ["null", "string"]
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSessionExerciseResponse"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkoutSessionSetRequest": {
+        "required": [
+          "setId",
+          "isCompleted",
+          "completedAt",
+          "actualRepetitions",
+          "actualLoadKilograms",
+          "actualDurationSeconds",
+          "actualDistanceMetres"
+        ],
+        "type": "object",
+        "properties": {
+          "setId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isCompleted": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "actualRepetitions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "actualLoadKilograms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "actualDurationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "actualDistanceMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkoutSessionSetResponse": {
+        "required": [
+          "setId",
+          "position",
+          "isCompleted",
+          "completedAt",
+          "actualRepetitions",
+          "actualLoadKilograms",
+          "actualDurationSeconds",
+          "actualDistanceMetres"
+        ],
+        "type": "object",
+        "properties": {
+          "setId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "isCompleted": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "actualRepetitions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "actualLoadKilograms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "actualDurationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "actualDistanceMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkoutSessionStatus": {
+        "enum": ["active", "completed"]
+      },
       "WorkoutSummaryResponse": {
         "required": [
           "id",
@@ -1091,6 +1684,9 @@
     },
     {
       "name": "Profiles"
+    },
+    {
+      "name": "Workout sessions"
     },
     {
       "name": "Workouts"

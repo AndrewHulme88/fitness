@@ -12,16 +12,17 @@ ADRs capture decisions that have broad or long-lived technical consequences. `DE
 
 ## Records
 
-| ADR                                         | Status   | Decision                                                         |
-| ------------------------------------------- | -------- | ---------------------------------------------------------------- |
-| [0001](0001-foundational-architecture.md)   | Accepted | Expo client with an ASP.NET Core modular monolith and PostgreSQL |
-| [0002](0002-ios-first-delivery.md)          | Accepted | Deliver iOS first and defer browser/Android releases             |
-| [0003](0003-ai-coach-boundary.md)           | Accepted | Keep the AI coach advisory, backend-mediated, and user-confirmed |
-| [0004](0004-expo-router-navigation.md)      | Accepted | Use Expo Router's stable native stack for mobile navigation      |
-| [0005](0005-api-contract-workflow.md)       | Accepted | Generate the mobile API client from committed OpenAPI            |
-| [0006](0006-minimum-onboarding-profile.md)  | Accepted | Keep the initial onboarding profile closed, minimal, and local   |
-| [0007](0007-internal-exercise-catalogue.md) | Accepted | Own and explicitly import a curated exercise catalogue           |
-| [0008](0008-reusable-workout-templates.md)  | Accepted | Store explicit, revisioned, profile-owned workout templates      |
+| ADR                                          | Status   | Decision                                                         |
+| -------------------------------------------- | -------- | ---------------------------------------------------------------- |
+| [0001](0001-foundational-architecture.md)    | Accepted | Expo client with an ASP.NET Core modular monolith and PostgreSQL |
+| [0002](0002-ios-first-delivery.md)           | Accepted | Deliver iOS first and defer browser/Android releases             |
+| [0003](0003-ai-coach-boundary.md)            | Accepted | Keep the AI coach advisory, backend-mediated, and user-confirmed |
+| [0004](0004-expo-router-navigation.md)       | Accepted | Use Expo Router's stable native stack for mobile navigation      |
+| [0005](0005-api-contract-workflow.md)        | Accepted | Generate the mobile API client from committed OpenAPI            |
+| [0006](0006-minimum-onboarding-profile.md)   | Accepted | Keep the initial onboarding profile closed, minimal, and local   |
+| [0007](0007-internal-exercise-catalogue.md)  | Accepted | Own and explicitly import a curated exercise catalogue           |
+| [0008](0008-reusable-workout-templates.md)   | Accepted | Store explicit, revisioned, profile-owned workout templates      |
+| [0009](0009-recoverable-workout-sessions.md) | Accepted | Use snapshot sessions with a local durable outbox                |
 
 ## Template
 

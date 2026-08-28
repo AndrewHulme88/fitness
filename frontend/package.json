@@ -5,8 +5,10 @@
   "dependencies": {
     "expo": "~57.0.16",
     "expo-constants": "~57.0.14",
+    "expo-crypto": "~57.0.2",
     "expo-linking": "~57.0.7",
     "expo-router": "~57.0.16",
+    "expo-sqlite": "~57.0.2",
     "expo-status-bar": "~57.0.1",
     "openapi-fetch": "0.17.0",
     "react": "19.2.3",
@@ -39,6 +41,7 @@
     "lint": "expo lint --max-warnings=0",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
+    "benchmark:session": "jest --runInBand --testMatch '**/*.benchmark.ts'",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

@@ -2,7 +2,7 @@
 
 Fitness Coach is the working title for an iOS-first fitness application that combines workout planning and logging with a context-aware AI coach. The product is intended to feel calm, trustworthy, fast, and genuinely useful during training.
 
-The repository has completed its foundation phase and the first three core-fitness increments. It now supports local onboarding, an internally owned exercise catalogue, and reusable workout planning across the Expo client, API, and PostgreSQL.
+The repository has completed its foundation phase and the first four core-fitness increments. It now supports local onboarding, an internally owned exercise catalogue, reusable workout planning, and interruption-safe active workout logging across the Expo client, API, and PostgreSQL.
 
 ## Product intent
 
@@ -91,6 +91,7 @@ npm run format:check
 npm run typecheck
 npm run lint
 npm test
+npm run benchmark:session
 ```
 
 The onboarding form calls the local API. After starting the API as described below, copy the public-only client example and replace its port with the HTTP port printed by `dotnet run`:
@@ -221,4 +222,4 @@ The runtime document and unauthenticated local-prototype Profile, Exercise, and 
 
 ## Current status
 
-Foundation work through Phase 3.3 is complete. The Expo client has accessible onboarding, a saved-workout list, catalogue discovery, explicit prescription editing, and drag plus VoiceOver reordering. The .NET API validates and persists profiles, an internally owned catalogue of 35 common exercises, and revisioned profile-owned workout templates through PostgreSQL. Prototype product routes remain Development-only until deployment and identity boundaries are intentionally introduced. The next increment to define is active workout logging in Phase 3.4.
+Foundation work through Phase 3.4 is complete. The Expo client has accessible onboarding, a saved-workout list, catalogue discovery, explicit prescription editing, drag plus VoiceOver reordering, and a compact active logger with durable SQLite recovery and explicit offline states. The .NET API validates and persists profiles, an internally owned catalogue of 35 common exercises, revisioned workout templates, and immutable-snapshot workout sessions through PostgreSQL. Prototype product routes remain Development-only until deployment and identity boundaries are intentionally introduced. The next increment to define is history and explainable basic progress in Phase 3.5.

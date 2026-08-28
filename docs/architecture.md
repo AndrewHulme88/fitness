@@ -51,19 +51,19 @@ The client will use React Native, Expo, and TypeScript, targeting iOS first.
 Responsibilities:
 
 - Render native, accessible interaction and navigation.
-- Maintain ephemeral presentation and in-progress session state.
+- Maintain presentation state and a bounded durable copy of the active session.
 - Store authentication material using appropriate secure platform storage.
 - Validate input for immediate feedback while treating the API as authoritative.
 - Degrade safely when the API or AI provider is unavailable.
 - Avoid containing privileged provider credentials or authoritative business rules.
 
-The client uses Expo Router with its stable native stack and typed routes. Route files live under `frontend/src/app`; the current graph covers onboarding, the saved workout list and editor, placeholder active-workout and summary routes, and route-level loading, error, and unavailable states. The unauthenticated prototype carries the current profile identifier through route parameters only for the current flow; it is not durable identity or authorization. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
+The client uses Expo Router with its stable native stack and typed routes. Route files live under `frontend/src/app`; the current graph covers onboarding, the saved workout list and editor, active-workout logging, completion summary, and route-level loading, error, and unavailable states. Expo SQLite retains the local prototype profile association and recoverable session payload; Expo Crypto supplies stable UUIDs. This association is convenience state, not identity or authorization. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
 
 Android portability should be retained through standard React Native patterns. Android-specific implementation and QA are deferred.
 
 ## API
 
-The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. It is a Minimal API with feature-oriented modules. `GET /health` is a liveness check and deliberately does not require database connectivity. The Profile, Exercise, and Workout features expose development-only endpoints for the unauthenticated local prototype; production does not map those routes. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. ASP.NET Core publishes the versioned OpenAPI document in Development and generates the committed contract during a build that explicitly uses the Development environment.
+The API uses ASP.NET Core on .NET 10 LTS with nullable reference types and strict build analysis enabled. It is a Minimal API with feature-oriented modules. `GET /health` is a liveness check and deliberately does not require database connectivity. The Profile, Exercise, Workout, and Session features expose development-only endpoints for the unauthenticated local prototype; production does not map those routes. It emits JSON console logs and records only request method, path, response status, and duration; headers, query strings, and bodies are excluded. ASP.NET Core publishes the versioned OpenAPI document in Development and generates the committed contract during a build that explicitly uses the Development environment.
 
 Responsibilities:
 
@@ -83,7 +83,7 @@ PostgreSQL is the source of truth, accessed through EF Core and Npgsql.
 
 Local development uses `postgres:18.6-alpine3.24` pinned to an immutable multi-architecture image digest through Docker Compose, bound to the IPv4 loopback interface on a configurable host port and backed by a named volume. The API receives its connection string only through `ConnectionStrings__Postgres`; no connection string or real credential is committed. EF migrations are explicit and are not applied automatically at API startup. This image is local/test infrastructure only and is not an approved production database image.
 
-Persistence integration tests use Testcontainers to start a disposable instance of the same PostgreSQL image on an isolated dynamic port. Tests apply the committed migrations and verify connectivity against PostgreSQL rather than substituting an in-memory provider. The Profile feature stores one profile row plus normalized goal and equipment selections. The Exercise feature stores catalogue entries plus searchable aliases, equipment, muscles, and versioned import state. The Workout feature stores reusable profile-owned plans and ordered exercise prescriptions. Enum values are stored as readable strings, and database checks and composite keys reinforce the API's supported values and uniqueness rules.
+Persistence integration tests use Testcontainers to start a disposable instance of the same PostgreSQL image on an isolated dynamic port. Tests apply the committed migrations and verify connectivity against PostgreSQL rather than substituting an in-memory provider. The Profile feature stores one profile row plus normalized goal and equipment selections. The Exercise feature stores catalogue entries plus searchable aliases, equipment, muscles, and versioned import state. The Workout feature stores reusable profile-owned plans and ordered exercise prescriptions. The Session feature stores immutable plan snapshots, bounded mutable sets, canonical actuals, notes, completion state, and idempotent mutation metadata. Enum values are stored as readable strings, and database checks and composite keys reinforce the API's supported values and uniqueness rules.
 
 Initial rules:
 
@@ -113,9 +113,17 @@ Workout plans are reusable profile-owned templates, not completed sessions. A pl
 
 PostgreSQL stores canonical kilograms, metres, and seconds; the mobile boundary converts those values into the profile's metric or imperial display units. The planner never invents target values. API validation is authoritative, with matching client validation for immediate feedback and database checks for numeric and relational integrity.
 
-List, create, detail, and update routes are profile-scoped and Development-only until authentication exists. Updates use optimistic revisions and return `409` for stale edits. The current mobile profile identifier is ephemeral route state and must not be treated as authorization. Delete, archive, offline editing, template-to-session snapshots, and generated progression remain deferred.
+List, create, detail, and update routes are profile-scoped and Development-only until authentication exists. Updates use optimistic revisions and return `409` for stale edits. The current mobile profile identifier is local prototype state and must not be treated as authorization. Delete, archive, offline plan editing, and generated progression remain deferred.
 
 The mobile list and editor use compact rows and restrained dividers. Exercise discovery and target editing use focused sheets. Drag handles support long-press reordering, while VoiceOver users receive equivalent adjustable move actions. See [ADR-0008](adr/0008-reusable-workout-templates.md).
+
+## Active workout sessions
+
+Starting a workout creates a new session from one exact workout-plan revision. Snapshot fields preserve the plan name, exercise identity and order, tracking mode, muscles, and prescriptions; template edits never rewrite a session. PostgreSQL permits only one active session per profile. Completed sessions are immutable until the later history phase intentionally defines correction behavior.
+
+Actual values use the exercise tracking mode: repetitions; repetitions plus load; duration; distance plus duration; or distance, duration, and load. Planned values remain visible suggestions and are never silently recorded as actuals. Users can explicitly complete or correct a set, add or remove a set, skip an exercise, and add session or exercise notes. Canonical storage remains kilograms, metres, and seconds.
+
+The client stores the bounded session document in Expo SQLite after each interaction and synchronizes it to a profile-scoped API route. Client-generated session, set, and mutation UUIDs make creation and retries stable. Full-document updates use an optimistic revision plus mutation idempotency; a conflict retains the local copy and requires an explicit user choice before loading the server copy. See [ADR-0009](adr/0009-recoverable-workout-sessions.md).
 
 ## API contract
 
@@ -164,15 +172,9 @@ An ADR is required before implementing identity because provider choice affects 
 
 ## Offline behavior
 
-Core workout logging should eventually tolerate ordinary mobile interruptions and temporary loss of connectivity. The exact synchronization model is deferred until the session data model is concrete.
+After an online start, active-session set edits, notes, skips, set-count changes, timer state, and completion are durable locally and can be made during temporary network loss. Synchronization retries when requested or when the app becomes active. Starting and destructive discard require the API. A completion must synchronize before its recoverable local copy is cleared or another session begins.
 
-Before implementation, define:
-
-- What can be created and edited offline.
-- Stable client-generated identifiers if required.
-- Retry and idempotency behavior.
-- Conflict policy and user-visible recovery.
-- Protection of locally cached sensitive data.
+The current app-sandbox cache contains fitness data and must be treated as sensitive. It is suitable only for the Development-only, unauthenticated prototype. Authentication, platform data-protection review, backup behavior, multi-device conflict policy, account deletion, and cache cleanup remain release gates rather than implied properties of this implementation.
 
 ## Observability
 
@@ -207,7 +209,7 @@ Local development will use containerized PostgreSQL. The API should be container
 - Cloud and region.
 - AI provider and model.
 - Client state and UI libraries.
-- Offline synchronization implementation.
+- Multi-device synchronization and authenticated local-cache lifecycle.
 - Analytics and crash reporting.
 - Object storage.
 - Background job mechanism.

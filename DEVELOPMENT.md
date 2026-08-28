@@ -294,6 +294,30 @@ ADR-0008; migration `20260827063847_AddWorkoutPlanning`; 43 passing backend inte
 
 Related ADR: [ADR-0008](docs/adr/0008-reusable-workout-templates.md)
 
+### D-013 — 2026-08-28 — Separate recoverable session actuals from immutable plan snapshots
+
+Status: accepted
+
+Context:
+Phase 3.4 needed low-friction workout logging that survives ordinary app interruption and temporary connectivity loss without changing the user's reusable plan or introducing a multi-device merge system before identity exists.
+
+Decision or finding:
+Create an online session from an immutable copy of one workout-plan revision and permit one active session per profile. Persist canonical actuals, explicit completion state, skips, and bounded session/exercise notes separately from planned values. On iOS, retain the complete bounded session in Expo SQLite and synchronize full-document updates using a revision plus client-generated mutation UUID. Keep a pending device copy after transport failure, make repeated mutations idempotent, and require an explicit choice before replacing a conflicted device copy. Starting and destructive discard remain online operations.
+
+Rationale:
+The active logger cannot put a network round trip on every interaction, while React state alone cannot protect a workout from process termination. A bounded 20-exercise by 20-set document makes a small durable outbox simpler to validate and reason about than an event log. Snapshotting preserves historical intent and lets templates evolve independently. Idempotency and visible conflict recovery prevent retry amplification or silent overwrite.
+
+Alternatives considered:
+Direct per-set API writes, ephemeral-only client state, mutating the reusable plan, last-write-wins updates, and an operation-log/CRDT design were rejected for reliability, lifecycle, data-loss, or premature-complexity reasons. Offline start and discard were deferred because they require additional authoritative lifecycle and tombstone behavior.
+
+Consequences / follow-up:
+Completed sessions are immutable until Phase 3.5 defines history correction. A completion must synchronize before its local copy is cleared or another workout starts. The current app-sandbox cache is a Development-only interruption aid, not authenticated ownership or a completed encryption/backup/deletion policy. Phase 4 and beta hardening must cover identity, platform data protection, multi-device behavior, account deletion, and cache lifecycle.
+
+Evidence:
+ADR-0009; migration `20260828011624_AddWorkoutSessions`; 52 passing PostgreSQL integration tests; 50 passing frontend tests; contract drift verification; production iOS export; and iPhone 16 Pro simulator review.
+
+Related ADR: [ADR-0009](docs/adr/0009-recoverable-workout-sessions.md)
+
 ## Issue log
 
 ### I-001 — 2026-08-24 — Expo SDK 57 transitive uuid advisory
@@ -604,9 +628,45 @@ The route makes additional database round trips but transfers bounded rows witho
 Evidence:
 The Development runtime emitted `MultipleCollectionIncludeWarning` before the change. The query now opts into split behavior; the full PostgreSQL integration suite remains the regression boundary.
 
+### I-015 — 2026-08-28 — Client-generated set identifiers were initially tracked as updates
+
+Status: resolved
+
+Context:
+The first active-session update that appended a client-generated set returned an optimistic-concurrency conflict even though the session revision was current. EF Core attached the new child with its non-default UUID as `Modified`, then PostgreSQL correctly reported that no existing row matched the attempted update.
+
+Decision or finding:
+Capture the persisted set identifiers before applying the aggregate update. After synchronization, explicitly mark only newly introduced set entities as `Added`; existing and removed children retain EF's normal tracked states. Keep client-generated UUIDs because they are required for offline stability and retry idempotency.
+
+Rationale:
+Changing back to server-generated set identity would make offline additions and request retries ambiguous. Explicitly distinguishing new children at the application boundary preserves the aggregate API and makes the non-default-key behavior visible.
+
+Alternatives considered:
+Server-generated identifiers, replacing the entire set collection with raw SQL, and treating every requested set as new were rejected because they break offline identity, bypass aggregate persistence, or create duplicate rows.
+
+Consequences / follow-up:
+Any later aggregate that accepts client-generated keys for new EF children must test the tracked state on insertion. The session integration suite covers adding a set and idempotently retrying updates against PostgreSQL.
+
+Evidence:
+The failing integration request returned `DbUpdateConcurrencyException` with `WorkoutSessionSet:Modified`. After marking only the new set `Added`, all nine focused workout-session scenarios and the full 52-test backend suite pass.
+
 ## Performance log
 
-No representative performance-sensitive path exists yet, so no meaningful baseline has been recorded. Baselines will be added when client and API paths contain realistic state, data, and workload.
+### P-001 — 2026-08-28 — Active-session edit and serialization baseline
+
+Status: accepted
+
+Context:
+Workout logging is the first interaction-sensitive product path. The client persists a complete bounded session document after each edit, so immutable state update plus JSON serialization is part of the local critical path.
+
+Decision or finding:
+Keep a separate `npm run benchmark:session` workflow that updates the last set in the maximum supported 20-exercise by 20-set session and serializes the result. Do not add a CI threshold until repeated environments establish stable variance.
+
+Rationale:
+The benchmark exercises the actual bounded reducer and persistence payload without confusing network, database, simulator, or debug-build variance with JavaScript state cost. It is a useful baseline but is not evidence of physical-device touch latency or API performance.
+
+Evidence:
+On 2026-08-28, the Jest/Node development environment completed 10,000 edit-plus-serialization operations with a 0.050 ms median, 0.060 ms p95, 0.050 ms minimum, and 0.080 ms maximum. The production iOS export also completed, and the logger was visually reviewed on an iPhone 16 Pro simulator. Physical-device responsiveness and representative API/database latency remain later baselines.
 
 ## Open decisions
 
@@ -616,7 +676,7 @@ These choices are intentionally unresolved until their requirements are clearer:
 - Authentication and identity provider.
 - Hosting provider and deployment topology.
 - AI provider and model selection.
-- Offline workout logging and synchronization design.
+- Multi-device workout synchronization and authenticated cache lifecycle.
 - Whether and how licensed exercise media is added.
 - Analytics and crash-reporting providers.
 - Monetization, if the product proceeds beyond personal and portfolio use.

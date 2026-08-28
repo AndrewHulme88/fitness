@@ -226,12 +226,21 @@ Verification completed on 2026-08-27:
 
 ### 3.4 Build active workout logging
 
-Status: pending
+Status: complete
 
 - Optimize for minimal interaction during a session.
 - Support sets, repetitions, load, completion, and notes.
 - Measure interaction responsiveness once the flow is representative.
 - Define interruption and offline behavior before claiming reliability.
+
+Verification completed on 2026-08-28:
+
+- Starting online creates one profile-owned active session from an immutable workout-plan snapshot. PostgreSQL stores snapshot prescriptions separately from canonical actuals, enforces the one-active invariant, and locks completed sessions. Stable client session, set, and mutation UUIDs make start and update retries idempotent; revisions prevent silent stale overwrites.
+- The compact iOS logger supports all five catalogue tracking modes, explicit set completion and correction, add/remove set, skip/resume exercise, session and exercise notes, unfinished-workout confirmation, separate confirmed discard, elapsed time, and an optional adjustable in-app rest timer. Planned targets remain visible but are never silently recorded.
+- Expo SQLite persists the active session after each edit. Set logging, notes, skips, timer state, and completion continue through temporary network loss; synchronization retries on demand and app activation. Conflicts retain the device copy until the user explicitly chooses the server version. Starting and discard intentionally remain online operations.
+- The local profile association restores an interrupted active or pending-completion route after process termination. A completed local copy is cleared only after the API acknowledges it; another session cannot start against an unsynchronized completion.
+- Migration `20260828011624_AddWorkoutSessions`, the committed OpenAPI contract, and generated TypeScript types are current. The Release backend suite passes 52 PostgreSQL integration tests. The frontend passes formatting, strict TypeScript, lint, all 50 tests, the contract drift check, and a production iOS export.
+- The active logger was visually reviewed on an iPhone 16 Pro simulator with a synthetic two-exercise workout. The maximum supported 20-exercise × 20-set client edit plus JSON-serialization benchmark recorded a 0.050 ms median and 0.060 ms p95 over 10,000 operations on the development machine; it is a baseline, not a CI threshold or physical-device claim.
 
 ### 3.5 Add history and basic progress
 
@@ -283,7 +292,7 @@ Status: pending
 
 Status: pending
 
-- Resolve offline synchronization and conflict behavior.
+- Harden authenticated multi-device synchronization and local-cache lifecycle behavior.
 - Add monitoring, crash reporting, rate limits, backups, and restore verification.
 - Complete accessibility, threat-model, privacy, and AI-safety reviews.
 - Establish stable client, API, database, and AI performance baselines.
@@ -303,4 +312,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Discuss and define Phase 3.4 only: active workout logging, including interruption, offline, set-entry, and responsiveness requirements before implementation.
+Discuss and define Phase 3.5 only: workout history, explainable progress, correction policy, query bounds, and representative database performance requirements before implementation.

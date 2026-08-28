@@ -8,6 +8,10 @@ import {
 
 import { createTrainingProfile, getTrainingProfile } from "../src/api/profiles";
 import { listWorkouts } from "../src/api/workouts";
+import {
+  loadStoredProfile,
+  saveStoredProfile,
+} from "../src/features/onboarding/profile-storage";
 
 jest.mock("../src/api/profiles", () => ({
   createTrainingProfile: jest.fn(),
@@ -20,10 +24,19 @@ jest.mock("../src/api/workouts", () => ({
   updateWorkout: jest.fn(),
   WorkoutRevisionConflictError: class WorkoutRevisionConflictError extends Error {},
 }));
+jest.mock("../src/features/onboarding/profile-storage", () => ({
+  loadStoredProfile: jest.fn(),
+  saveStoredProfile: jest.fn(),
+}));
+jest.mock("../src/features/sessions/session-storage", () => ({
+  loadStoredSession: jest.fn(),
+}));
 
 const createTrainingProfileMock = jest.mocked(createTrainingProfile);
 const getTrainingProfileMock = jest.mocked(getTrainingProfile);
 const listWorkoutsMock = jest.mocked(listWorkouts);
+const loadStoredProfileMock = jest.mocked(loadStoredProfile);
+const saveStoredProfileMock = jest.mocked(saveStoredProfile);
 const profile = {
   id: "6bf68a92-f5f8-40e5-a112-5330d83e31ed",
   goals: ["buildStrength" as const],
@@ -38,15 +51,19 @@ describe("initial navigation shell", () => {
     createTrainingProfileMock.mockReset();
     getTrainingProfileMock.mockReset();
     listWorkoutsMock.mockReset();
+    loadStoredProfileMock.mockReset();
+    saveStoredProfileMock.mockReset();
     createTrainingProfileMock.mockResolvedValue(profile);
     getTrainingProfileMock.mockResolvedValue(profile);
     listWorkoutsMock.mockResolvedValue({ items: [], nextOffset: null });
+    loadStoredProfileMock.mockResolvedValue(null);
+    saveStoredProfileMock.mockResolvedValue();
   });
 
   it("moves from onboarding into workout planning with the profile context", async () => {
     const router = renderRouter("./src/app", { initialUrl: "/" });
 
-    expect(router.getPathname()).toBe("/onboarding");
+    await waitFor(() => expect(router.getPathname()).toBe("/onboarding"));
     expect(
       screen.getByRole("header", { name: "Make training fit your life." }),
     ).toBeVisible();
@@ -62,6 +79,11 @@ describe("initial navigation shell", () => {
       goals: ["buildStrength"],
       experience: "beginner",
       availableEquipment: ["bodyweight"],
+      unitSystem: "metric",
+    });
+    expect(saveStoredProfileMock).toHaveBeenCalledWith({
+      schemaVersion: 1,
+      profileId: profile.id,
       unitSystem: "metric",
     });
     expect(screen.getByRole("header", { name: "Your workouts" })).toBeVisible();

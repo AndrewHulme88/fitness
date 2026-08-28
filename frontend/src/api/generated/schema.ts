@@ -89,6 +89,59 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/profiles/{profileId}/workout-sessions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Start a workout session from an immutable plan snapshot */
+    post: operations["StartWorkoutSession"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/profiles/{profileId}/workout-sessions/active": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the profile's active workout session */
+    get: operations["GetActiveWorkoutSession"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/profiles/{profileId}/workout-sessions/{sessionId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a workout session */
+    get: operations["GetWorkoutSession"];
+    /** Synchronize an active workout session */
+    put: operations["UpdateWorkoutSession"];
+    post?: never;
+    /** Permanently discard an active workout session */
+    delete: operations["DiscardWorkoutSession"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/profiles/{profileId}/workouts": {
     parameters: {
       query?: never;
@@ -236,6 +289,12 @@ export interface components {
       detail?: null | string;
       instance?: null | string;
     };
+    StartWorkoutSessionRequest: {
+      /** Format: uuid */
+      sessionId: string;
+      /** Format: uuid */
+      workoutPlanId: string;
+    };
     /** @enum {unknown} */
     TrainingExperience: "beginner" | "intermediate" | "advanced";
     /** @enum {unknown} */
@@ -257,6 +316,17 @@ export interface components {
       /** Format: int32 */
       expectedRevision: number | string;
       exercises: components["schemas"]["WorkoutExerciseRequest"][];
+    };
+    UpdateWorkoutSessionRequest: {
+      /** Format: int32 */
+      expectedRevision: number | string;
+      /** Format: uuid */
+      clientMutationId: string;
+      status: components["schemas"]["WorkoutSessionStatus"];
+      /** Format: date-time */
+      finishedAt: null | string;
+      notes: null | string;
+      exercises: components["schemas"]["WorkoutSessionExerciseRequest"][];
     };
     WorkoutDetailResponse: {
       /** Format: uuid */
@@ -314,6 +384,93 @@ export interface components {
       /** Format: int32 */
       nextOffset: null | number | string;
     };
+    WorkoutSessionExerciseRequest: {
+      /** Format: uuid */
+      exerciseId: string;
+      isSkipped: boolean;
+      notes: null | string;
+      sets: components["schemas"]["WorkoutSessionSetRequest"][];
+    };
+    WorkoutSessionExerciseResponse: {
+      /** Format: uuid */
+      exerciseId: string;
+      /** Format: int32 */
+      position: number | string;
+      exerciseName: string;
+      trackingMode: components["schemas"]["ExerciseTrackingMode"];
+      primaryMuscles: components["schemas"]["MuscleGroup"][];
+      /** Format: int32 */
+      plannedSets: number | string;
+      /** Format: int32 */
+      minimumRepetitions: null | number | string;
+      /** Format: int32 */
+      maximumRepetitions: null | number | string;
+      /** Format: double */
+      targetLoadKilograms: null | number | string;
+      /** Format: int32 */
+      targetDurationSeconds: null | number | string;
+      /** Format: double */
+      targetDistanceMetres: null | number | string;
+      isSkipped: boolean;
+      notes: null | string;
+      sets: components["schemas"]["WorkoutSessionSetResponse"][];
+    };
+    WorkoutSessionResponse: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      profileId: string;
+      /** Format: uuid */
+      workoutPlanId: string;
+      /** Format: int32 */
+      workoutPlanRevision: number | string;
+      workoutName: string;
+      /** Format: int32 */
+      revision: number | string;
+      status: components["schemas"]["WorkoutSessionStatus"];
+      /** Format: date-time */
+      startedAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      /** Format: date-time */
+      finishedAt: null | string;
+      notes: null | string;
+      exercises: components["schemas"]["WorkoutSessionExerciseResponse"][];
+    };
+    WorkoutSessionSetRequest: {
+      /** Format: uuid */
+      setId: string;
+      isCompleted: boolean;
+      /** Format: date-time */
+      completedAt: null | string;
+      /** Format: int32 */
+      actualRepetitions: null | number | string;
+      /** Format: double */
+      actualLoadKilograms: null | number | string;
+      /** Format: int32 */
+      actualDurationSeconds: null | number | string;
+      /** Format: double */
+      actualDistanceMetres: null | number | string;
+    };
+    WorkoutSessionSetResponse: {
+      /** Format: uuid */
+      setId: string;
+      /** Format: int32 */
+      position: number | string;
+      isCompleted: boolean;
+      /** Format: date-time */
+      completedAt: null | string;
+      /** Format: int32 */
+      actualRepetitions: null | number | string;
+      /** Format: double */
+      actualLoadKilograms: null | number | string;
+      /** Format: int32 */
+      actualDurationSeconds: null | number | string;
+      /** Format: double */
+      actualDistanceMetres: null | number | string;
+    };
+    /** @enum {unknown} */
+    WorkoutSessionStatus: "active" | "completed";
     WorkoutSummaryResponse: {
       /** Format: uuid */
       id: string;
@@ -529,6 +686,214 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  StartWorkoutSession: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StartWorkoutSessionRequest"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkoutSessionResponse"];
+        };
+      };
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkoutSessionResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  GetActiveWorkoutSession: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkoutSessionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  GetWorkoutSession: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+        sessionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkoutSessionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  UpdateWorkoutSession: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+        sessionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateWorkoutSessionRequest"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["WorkoutSessionResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  DiscardWorkoutSession: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+        sessionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
       };
     };
   };
