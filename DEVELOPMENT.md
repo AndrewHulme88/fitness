@@ -718,6 +718,72 @@ Contract generation may be a little slower because it cannot reuse build servers
 Evidence:
 `bash scripts/generate-api-contract.sh` and the non-mutating `bash scripts/check-api-contract.sh` complete successfully after the scoped changes.
 
+### I-018 — 2026-08-29 — Workout-planner touch reordering lost its active drag state
+
+Status: resolved
+
+Context:
+Long-press dragging the handle in the workout planner did not move an exercise, although the separate VoiceOver adjustable actions worked. The original component test covered only that accessibility alternative and never drove the native pan-gesture lifecycle.
+
+Decision or finding:
+The pan callbacks closed over the render where no exercise was active. Starting a drag then updated React state and recreated the gesture, while its move callback still saw the inactive value and returned without selecting a destination. Keep active identity, layout, source index, and destination index in stable refs for the lifetime of the native gesture. Keep the gesture callbacks stable across overlay renders and apply the reorder only when the gesture finishes successfully.
+
+Rationale:
+Gesture progress is transient interaction state that must remain available to callbacks before React has committed another render. Refs preserve that live state without adding a dependency or moving high-frequency pointer updates into application state, while React state still drives the visible overlay and insertion marker.
+
+Alternatives considered:
+A third-party sortable-list dependency was rejected because the existing bounded list needs only one focused gesture and already has accessible move actions. Removing drag in favor of buttons was rejected because touch reordering is the selected planner interaction. Recreating the gesture after each state update was the cause, not a recovery mechanism.
+
+Consequences / follow-up:
+Touch drag and VoiceOver reordering now share the same final list update. Future gesture regressions must drive begin, active movement, and finalization rather than asserting only rendered handles. Physical-device drag behavior remains part of beta QA.
+
+Evidence:
+The new gesture-lifecycle regression test failed with zero reorder calls before the change and passes afterward. Formatting, strict TypeScript, lint, all 61 frontend tests, and a production iOS export pass.
+
+### I-019 — 2026-08-29 — Simulator cancels the activated reorder pan at release
+
+Status: resolved
+
+Context:
+After `I-018` stabilized the live drag state, touch reordering still did not commit in Expo Go on the iOS Simulator. The gesture-helper test ended with a successful state and therefore did not represent the host interaction.
+
+Decision or finding:
+A controlled pointer trace against the actual Simulator showed that the handle pan began, activated, moved from source index 0 to target index 1, and then finalized as cancelled when released inside the surrounding native scroll view. Finalization is now the drop boundary whenever an activated drag has a valid changed destination, regardless of the native success flag. A gesture that never activates or never crosses into another position remains a no-op.
+
+Rationale:
+By finalization, the user has deliberately held the dedicated handle and moved the item across a row boundary. Discarding that explicit destination because the Simulator/scroll container reports cancellation makes the selected interaction unusable. The reorder is visible and remains an unsaved planner edit, so the user can immediately inspect or reverse it.
+
+Alternatives considered:
+Disabling scrolling only after activation also cancelled the in-progress touch. Disabling the ScrollView's JavaScript pan responder globally did not change the native cancellation and would alter unrelated scrolling behavior. Adding another sortable-list dependency was not justified for this bounded list.
+
+Consequences / follow-up:
+The regression test now finalizes with `CANCELLED`, matching the observed Simulator lifecycle. Any future change must verify both successful and cancelled native finalization paths and retain the no-op behavior for unchanged targets. Physical-device drag remains part of beta QA.
+
+Evidence:
+Before the change, a real 500 ms hold and cross-row pointer drag left the three-exercise list unchanged. After the change, the same controlled Simulator gesture moved Barbell Bench Press from position 1 to position 2 and promoted Front Plank to position 1. Formatting, strict TypeScript, lint, all 61 frontend tests, and a production iOS export pass.
+
+### I-020 — 2026-08-29 — Reorder cancellation workaround caused premature and erratic moves
+
+Status: resolved
+
+Context:
+The `I-019` workaround made a cancelled pan commit any changed destination. Simulator review then showed that pressing the handle could move an exercise unexpectedly and that sustained dragging remained unreliable.
+
+Decision or finding:
+Two behaviors combined to cause the failure. The destination calculation selected the next row as soon as the dragged center met the source row's midpoint, so even a stationary first update or pointer jitter could change the target. The surrounding native scroll view also continued to terminate the gesture-handler pan on release. Replace that competing pan with a responder owned exclusively by the dedicated handle. Commit only on responder release, discard termination, and change destination only after the dragged row's center crosses an adjacent row's center. This entry supersedes `I-019`'s cancelled-finalization behavior while preserving it as investigation history.
+
+Rationale:
+The handle has one purpose, so capturing touches that begin on it does not make the rest of the planner harder to scroll. A row-center boundary gives each move an intentional physical threshold and behaves symmetrically in both directions. Separating release from termination restores a reliable commit/cancel distinction without depending on a native success flag that the Simulator did not provide.
+
+Alternatives considered:
+Coordinating a gesture-handler native-scroll gesture with `blocksExternalGesture`, changing the scroll view's iOS touch-cancellation property, and changing the pan's cancellation property were each tested against real pointer input; none changed the cancelled final state. Keeping the `I-019` workaround with a small arbitrary distance threshold was rejected because it still treated interruption as a successful drop.
+
+Consequences / follow-up:
+A touch beginning on the reorder handle is reserved for reordering; scrolling remains available from the rest of every row and screen. The interaction now starts immediately rather than requiring a long press, and its visible instruction reflects that. Tests cover release, termination, small movement, and the existing VoiceOver move actions. Physical-device drag remains part of beta QA.
+
+Evidence:
+On an iPhone 16 Pro Simulator, a plain handle tap preserved the three-exercise order. A gradual downward drag moved Barbell Bench Press from position 1 to position 2, and a reverse drag restored it to position 1. Formatting, strict TypeScript, lint, all 63 frontend tests, and a production iOS export pass.
+
 ## Performance log
 
 ### P-001 — 2026-08-28 — Active-session edit and serialization baseline

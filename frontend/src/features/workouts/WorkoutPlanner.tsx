@@ -261,9 +261,7 @@ export function WorkoutPlanner({
             <View style={styles.sectionHeading}>
               <View>
                 <AppText variant="title">Exercise order</AppText>
-                <AppText tone="secondary">
-                  Long press the handle and drag to reorder.
-                </AppText>
+                <AppText tone="secondary">Drag the handle to reorder.</AppText>
               </View>
             </View>
 

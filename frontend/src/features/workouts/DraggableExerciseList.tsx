@@ -1,13 +1,12 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  PanResponder,
   Pressable,
   StyleSheet,
   View,
   type AccessibilityActionEvent,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { runOnJS } from "react-native-reanimated";
 
 import { AppText } from "../../components/AppText";
 import { colors, layout, spacing } from "../../theme/tokens";
@@ -41,6 +40,20 @@ export function DraggableExerciseList({
   const dragStartTop = useRef(0);
   const [activeId, setActiveId] = useState<string>();
   const [targetIndex, setTargetIndex] = useState<number>();
+  const activeIdRef = useRef<string | undefined>(undefined);
+  const activeIndexRef = useRef(-1);
+  const activeLayoutRef = useRef<ItemLayout | undefined>(undefined);
+  const targetIndexRef = useRef<number | undefined>(undefined);
+  const draftsRef = useRef(drafts);
+  const layoutsRef = useRef(layouts);
+  const onAutoScrollRef = useRef(onAutoScroll);
+  const onReorderRef = useRef(onReorder);
+
+  useEffect(() => {
+    draftsRef.current = drafts;
+    onAutoScrollRef.current = onAutoScroll;
+    onReorderRef.current = onReorder;
+  }, [drafts, onAutoScroll, onReorder]);
 
   const activeIndex = activeId
     ? drafts.findIndex((draft) => draft.exercise.id === activeId)
@@ -48,40 +61,69 @@ export function DraggableExerciseList({
   const activeDraft = activeIndex >= 0 ? drafts[activeIndex] : undefined;
   const activeLayout = activeId ? layouts.get(activeId) : undefined;
 
-  const startDrag = (exerciseId: string) => {
-    const layout = layouts.get(exerciseId);
-    const index = drafts.findIndex((draft) => draft.exercise.id === exerciseId);
-    if (!layout || index < 0) return;
+  const startDrag = useCallback(
+    (exerciseId: string) => {
+      const layout = layoutsRef.current.get(exerciseId);
+      const index = draftsRef.current.findIndex(
+        (draft) => draft.exercise.id === exerciseId,
+      );
+      if (!layout || index < 0) return;
 
-    dragStartTop.current = layout.y;
-    dragTop.setValue(layout.y);
-    setActiveId(exerciseId);
-    setTargetIndex(index);
-  };
+      dragStartTop.current = layout.y;
+      dragTop.setValue(layout.y);
+      activeIdRef.current = exerciseId;
+      activeIndexRef.current = index;
+      activeLayoutRef.current = layout;
+      targetIndexRef.current = index;
+      setActiveId(exerciseId);
+      setTargetIndex(index);
+    },
+    [dragTop],
+  );
 
-  const moveDrag = (translationY: number, absoluteY: number) => {
-    if (!activeId || !activeLayout) return;
+  const moveDrag = useCallback(
+    (translationY: number, absoluteY: number) => {
+      const layout = activeLayoutRef.current;
+      if (!activeIdRef.current || !layout) return;
 
-    const nextTop = dragStartTop.current + translationY;
-    dragTop.setValue(nextTop);
-    const center = nextTop + activeLayout.height / 2;
-    const nextTarget = findTargetIndex(drafts, layouts, center);
-    setTargetIndex(nextTarget);
-    onAutoScroll(absoluteY);
-  };
+      const nextTop = dragStartTop.current + translationY;
+      dragTop.setValue(nextTop);
+      const center = nextTop + layout.height / 2;
+      const nextTarget = findTargetIndex(
+        draftsRef.current,
+        layoutsRef.current,
+        center,
+        activeIndexRef.current,
+      );
+      targetIndexRef.current = nextTarget;
+      setTargetIndex((current) =>
+        current === nextTarget ? current : nextTarget,
+      );
+      onAutoScrollRef.current(absoluteY);
+    },
+    [dragTop],
+  );
 
-  const finishDrag = () => {
-    if (
-      activeIndex >= 0 &&
-      targetIndex !== undefined &&
-      activeIndex !== targetIndex
-    ) {
-      onReorder(activeIndex, targetIndex);
-    }
+  const finishDrag = useCallback((succeeded: boolean) => {
+    const fromIndex = activeIndexRef.current;
+    const toIndex = targetIndexRef.current;
 
+    activeIdRef.current = undefined;
+    activeIndexRef.current = -1;
+    activeLayoutRef.current = undefined;
+    targetIndexRef.current = undefined;
     setActiveId(undefined);
     setTargetIndex(undefined);
-  };
+
+    if (
+      succeeded &&
+      fromIndex >= 0 &&
+      toIndex !== undefined &&
+      fromIndex !== toIndex
+    ) {
+      onReorderRef.current(fromIndex, toIndex);
+    }
+  }, []);
 
   const insertionTop = calculateInsertionTop(
     drafts,
@@ -95,6 +137,7 @@ export function DraggableExerciseList({
       {drafts.map((draft, index) => (
         <View
           key={draft.exercise.id}
+          testID={`exercise-layout-${draft.exercise.id}`}
           onLayout={(event) => {
             const { height, y } = event.nativeEvent.layout;
             setLayouts((current) => {
@@ -103,6 +146,7 @@ export function DraggableExerciseList({
                 return current;
               const next = new Map(current);
               next.set(draft.exercise.id, { height, y });
+              layoutsRef.current = next;
               return next;
             });
           }}
@@ -115,7 +159,7 @@ export function DraggableExerciseList({
             itemCount={drafts.length}
             onDragEnd={finishDrag}
             onDragMove={moveDrag}
-            onDragStart={() => startDrag(draft.exercise.id)}
+            onDragStart={startDrag}
             onEdit={() => onEdit(draft.exercise.id)}
             onMove={(toIndex) => onReorder(index, toIndex)}
             unitSystem={unitSystem}
@@ -165,23 +209,28 @@ function DraggableExerciseRow({
   error?: string;
   index: number;
   itemCount: number;
-  onDragEnd: () => void;
+  onDragEnd: (succeeded: boolean) => void;
   onDragMove: (translationY: number, absoluteY: number) => void;
-  onDragStart: () => void;
+  onDragStart: (exerciseId: string) => void;
   onEdit: () => void;
   onMove: (toIndex: number) => void;
   unitSystem: UnitSystem;
 }) {
-  const dragGesture = useMemo(
+  const panResponder = useMemo(
     () =>
-      Gesture.Pan()
-        .activateAfterLongPress(180)
-        .onStart(() => runOnJS(onDragStart)())
-        .onUpdate((event) =>
-          runOnJS(onDragMove)(event.translationY, event.absoluteY),
-        )
-        .onFinalize(() => runOnJS(onDragEnd)()),
-    [onDragEnd, onDragMove, onDragStart],
+      PanResponder.create({
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
+        onPanResponderGrant: () => onDragStart(draft.exercise.id),
+        onPanResponderMove: (_event, gestureState) => {
+          onDragMove(gestureState.dy, gestureState.moveY);
+        },
+        onPanResponderRelease: () => onDragEnd(true),
+        onPanResponderTerminate: () => onDragEnd(false),
+        onPanResponderTerminationRequest: () => false,
+        onShouldBlockNativeResponder: () => true,
+      }),
+    [draft.exercise.id, onDragEnd, onDragMove, onDragStart],
   );
 
   const accessibilityActions = [
@@ -205,27 +254,27 @@ function DraggableExerciseRow({
   return (
     <View>
       <View style={styles.row}>
-        <GestureDetector gesture={dragGesture}>
-          <View
-            accessible
-            accessibilityActions={accessibilityActions}
-            accessibilityHint="Long press and drag to reorder"
-            accessibilityLabel={`Reorder ${draft.exercise.name}`}
-            accessibilityRole="adjustable"
-            accessibilityValue={{
-              min: 1,
-              max: itemCount,
-              now: index + 1,
-              text: `Position ${index + 1} of ${itemCount}`,
-            }}
-            onAccessibilityAction={handleAccessibilityAction}
-            style={styles.dragHandle}
-          >
-            <AppText style={styles.dragGlyph} tone="secondary">
-              ≡
-            </AppText>
-          </View>
-        </GestureDetector>
+        <View
+          {...panResponder.panHandlers}
+          accessible
+          accessibilityActions={accessibilityActions}
+          accessibilityHint="Drag to reorder"
+          accessibilityLabel={`Reorder ${draft.exercise.name}`}
+          accessibilityRole="adjustable"
+          accessibilityValue={{
+            min: 1,
+            max: itemCount,
+            now: index + 1,
+            text: `Position ${index + 1} of ${itemCount}`,
+          }}
+          onAccessibilityAction={handleAccessibilityAction}
+          style={styles.dragHandle}
+          testID={`reorder-${draft.exercise.id}`}
+        >
+          <AppText style={styles.dragGlyph} tone="secondary">
+            ≡
+          </AppText>
+        </View>
 
         <Pressable
           accessibilityHint="Edit planned targets"
@@ -282,12 +331,24 @@ function findTargetIndex(
   drafts: readonly WorkoutExerciseDraft[],
   layouts: Map<string, ItemLayout>,
   center: number,
+  activeIndex: number,
 ) {
-  const target = drafts.findIndex((draft) => {
-    const layout = layouts.get(draft.exercise.id);
-    return layout ? center < layout.y + layout.height / 2 : false;
-  });
-  return target === -1 ? Math.max(0, drafts.length - 1) : target;
+  if (activeIndex < 0 || activeIndex >= drafts.length) return activeIndex;
+
+  let targetIndex = activeIndex;
+  for (let index = activeIndex + 1; index < drafts.length; index += 1) {
+    const layout = layouts.get(drafts[index].exercise.id);
+    if (layout && center >= layout.y + layout.height / 2) {
+      targetIndex = index;
+    }
+  }
+  for (let index = activeIndex - 1; index >= 0; index -= 1) {
+    const layout = layouts.get(drafts[index].exercise.id);
+    if (layout && center <= layout.y + layout.height / 2) {
+      targetIndex = index;
+    }
+  }
+  return targetIndex;
 }
 
 function calculateInsertionTop(
