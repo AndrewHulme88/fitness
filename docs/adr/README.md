@@ -23,6 +23,7 @@ ADRs capture decisions that have broad or long-lived technical consequences. `DE
 | [0007](0007-internal-exercise-catalogue.md)  | Accepted | Own and explicitly import a curated exercise catalogue           |
 | [0008](0008-reusable-workout-templates.md)   | Accepted | Store explicit, revisioned, profile-owned workout templates      |
 | [0009](0009-recoverable-workout-sessions.md) | Accepted | Use snapshot sessions with a local durable outbox                |
+| [0010](0010-explainable-workout-history.md)  | Accepted | Derive factual history and progress from completed sessions      |
 
 ## Template
 

@@ -365,6 +365,143 @@ public sealed class WorkoutSessionEndpointTests : IClassFixture<PostgreSqlApiFix
         Assert.Equal(HttpStatusCode.NotFound, productionResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task HistoryListsOnlyCompletedSessionsWithBoundedRecordedTotals()
+    {
+        using var client = CreateClient();
+        var profileId = await CreateProfileAsync(client);
+        var workout = await CreateWorkoutAsync(client, profileId, "History workout");
+        var completed = await StartAndReadAsync(client, profileId, workout.Id);
+        using var finishResponse = await client.PutAsJsonAsync(
+            $"/profiles/{profileId}/workout-sessions/{completed.Id}",
+            UpdateRequest(completed, Guid.NewGuid(), DateTimeOffset.UtcNow),
+            TestContext.Current.CancellationToken);
+        finishResponse.EnsureSuccessStatusCode();
+        _ = await StartAndReadAsync(client, profileId, workout.Id);
+
+        using var response = await client.GetAsync(
+            $"/profiles/{profileId}/workout-sessions/history?limit=1&offset=0",
+            TestContext.Current.CancellationToken);
+        var history = await response.Content.ReadFromJsonAsync<HistoryDocument>(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(history);
+        var item = Assert.Single(history.Items);
+        Assert.Equal(completed.Id, item.Id);
+        Assert.Equal("History workout", item.WorkoutName);
+        Assert.Equal(1, item.CompletedSetCount);
+        Assert.Equal(5, item.TotalSetCount);
+        Assert.Equal(0, item.SkippedExerciseCount);
+        Assert.True(item.DurationSeconds >= 0);
+        Assert.Null(history.NextOffset);
+
+        using var invalid = await client.GetAsync(
+            $"/profiles/{profileId}/workout-sessions/history?limit=51",
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
+    public async Task CompletedSessionCorrectionPreservesSnapshotTimingAndSetMembership()
+    {
+        using var client = CreateClient();
+        var profileId = await CreateProfileAsync(client);
+        var workout = await CreateWorkoutAsync(client, profileId, "Correction workout");
+        var active = await StartAndReadAsync(client, profileId, workout.Id);
+
+        using var activeCorrection = await client.PutAsJsonAsync(
+            $"/profiles/{profileId}/workout-sessions/{active.Id}/correction",
+            CorrectionRequest(active, 10, 55m),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Conflict, activeCorrection.StatusCode);
+
+        using var finishResponse = await client.PutAsJsonAsync(
+            $"/profiles/{profileId}/workout-sessions/{active.Id}",
+            UpdateRequest(active, Guid.NewGuid(), DateTimeOffset.UtcNow),
+            TestContext.Current.CancellationToken);
+        var completed = await ReadSessionAsync(finishResponse);
+
+        using var correctionResponse = await client.PutAsJsonAsync(
+            $"/profiles/{profileId}/workout-sessions/{completed.Id}/correction",
+            CorrectionRequest(completed, 10, 55m, "Corrected note"),
+            TestContext.Current.CancellationToken);
+        var corrected = await ReadSessionAsync(correctionResponse);
+
+        Assert.Equal(completed.Revision + 1, corrected.Revision);
+        Assert.Equal(completed.StartedAt, corrected.StartedAt);
+        Assert.Equal(completed.FinishedAt, corrected.FinishedAt);
+        Assert.Equal(completed.WorkoutName, corrected.WorkoutName);
+        Assert.NotNull(corrected.CorrectedAt);
+        Assert.Equal("Corrected note", corrected.Notes);
+        Assert.Equal(10, corrected.Exercises[0].Sets[0].ActualRepetitions);
+        Assert.Equal(55m, corrected.Exercises[0].Sets[0].ActualLoadKilograms);
+
+        using var stale = await client.PutAsJsonAsync(
+            $"/profiles/{profileId}/workout-sessions/{completed.Id}/correction",
+            CorrectionRequest(completed, 11, 55m),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+
+        var missingSet = CorrectionRequest(corrected, 10, 55m, setCountAdjustment: -1);
+        using var changedShape = await client.PutAsJsonAsync(
+            $"/profiles/{profileId}/workout-sessions/{completed.Id}/correction",
+            missingSet,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, changedShape.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProgressReportsFourWeekTotalsAndModeSpecificRecordedAppearances()
+    {
+        using var client = CreateClient();
+        var profileId = await CreateProfileAsync(client);
+        var workout = await CreateWorkoutAsync(client, profileId, "Progress workout");
+        var active = await StartAndReadAsync(client, profileId, workout.Id);
+        using var finishResponse = await client.PutAsJsonAsync(
+            $"/profiles/{profileId}/workout-sessions/{active.Id}",
+            UpdateRequest(active, Guid.NewGuid(), DateTimeOffset.UtcNow),
+            TestContext.Current.CancellationToken);
+        finishResponse.EnsureSuccessStatusCode();
+
+        using var overviewResponse = await client.GetAsync(
+            $"/profiles/{profileId}/progress",
+            TestContext.Current.CancellationToken);
+        Assert.True(
+            overviewResponse.IsSuccessStatusCode,
+            await overviewResponse.Content.ReadAsStringAsync(
+                TestContext.Current.CancellationToken));
+        var overview = await overviewResponse.Content.ReadFromJsonAsync<ProgressDocument>(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, overviewResponse.StatusCode);
+        Assert.NotNull(overview);
+        Assert.Equal(1, overview.CompletedWorkoutCount);
+        Assert.Equal(1, overview.CompletedSetCount);
+        Assert.True(overview.TotalWorkoutDurationSeconds >= 0);
+        var exercise = Assert.Single(overview.RecordedExercises);
+        Assert.Equal(ExerciseId("barbell-bench-press"), exercise.ExerciseId);
+        Assert.Equal("repetitionsAndLoad", exercise.TrackingMode);
+        Assert.Equal(1, exercise.AppearanceCount);
+
+        using var performanceResponse = await client.GetAsync(
+            $"/profiles/{profileId}/progress/exercises/{exercise.ExerciseId}?limit=12",
+            TestContext.Current.CancellationToken);
+        var performance = await performanceResponse.Content
+            .ReadFromJsonAsync<ExercisePerformanceDocument>(
+                TestContext.Current.CancellationToken);
+        Assert.NotNull(performance);
+        var appearance = Assert.Single(performance.Appearances);
+        var set = Assert.Single(appearance.Sets);
+        Assert.Equal(8, set.ActualRepetitions);
+        Assert.Equal(50m, set.ActualLoadKilograms);
+
+        using var invalidLimit = await client.GetAsync(
+            $"/profiles/{profileId}/progress/exercises/{exercise.ExerciseId}?limit=13",
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidLimit.StatusCode);
+    }
+
     private static object UpdateRequest(
         SessionDocument session,
         Guid mutationId,
@@ -390,6 +527,40 @@ public sealed class WorkoutSessionEndpointTests : IClassFixture<PostgreSqlApiFix
             }).ToArray(),
         };
     }
+
+    private static object CorrectionRequest(
+        SessionDocument session,
+        int repetitions,
+        decimal load,
+        string? notes = null,
+        int setCountAdjustment = 0) => new
+        {
+            expectedRevision = session.Revision,
+            notes,
+            exercises = session.Exercises.Select((exercise, exerciseIndex) => new
+            {
+                exerciseId = exercise.ExerciseId,
+                isSkipped = exercise.IsSkipped,
+                notes = exercise.Notes,
+                sets = exercise.Sets
+                    .Take(exercise.Sets.Length + (exerciseIndex == 0 ? setCountAdjustment : 0))
+                    .Select((set, setIndex) => new
+                    {
+                        setId = set.SetId,
+                        isCompleted = set.IsCompleted,
+                        completedAt = set.CompletedAt,
+                        actualRepetitions = exerciseIndex == 0 && setIndex == 0
+                            ? repetitions
+                            : set.ActualRepetitions,
+                        actualLoadKilograms = exerciseIndex == 0 && setIndex == 0
+                            ? load
+                            : set.ActualLoadKilograms,
+                        actualDurationSeconds = set.ActualDurationSeconds,
+                        actualDistanceMetres = set.ActualDistanceMetres,
+                    })
+                    .ToArray(),
+            }).ToArray(),
+        };
 
     private static object CompletedSet(
         Guid setId,
@@ -606,7 +777,9 @@ public sealed class WorkoutSessionEndpointTests : IClassFixture<PostgreSqlApiFix
         int WorkoutPlanRevision,
         int Revision,
         string Status,
+        DateTimeOffset StartedAt,
         DateTimeOffset? FinishedAt,
+        DateTimeOffset? CorrectedAt,
         string? Notes,
         SessionExerciseDocument[] Exercises);
     private sealed record SessionExerciseDocument(
@@ -618,8 +791,32 @@ public sealed class WorkoutSessionEndpointTests : IClassFixture<PostgreSqlApiFix
     private sealed record SessionSetDocument(
         Guid SetId,
         bool IsCompleted,
+        DateTimeOffset? CompletedAt,
         int? ActualRepetitions,
         decimal? ActualLoadKilograms,
         int? ActualDurationSeconds,
         decimal? ActualDistanceMetres);
+    private sealed record HistoryDocument(HistoryItemDocument[] Items, int? NextOffset);
+    private sealed record HistoryItemDocument(
+        Guid Id,
+        string WorkoutName,
+        int DurationSeconds,
+        int CompletedSetCount,
+        int TotalSetCount,
+        int SkippedExerciseCount);
+    private sealed record ProgressDocument(
+        int CompletedWorkoutCount,
+        int CompletedSetCount,
+        int TotalWorkoutDurationSeconds,
+        RecordedExerciseDocument[] RecordedExercises);
+    private sealed record RecordedExerciseDocument(
+        Guid ExerciseId,
+        string TrackingMode,
+        int AppearanceCount);
+    private sealed record ExercisePerformanceDocument(
+        ExerciseAppearanceDocument[] Appearances);
+    private sealed record ExerciseAppearanceDocument(RecordedSetDocument[] Sets);
+    private sealed record RecordedSetDocument(
+        int? ActualRepetitions,
+        decimal? ActualLoadKilograms);
 }

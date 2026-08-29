@@ -2,6 +2,7 @@ import type {
   ActualSetValues,
   SessionExercise,
   SessionSet,
+  TrackingMode,
 } from "./session-model";
 
 export type UnitSystem = "metric" | "imperial";
@@ -16,8 +17,10 @@ export type SetField = {
   integer?: boolean;
 };
 
+type TrackingDescriptor = Pick<SessionExercise, "trackingMode">;
+
 export function fieldsFor(
-  exercise: SessionExercise,
+  exercise: TrackingDescriptor,
   unitSystem: UnitSystem,
 ): SetField[] {
   const fields: SetField[] = [];
@@ -66,7 +69,7 @@ export function fieldsFor(
 }
 
 export function toDisplayValue(
-  exercise: SessionExercise,
+  exercise: TrackingDescriptor,
   key: keyof ActualSetValues,
   value: number | null,
   unitSystem: UnitSystem,
@@ -90,7 +93,7 @@ export function toDisplayValue(
 }
 
 export function fromDisplayValue(
-  exercise: SessionExercise,
+  exercise: TrackingDescriptor,
   key: keyof ActualSetValues,
   input: string,
   unitSystem: UnitSystem,
@@ -165,6 +168,25 @@ export function formatPlan(exercise: SessionExercise, unitSystem: UnitSystem) {
     );
   }
   return parts.join(" · ");
+}
+
+export function formatRecordedValues(
+  trackingMode: TrackingMode,
+  values: ActualSetValues,
+  unitSystem: UnitSystem,
+) {
+  const exercise: TrackingDescriptor = { trackingMode };
+  return fieldsFor(exercise, unitSystem)
+    .map((field) => {
+      const value = toDisplayValue(
+        exercise,
+        field.key,
+        values[field.key],
+        unitSystem,
+      );
+      return `${value} ${shortUnit(field.label)}`.trim();
+    })
+    .join(" · ");
 }
 
 function shortUnit(label: string) {

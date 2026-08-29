@@ -27,6 +27,7 @@ import {
 } from "./session-values";
 
 type Props = {
+  purpose?: "logging" | "correction";
   exercise: SessionExercise | null;
   set: SessionSet | null;
   unitSystem: UnitSystem;
@@ -61,6 +62,7 @@ function SetEntrySheetContent({
   unitSystem,
   onClose,
   onSave,
+  purpose = "logging",
 }: ContentProps) {
   const fields = fieldsFor(exercise, unitSystem);
   const suggested = suggestedValues(exercise, set);
@@ -158,14 +160,17 @@ function SetEntrySheetContent({
         >
           <View style={styles.intro}>
             <AppText tone="accent" variant="eyebrow">
-              Log actual result
+              {purpose === "correction"
+                ? "Correct record"
+                : "Log actual result"}
             </AppText>
             <AppText accessibilityRole="header" variant="title">
               {exercise.exerciseName}
             </AppText>
             <AppText tone="secondary">
-              Planned values are suggestions for entry only. Nothing is recorded
-              until you save.
+              {purpose === "correction"
+                ? "Update only what was recorded for this set."
+                : "Planned values are suggestions for entry only. Nothing is recorded until you save."}
             </AppText>
           </View>
           <View style={styles.fields}>
@@ -195,7 +200,7 @@ function SetEntrySheetContent({
               label={set.isCompleted ? "Save correction" : "Complete set"}
               onPress={() => save(true, false)}
             />
-            {!set.isCompleted ? (
+            {!set.isCompleted && purpose === "logging" ? (
               <Pressable
                 accessibilityRole="button"
                 onPress={() => save(true, true)}
@@ -205,7 +210,7 @@ function SetEntrySheetContent({
                   Complete & start 90 sec rest
                 </AppText>
               </Pressable>
-            ) : (
+            ) : set.isCompleted ? (
               <Pressable
                 accessibilityRole="button"
                 onPress={() => save(false, false)}
@@ -215,7 +220,7 @@ function SetEntrySheetContent({
                   Mark incomplete
                 </AppText>
               </Pressable>
-            )}
+            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

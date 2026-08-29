@@ -318,6 +318,30 @@ ADR-0009; migration `20260828011624_AddWorkoutSessions`; 52 passing PostgreSQL i
 
 Related ADR: [ADR-0009](docs/adr/0009-recoverable-workout-sessions.md)
 
+### D-014 — 2026-08-29 — Keep workout history and progress factual and bounded
+
+Status: accepted
+
+Context:
+Phase 3.5 needed useful review and correction behavior without allowing completed records to lose their original plan context or presenting opaque progress claims as fact.
+
+Decision or finding:
+Use completed sessions as the source of truth. Load history newest first in bounded pages and group it into device-local calendar dates on iOS. Permit corrections only through a distinct optimistic-revision route that can change recorded completion, supported actuals, skips, and notes while preserving snapshot identity, order, and timing. Record the latest correction timestamp. Limit basic progress to rolling 28-day completed-workout, completed-set, and recorded-duration totals plus at most 12 actual appearances per exercise. Keep history and corrections online-only for now.
+
+Rationale:
+Every displayed value remains traceable to recorded session data. A separate correction boundary makes the difference between fixing an actual and rewriting historical intent explicit. Query and response caps provide predictable behavior before a large personal history exists.
+
+Alternatives considered:
+Reopening completed sessions, retaining an append-only correction event ledger, offline correction queuing, personal-record detection, streaks, generic scores, calorie estimates, and inferred trend lines were deferred or rejected because they weaken lifecycle clarity, add unjustified synchronization complexity, or require product rules that have not been approved.
+
+Consequences / follow-up:
+The latest correction is visible but this is not a complete audit history. Device-local grouping can change when the user travels, and the four-week calculation uses a rolling UTC boundary until an account time-zone preference exists. Phase 4 must authorize every history, correction, and progress query by authenticated ownership.
+
+Evidence:
+ADR-0010; migrations `20260829010505_AddWorkoutHistoryAndProgress` and `20260829013050_IndexWorkoutSessionHistory`; 56 passing PostgreSQL integration tests; 60 passing frontend tests; contract drift verification; and production iOS export.
+
+Related ADR: [ADR-0010](docs/adr/0010-explainable-workout-history.md)
+
 ## Issue log
 
 ### I-001 — 2026-08-24 — Expo SDK 57 transitive uuid advisory
@@ -650,6 +674,50 @@ Any later aggregate that accepts client-generated keys for new EF children must 
 Evidence:
 The failing integration request returned `DbUpdateConcurrencyException` with `WorkoutSessionSet:Modified`. After marking only the new set `Added`, all nine focused workout-session scenarios and the full 52-test backend suite pass.
 
+### I-016 — 2026-08-29 — EF Core could not translate the first exercise-progress grouping projection
+
+Status: resolved
+
+Context:
+The first exercise-progress query attempted to group completed session exercises and construct the response shape, including nested values, inside one EF Core projection. PostgreSQL integration testing rejected the expression because EF Core could not translate the nested grouped projection.
+
+Decision or finding:
+Project only grouped scalar values in SQL, materialize the bounded result, and map those rows into response records afterward. Exercise detail uses one bounded appearance query followed by a bounded set query for only those appearances.
+
+Rationale:
+The revised shape keeps filtering, grouping, ordering, and caps in PostgreSQL while avoiding unbounded client aggregation. It is clearer than relying on provider-specific expression behavior and transfers only the rows required by the response.
+
+Alternatives considered:
+Loading every completed session and aggregating in memory was rejected because cost would grow without a bound. Raw SQL was not necessary once a simple translatable projection expressed the required work.
+
+Consequences / follow-up:
+Changes to the progress projections must retain their explicit bounds and PostgreSQL integration coverage. Representative latency is recorded in `P-002`.
+
+Evidence:
+The original integration request failed with an EF Core query-translation exception. The revised queries pass the full 56-test PostgreSQL suite and the dedicated 200-session performance scenario.
+
+### I-017 — 2026-08-29 — Development contract generation could hang on file watchers and stale build servers
+
+Status: resolved
+
+Context:
+The OpenAPI generator starts the API in the Development environment. In the restricted automation environment, configuration reload file watching could prevent deterministic startup, and reused MSBuild/Roslyn build-server processes could leave generation waiting on stale workers.
+
+Decision or finding:
+Set `DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false` only for the contract-generation process and invoke its build with `--disable-build-servers`.
+
+Rationale:
+Contract generation is a short-lived build workflow and does not need live configuration reload. Isolating the build avoids dependence on ambient worker state without changing ordinary API development behavior.
+
+Alternatives considered:
+Disabling reload globally was rejected because normal development can benefit from it. Requiring developers to kill shared build processes manually was rejected because it is stateful and unreliable.
+
+Consequences / follow-up:
+Contract generation may be a little slower because it cannot reuse build servers, but it is deterministic in local automation and still produces the same committed contract.
+
+Evidence:
+`bash scripts/generate-api-contract.sh` and the non-mutating `bash scripts/check-api-contract.sh` complete successfully after the scoped changes.
+
 ## Performance log
 
 ### P-001 — 2026-08-28 — Active-session edit and serialization baseline
@@ -667,6 +735,22 @@ The benchmark exercises the actual bounded reducer and persistence payload witho
 
 Evidence:
 On 2026-08-28, the Jest/Node development environment completed 10,000 edit-plus-serialization operations with a 0.050 ms median, 0.060 ms p95, 0.050 ms minimum, and 0.080 ms maximum. The production iOS export also completed, and the logger was visually reviewed on an iPhone 16 Pro simulator. Physical-device responsiveness and representative API/database latency remain later baselines.
+
+### P-002 — 2026-08-29 — Completed-history and progress-query baseline
+
+Status: accepted
+
+Context:
+History and progress are the first account-data reads whose cost grows with completed sessions. Their database filters, projections, ordering, and bounds need a repeatable baseline before richer analytics are considered.
+
+Decision or finding:
+Keep a dedicated PostgreSQL integration benchmark that seeds 200 synthetic completed one-exercise, one-set sessions, performs five warm-up requests, and records 30 sequential warm-cache samples for the first history page and progress overview. Do not set a CI latency threshold while container startup, host load, and development hardware remain variable.
+
+Rationale:
+The scenario exercises the real ASP.NET Core, EF Core, Npgsql, migrations, and PostgreSQL query path while remaining quick enough to run deliberately when those queries or indexes change. It establishes comparative evidence without presenting in-process development latency as production performance.
+
+Evidence:
+On 2026-08-29, the history request measured a 1.16 ms median and 1.70 ms p95; progress overview measured a 2.52 ms median and 2.90 ms p95 across 30 samples. The dedicated test completed in about 6.5 seconds including setup. These figures are a local baseline, not a service-level objective.
 
 ## Open decisions
 

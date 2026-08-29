@@ -57,7 +57,7 @@ Responsibilities:
 - Degrade safely when the API or AI provider is unavailable.
 - Avoid containing privileged provider credentials or authoritative business rules.
 
-The client uses Expo Router with its stable native stack and typed routes. Route files live under `frontend/src/app`; the current graph covers onboarding, the saved workout list and editor, active-workout logging, completion summary, and route-level loading, error, and unavailable states. Expo SQLite retains the local prototype profile association and recoverable session payload; Expo Crypto supplies stable UUIDs. This association is convenience state, not identity or authorization. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
+The client uses Expo Router with its stable native stack and typed routes. Route files live under `frontend/src/app`; the current graph covers onboarding, workout planning, active logging, completion, history, corrections, progress, and route-level loading, error, and unavailable states. Expo SQLite retains the local prototype profile association and recoverable active-session payload; completed history and corrections remain online-only. Expo Crypto supplies stable UUIDs. The local profile association is convenience state, not identity or authorization. Additional state, form, and component libraries should be selected only when the first concrete use case demonstrates their benefit.
 
 Android portability should be retained through standard React Native patterns. Android-specific implementation and QA are deferred.
 
@@ -119,11 +119,19 @@ The mobile list and editor use compact rows and restrained dividers. Exercise di
 
 ## Active workout sessions
 
-Starting a workout creates a new session from one exact workout-plan revision. Snapshot fields preserve the plan name, exercise identity and order, tracking mode, muscles, and prescriptions; template edits never rewrite a session. PostgreSQL permits only one active session per profile. Completed sessions are immutable until the later history phase intentionally defines correction behavior.
+Starting a workout creates a new session from one exact workout-plan revision. Snapshot fields preserve the plan name, exercise identity and order, tracking mode, muscles, and prescriptions; template edits never rewrite a session. PostgreSQL permits only one active session per profile. Active-session synchronization cannot mutate a completed session; completed actuals can be changed only through the explicit correction route described below.
 
 Actual values use the exercise tracking mode: repetitions; repetitions plus load; duration; distance plus duration; or distance, duration, and load. Planned values remain visible suggestions and are never silently recorded as actuals. Users can explicitly complete or correct a set, add or remove a set, skip an exercise, and add session or exercise notes. Canonical storage remains kilograms, metres, and seconds.
 
 The client stores the bounded session document in Expo SQLite after each interaction and synchronizes it to a profile-scoped API route. Client-generated session, set, and mutation UUIDs make creation and retries stable. Full-document updates use an optimistic revision plus mutation idempotency; a conflict retains the local copy and requires an explicit user choice before loading the server copy. See [ADR-0009](adr/0009-recoverable-workout-sessions.md).
+
+## Workout history and progress
+
+Completed sessions are the source of truth for history and derived progress. History is profile-scoped, newest first, and paged with an explicit bounded `limit` and `offset`; the mobile client groups returned UTC instants into dates using the device's current local time zone. A composite PostgreSQL index supports the completed-session filter and finish-time ordering.
+
+Corrections are a distinct, deliberate operation. They may update recorded completion state, skips, actual values, and bounded notes, but cannot change the session's plan snapshot, exercise/set identity or order, start time, or finish time. The correction route uses the same optimistic revision as session synchronization and records the latest correction time. This is correction provenance, not a complete audit ledger; a full revision history is deferred until product or compliance requirements justify it.
+
+Basic progress is intentionally factual. The overview reports completed workouts, completed sets, and total recorded workout time over a rolling 28-day UTC window. Exercise detail shows up to the latest 12 completed-session appearances with only the actual values supported by that exercise's tracking mode. It does not infer personal records, trends, calories, readiness, scores, or streaks. Queries project bounded result sets and history/corrections are online-only in the current prototype. See [ADR-0010](adr/0010-explainable-workout-history.md).
 
 ## API contract
 

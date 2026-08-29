@@ -3,6 +3,7 @@ using System;
 using FitnessCoach.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitnessCoach.Api.Persistence.Migrations
 {
     [DbContext(typeof(FitnessCoachDbContext))]
-    partial class FitnessCoachDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260829010505_AddWorkoutHistoryAndProgress")]
+    partial class AddWorkoutHistoryAndProgress
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -337,8 +340,6 @@ namespace FitnessCoach.Api.Persistence.Migrations
                     b.HasIndex("ProfileId", "Status")
                         .IsUnique()
                         .HasFilter("status = 'Active'");
-
-                    b.HasIndex("ProfileId", "Status", "FinishedAt");
 
                     b.ToTable("workout_sessions", null, t =>
                         {

@@ -1,6 +1,9 @@
 import {
   ActiveWorkoutExistsError,
+  correctWorkoutSession,
   getActiveWorkoutSession,
+  getWorkoutSession,
+  listWorkoutHistory,
   startWorkoutSession,
   updateWorkoutSession,
   WorkoutSessionConflictError,
@@ -17,6 +20,7 @@ const session = {
   startedAt: "2026-08-28T00:00:00Z",
   updatedAt: "2026-08-28T00:00:00Z",
   finishedAt: null,
+  correctedAt: null,
   notes: null,
   exercises: [],
 };
@@ -88,5 +92,46 @@ describe("workout session API", () => {
         { baseUrl: "https://api.example.test", fetch },
       ),
     ).rejects.toBeInstanceOf(WorkoutSessionConflictError);
+    await expect(
+      correctWorkoutSession(
+        session.profileId,
+        session.id,
+        { expectedRevision: 2, notes: null, exercises: [] },
+        { baseUrl: "https://api.example.test", fetch },
+      ),
+    ).rejects.toBeInstanceOf(WorkoutSessionConflictError);
+  });
+
+  it("loads bounded history and a completed session detail", async () => {
+    const fetch = jest
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ items: [], nextOffset: null }))
+      .mockResolvedValueOnce(jsonResponse(session));
+
+    await listWorkoutHistory(
+      session.profileId,
+      { limit: 20, offset: 0 },
+      { baseUrl: "https://api.example.test", fetch },
+    );
+    await getWorkoutSession(session.profileId, session.id, {
+      baseUrl: "https://api.example.test",
+      fetch,
+    });
+
+    const historyRequest = fetch.mock.calls[0]?.[0] as Request;
+    const detailRequest = fetch.mock.calls[1]?.[0] as Request;
+    expect(historyRequest.url).toContain(
+      `/profiles/${session.profileId}/workout-sessions/history?limit=20&offset=0`,
+    );
+    expect(detailRequest.url).toContain(
+      `/profiles/${session.profileId}/workout-sessions/${session.id}`,
+    );
   });
 });
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}

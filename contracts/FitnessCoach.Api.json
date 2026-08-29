@@ -276,6 +276,101 @@
         }
       }
     },
+    "/profiles/{profileId}/progress": {
+      "get": {
+        "tags": ["Progress"],
+        "summary": "Get explainable four-week training totals and recorded exercises",
+        "operationId": "GetProgressOverview",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressOverviewResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/profiles/{profileId}/progress/exercises/{exerciseId}": {
+      "get": {
+        "tags": ["Progress"],
+        "summary": "Get recent recorded performance for one exercise",
+        "operationId": "GetExercisePerformance",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "exerciseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExercisePerformanceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/profiles/{profileId}/workout-sessions": {
       "post": {
         "tags": ["Workout sessions"],
@@ -378,6 +473,69 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/profiles/{profileId}/workout-sessions/history": {
+      "get": {
+        "tags": ["Workout sessions"],
+        "summary": "List completed workout sessions, newest first",
+        "operationId": "ListWorkoutHistory",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "maximum": 10000,
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutHistoryListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -523,6 +681,78 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/{profileId}/workout-sessions/{sessionId}/correction": {
+      "put": {
+        "tags": ["Workout sessions"],
+        "summary": "Correct recorded values in a completed workout session",
+        "operationId": "CorrectWorkoutSession",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectWorkoutSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSessionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           },
           "409": {
             "description": "Conflict",
@@ -766,6 +996,27 @@
   },
   "components": {
     "schemas": {
+      "CorrectWorkoutSessionRequest": {
+        "required": ["expectedRevision", "notes", "exercises"],
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "notes": {
+            "type": ["null", "string"]
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSessionExerciseRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateTrainingProfileRequest": {
         "required": ["goals", "experience", "availableEquipment", "unitSystem"],
         "type": "object",
@@ -904,6 +1155,58 @@
           "calfRaise",
           "locomotion"
         ]
+      },
+      "ExercisePerformanceAppearanceResponse": {
+        "required": ["sessionId", "workoutName", "performedAt", "sets"],
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workoutName": {
+            "type": "string"
+          },
+          "performedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordedSetResponse"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExercisePerformanceResponse": {
+        "required": [
+          "exerciseId",
+          "exerciseName",
+          "trackingMode",
+          "appearances"
+        ],
+        "type": "object",
+        "properties": {
+          "exerciseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "exerciseName": {
+            "type": "string"
+          },
+          "trackingMode": {
+            "$ref": "#/components/schemas/ExerciseTrackingMode"
+          },
+          "appearances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExercisePerformanceAppearanceResponse"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "ExerciseSearchResponse": {
         "required": ["items", "nextOffset"],
@@ -1045,6 +1348,119 @@
           },
           "instance": {
             "type": ["null", "string"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProgressOverviewResponse": {
+        "required": [
+          "periodStart",
+          "periodEnd",
+          "completedWorkoutCount",
+          "completedSetCount",
+          "totalWorkoutDurationSeconds",
+          "recordedExercises"
+        ],
+        "type": "object",
+        "properties": {
+          "periodStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedWorkoutCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "completedSetCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "totalWorkoutDurationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "recordedExercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordedExerciseSummaryResponse"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "RecordedExerciseSummaryResponse": {
+        "required": [
+          "exerciseId",
+          "exerciseName",
+          "trackingMode",
+          "appearanceCount",
+          "lastPerformedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "exerciseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "exerciseName": {
+            "type": "string"
+          },
+          "trackingMode": {
+            "$ref": "#/components/schemas/ExerciseTrackingMode"
+          },
+          "appearanceCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "lastPerformedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RecordedSetResponse": {
+        "required": [
+          "position",
+          "actualRepetitions",
+          "actualLoadKilograms",
+          "actualDurationSeconds",
+          "actualDistanceMetres"
+        ],
+        "type": "object",
+        "properties": {
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "actualRepetitions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "actualLoadKilograms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "actualDurationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "actualDistanceMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -1337,6 +1753,80 @@
         },
         "additionalProperties": false
       },
+      "WorkoutHistoryListResponse": {
+        "required": ["items", "nextOffset"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutHistorySummaryResponse"
+            }
+          },
+          "nextOffset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkoutHistorySummaryResponse": {
+        "required": [
+          "id",
+          "workoutName",
+          "startedAt",
+          "finishedAt",
+          "durationSeconds",
+          "completedSetCount",
+          "totalSetCount",
+          "skippedExerciseCount",
+          "correctedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workoutName": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "completedSetCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "totalSetCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "skippedExerciseCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "correctedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "WorkoutListResponse": {
         "required": ["items", "nextOffset"],
         "type": "object",
@@ -1475,6 +1965,7 @@
           "startedAt",
           "updatedAt",
           "finishedAt",
+          "correctedAt",
           "notes",
           "exercises"
         ],
@@ -1517,6 +2008,10 @@
             "format": "date-time"
           },
           "finishedAt": {
+            "type": ["null", "string"],
+            "format": "date-time"
+          },
+          "correctedAt": {
             "type": ["null", "string"],
             "format": "date-time"
           },
@@ -1684,6 +2179,9 @@
     },
     {
       "name": "Profiles"
+    },
+    {
+      "name": "Progress"
     },
     {
       "name": "Workout sessions"

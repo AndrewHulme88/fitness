@@ -41,6 +41,33 @@ internal static class WorkoutSessionRequestValidator
         return errors;
     }
 
+    public static Dictionary<string, string[]> ValidateCorrection(
+        WorkoutSession session,
+        CorrectWorkoutSessionRequest request,
+        out CorrectWorkoutSessionInput input)
+    {
+        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        var exercises = new List<WorkoutSessionExerciseInput>();
+
+        if (request.Notes?.Length > 2000)
+        {
+            errors["notes"] = ["Keep the session note to 2,000 characters or fewer."];
+        }
+
+        if (request.Exercises is null)
+        {
+            errors["exercises"] = ["Include every exercise and set from the completed session."];
+        }
+        else
+        {
+            ValidateExercises(session, request.Exercises, exercises, errors);
+            ValidateCorrectionShape(session, request.Exercises, errors);
+        }
+
+        input = new CorrectWorkoutSessionInput(request.Notes, exercises);
+        return errors;
+    }
+
     private static void ValidateSessionFields(
         WorkoutSession session,
         UpdateWorkoutSessionRequest request,
@@ -155,6 +182,32 @@ internal static class WorkoutSessionRequestValidator
                 && ownerId != exercise.ExerciseId)))
         {
             errors["exercises"] = ["An existing set cannot move to another exercise."];
+        }
+    }
+
+    private static void ValidateCorrectionShape(
+        WorkoutSession session,
+        IReadOnlyList<WorkoutSessionExerciseRequest> requests,
+        Dictionary<string, string[]> errors)
+    {
+        if (errors.ContainsKey("exercises"))
+        {
+            return;
+        }
+
+        foreach (var request in requests)
+        {
+            var existing = session.Exercises.Single(item => item.ExerciseId == request.ExerciseId);
+            var existingSetIds = existing.Sets
+                .OrderBy(item => item.Position)
+                .Select(item => item.Id);
+            var requestedSetIds = request.Sets.Select(item => item.SetId);
+            if (!existingSetIds.SequenceEqual(requestedSetIds))
+            {
+                errors["exercises"] =
+                    ["Corrections cannot add, remove, reorder, or move recorded sets."];
+                return;
+            }
         }
     }
 

@@ -23,6 +23,8 @@ describe("WorkoutList", () => {
       <WorkoutList
         onCreate={onCreate}
         onEdit={jest.fn()}
+        onHistory={jest.fn()}
+        onProgress={jest.fn()}
         onStart={jest.fn()}
         profileId={profileId}
       />,
@@ -60,6 +62,8 @@ describe("WorkoutList", () => {
       <WorkoutList
         onCreate={jest.fn()}
         onEdit={onEdit}
+        onHistory={jest.fn()}
+        onProgress={jest.fn()}
         onStart={onStart}
         profileId={profileId}
       />,
@@ -85,6 +89,8 @@ describe("WorkoutList", () => {
       <WorkoutList
         onCreate={jest.fn()}
         onEdit={jest.fn()}
+        onHistory={jest.fn()}
+        onProgress={jest.fn()}
         onStart={jest.fn()}
         profileId={profileId}
       />,

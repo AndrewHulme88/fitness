@@ -18,6 +18,11 @@ public sealed record UpdateWorkoutSessionRequest(
     string? Notes,
     IReadOnlyList<WorkoutSessionExerciseRequest> Exercises);
 
+public sealed record CorrectWorkoutSessionRequest(
+    int ExpectedRevision,
+    string? Notes,
+    IReadOnlyList<WorkoutSessionExerciseRequest> Exercises);
+
 public sealed record WorkoutSessionExerciseRequest(
     Guid ExerciseId,
     bool IsSkipped,
@@ -44,8 +49,24 @@ public sealed record WorkoutSessionResponse(
     DateTimeOffset StartedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? FinishedAt,
+    DateTimeOffset? CorrectedAt,
     string? Notes,
     IReadOnlyList<WorkoutSessionExerciseResponse> Exercises);
+
+public sealed record WorkoutHistoryListResponse(
+    IReadOnlyList<WorkoutHistorySummaryResponse> Items,
+    int? NextOffset);
+
+public sealed record WorkoutHistorySummaryResponse(
+    Guid Id,
+    string WorkoutName,
+    DateTimeOffset StartedAt,
+    DateTimeOffset FinishedAt,
+    int DurationSeconds,
+    int CompletedSetCount,
+    int TotalSetCount,
+    int SkippedExerciseCount,
+    DateTimeOffset? CorrectedAt);
 
 public sealed record WorkoutSessionExerciseResponse(
     Guid ExerciseId,

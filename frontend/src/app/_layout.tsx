@@ -41,12 +41,22 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="workouts" options={{ headerShown: false }} />
+        <Stack.Screen name="history" options={{ headerShown: false }} />
+        <Stack.Screen name="progress" options={{ headerShown: false }} />
         <Stack.Screen
           name="workout/create"
           options={{ title: "Create workout" }}
         />
         <Stack.Screen name="workout/session" options={{ title: "Workout" }} />
         <Stack.Screen name="workout/summary" options={{ title: "Summary" }} />
+        <Stack.Screen
+          name="workout/history-detail"
+          options={{ title: "Workout record" }}
+        />
+        <Stack.Screen
+          name="workout/exercise-progress"
+          options={{ title: "Recorded performance" }}
+        />
         <Stack.Screen name="+not-found" options={{ title: "Unavailable" }} />
       </Stack>
       <StatusBar style="light" />

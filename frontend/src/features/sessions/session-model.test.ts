@@ -20,6 +20,7 @@ const remoteSession: WorkoutSession = {
   startedAt: "2026-08-28T00:00:00Z",
   updatedAt: "2026-08-28T00:00:00Z",
   finishedAt: null,
+  correctedAt: null,
   notes: null,
   exercises: [
     {

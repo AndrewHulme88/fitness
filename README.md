@@ -2,7 +2,7 @@
 
 Fitness Coach is the working title for an iOS-first fitness application that combines workout planning and logging with a context-aware AI coach. The product is intended to feel calm, trustworthy, fast, and genuinely useful during training.
 
-The repository has completed its foundation phase and the first four core-fitness increments. It now supports local onboarding, an internally owned exercise catalogue, reusable workout planning, and interruption-safe active workout logging across the Expo client, API, and PostgreSQL.
+The repository has completed its foundation phase and core training loop. It now supports local onboarding, an internally owned exercise catalogue, reusable workout planning, interruption-safe active workout logging, completed history, explicit corrections, and explainable basic progress across the Expo client, API, and PostgreSQL.
 
 ## Product intent
 
@@ -128,6 +128,16 @@ dotnet build FitnessCoach.slnx --configuration Release --no-restore
 dotnet test FitnessCoach.slnx --configuration Release --no-restore --no-build
 ```
 
+Run the representative history/progress database benchmark separately when changing those queries or indexes:
+
+```bash
+dotnet test tests/FitnessCoach.Api.IntegrationTests/FitnessCoach.Api.IntegrationTests.csproj \
+  --configuration Release --no-restore --no-build \
+  --filter Category=Performance --logger "console;verbosity=detailed"
+```
+
+Its development-machine measurements are diagnostic baselines, not CI pass/fail thresholds or production latency claims.
+
 Configure the local database once:
 
 ```bash
@@ -222,4 +232,4 @@ The runtime document and unauthenticated local-prototype Profile, Exercise, and 
 
 ## Current status
 
-Foundation work through Phase 3.4 is complete. The Expo client has accessible onboarding, a saved-workout list, catalogue discovery, explicit prescription editing, drag plus VoiceOver reordering, and a compact active logger with durable SQLite recovery and explicit offline states. The .NET API validates and persists profiles, an internally owned catalogue of 35 common exercises, revisioned workout templates, and immutable-snapshot workout sessions through PostgreSQL. Prototype product routes remain Development-only until deployment and identity boundaries are intentionally introduced. The next increment to define is history and explainable basic progress in Phase 3.5.
+Foundation work through Phase 3.5 is complete. The Expo client has accessible onboarding, planning, active logging, completed history, correction, and progress flows. The .NET API persists profiles, a curated 35-exercise catalogue, revisioned workout templates, immutable plan snapshots, bounded history, correction provenance, and factual progress through PostgreSQL. Prototype product routes remain Development-only until deployment and identity boundaries are intentionally introduced. The next increment to define is Phase 4 identity and account lifecycle.

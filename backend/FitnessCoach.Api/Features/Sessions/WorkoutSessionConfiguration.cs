@@ -31,6 +31,7 @@ internal sealed class WorkoutSessionConfiguration : IEntityTypeConfiguration<Wor
             .IsUnique()
             .HasFilter("status = 'Active'");
         builder.HasIndex(item => new { item.ProfileId, item.StartedAt });
+        builder.HasIndex(item => new { item.ProfileId, item.Status, item.FinishedAt });
 
         builder.Property(item => item.Id).HasColumnName("id");
         builder.Property(item => item.ProfileId).HasColumnName("profile_id");
@@ -50,6 +51,7 @@ internal sealed class WorkoutSessionConfiguration : IEntityTypeConfiguration<Wor
         builder.Property(item => item.StartedAt).HasColumnName("started_at");
         builder.Property(item => item.UpdatedAt).HasColumnName("updated_at");
         builder.Property(item => item.FinishedAt).HasColumnName("finished_at");
+        builder.Property(item => item.CorrectedAt).HasColumnName("corrected_at");
         builder.Property(item => item.Notes)
             .HasColumnName("notes")
             .HasMaxLength(2000);

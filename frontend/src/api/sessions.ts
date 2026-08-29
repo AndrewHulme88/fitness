@@ -1,4 +1,4 @@
-import type { components } from "./generated/schema";
+import type { components, operations } from "./generated/schema";
 import { executeApiRequest, type ApiRequestOptions } from "./request";
 
 export type StartWorkoutSessionRequest =
@@ -6,6 +6,15 @@ export type StartWorkoutSessionRequest =
 export type UpdateWorkoutSessionRequest =
   components["schemas"]["UpdateWorkoutSessionRequest"];
 export type WorkoutSession = components["schemas"]["WorkoutSessionResponse"];
+export type CorrectWorkoutSessionRequest =
+  components["schemas"]["CorrectWorkoutSessionRequest"];
+export type WorkoutHistorySummary =
+  components["schemas"]["WorkoutHistorySummaryResponse"];
+export type WorkoutHistoryResult =
+  components["schemas"]["WorkoutHistoryListResponse"];
+export type WorkoutHistoryFilters = NonNullable<
+  operations["ListWorkoutHistory"]["parameters"]["query"]
+>;
 
 export class WorkoutSessionConflictError extends Error {
   constructor() {
@@ -59,6 +68,37 @@ export async function getActiveWorkoutSession(
   });
 }
 
+export async function listWorkoutHistory(
+  profileId: string,
+  filters: WorkoutHistoryFilters = {},
+  options: ApiRequestOptions = {},
+): Promise<WorkoutHistoryResult> {
+  return executeApiRequest(options, async (client, signal) => {
+    const { data, error } = await client.GET(
+      "/profiles/{profileId}/workout-sessions/history",
+      { params: { path: { profileId }, query: filters }, signal },
+    );
+    if (error || !data) throw new Error("Workout history could not be loaded.");
+    return data;
+  });
+}
+
+export async function getWorkoutSession(
+  profileId: string,
+  sessionId: string,
+  options: ApiRequestOptions = {},
+): Promise<WorkoutSession> {
+  return executeApiRequest(options, async (client, signal) => {
+    const { data, error } = await client.GET(
+      "/profiles/{profileId}/workout-sessions/{sessionId}",
+      { params: { path: { profileId, sessionId } }, signal },
+    );
+    if (error || !data)
+      throw new Error("The workout record could not be loaded.");
+    return data;
+  });
+}
+
 export async function updateWorkoutSession(
   profileId: string,
   sessionId: string,
@@ -78,6 +118,28 @@ export async function updateWorkoutSession(
     if (response.status === 409) throw new WorkoutSessionConflictError();
     if (error || !data)
       throw new Error("The workout changes could not be synchronized.");
+    return data;
+  });
+}
+
+export async function correctWorkoutSession(
+  profileId: string,
+  sessionId: string,
+  request: CorrectWorkoutSessionRequest,
+  options: ApiRequestOptions = {},
+): Promise<WorkoutSession> {
+  return executeApiRequest(options, async (client, signal) => {
+    const { data, error, response } = await client.PUT(
+      "/profiles/{profileId}/workout-sessions/{sessionId}/correction",
+      {
+        params: { path: { profileId, sessionId } },
+        body: request,
+        signal,
+      },
+    );
+    if (response.status === 409) throw new WorkoutSessionConflictError();
+    if (error || !data)
+      throw new Error("The workout correction could not be saved.");
     return data;
   });
 }

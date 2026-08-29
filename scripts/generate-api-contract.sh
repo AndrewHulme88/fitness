@@ -21,8 +21,10 @@ fi
 
 mkdir -p "${contract_output_directory}" "$(dirname "${client_output_file}")"
 
+DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false \
 ASPNETCORE_ENVIRONMENT=Development dotnet build "${api_project}" \
   --configuration Release \
+  --disable-build-servers \
   --no-incremental \
   --no-restore \
   -p:OpenApiGenerateDocuments=true \

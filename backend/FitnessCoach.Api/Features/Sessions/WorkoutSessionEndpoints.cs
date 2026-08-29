@@ -1,9 +1,14 @@
+using System.Globalization;
+
 using FitnessCoach.Api.Features.Exercises;
+using FitnessCoach.Api.Features.Profiles;
 using FitnessCoach.Api.Features.Workouts;
 using FitnessCoach.Api.Persistence;
 
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 
 using Npgsql;
 
@@ -11,6 +16,10 @@ namespace FitnessCoach.Api.Features.Sessions;
 
 internal static class WorkoutSessionEndpoints
 {
+    private const int DefaultHistoryLimit = 20;
+    private const int MaximumHistoryLimit = 50;
+    private const int MaximumHistoryOffset = 10_000;
+
     public static IEndpointRouteBuilder MapWorkoutSessionEndpoints(
         this IEndpointRouteBuilder endpoints)
     {
@@ -25,6 +34,10 @@ internal static class WorkoutSessionEndpoints
         sessions.MapGet("/active", GetActiveSessionAsync)
             .WithName("GetActiveWorkoutSession")
             .WithSummary("Get the profile's active workout session");
+        sessions.MapGet("/history", ListHistoryAsync)
+            .WithName("ListWorkoutHistory")
+            .WithSummary("List completed workout sessions, newest first")
+            .AddOpenApiOperationTransformer(ConfigureHistoryListContractAsync);
         sessions.MapGet("/{sessionId:guid}", GetSessionAsync)
             .WithName("GetWorkoutSession")
             .WithSummary("Get a workout session");
@@ -32,12 +45,45 @@ internal static class WorkoutSessionEndpoints
             .WithName("UpdateWorkoutSession")
             .WithSummary("Synchronize an active workout session")
             .ProducesProblem(StatusCodes.Status409Conflict);
+        sessions.MapPut("/{sessionId:guid}/correction", CorrectSessionAsync)
+            .WithName("CorrectWorkoutSession")
+            .WithSummary("Correct recorded values in a completed workout session")
+            .ProducesProblem(StatusCodes.Status409Conflict);
         sessions.MapDelete("/{sessionId:guid}", DiscardSessionAsync)
             .WithName("DiscardWorkoutSession")
             .WithSummary("Permanently discard an active workout session")
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         return endpoints;
+    }
+
+    private static Task ConfigureHistoryListContractAsync(
+        OpenApiOperation operation,
+        OpenApiOperationTransformerContext _,
+        CancellationToken cancellationToken)
+    {
+        foreach (var parameter in operation.Parameters ?? [])
+        {
+            if (parameter is not OpenApiParameter concreteParameter
+                || concreteParameter.Name is not ("limit" or "offset"))
+            {
+                continue;
+            }
+
+            concreteParameter.Schema = new OpenApiSchema
+            {
+                Type = JsonSchemaType.Integer,
+                Format = "int32",
+                Minimum = concreteParameter.Name == "limit" ? "1" : "0",
+                Maximum = concreteParameter.Name == "limit"
+                    ? MaximumHistoryLimit.ToString(CultureInfo.InvariantCulture)
+                    : MaximumHistoryOffset.ToString(CultureInfo.InvariantCulture),
+            };
+        }
+
+        return cancellationToken.IsCancellationRequested
+            ? Task.FromCanceled(cancellationToken)
+            : Task.CompletedTask;
     }
 
     private static async Task<Results<
@@ -139,6 +185,85 @@ internal static class WorkoutSessionEndpoints
             : TypedResults.Ok(Map(session));
     }
 
+    private static async Task<Results<
+        Ok<WorkoutHistoryListResponse>,
+        NotFound,
+        ValidationProblem>> ListHistoryAsync(
+            Guid profileId,
+            string? limit,
+            string? offset,
+            FitnessCoachDbContext dbContext,
+            CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        var parsedLimit = ParseBoundedInteger(
+            limit,
+            DefaultHistoryLimit,
+            1,
+            MaximumHistoryLimit,
+            "limit",
+            errors);
+        var parsedOffset = ParseBoundedInteger(
+            offset,
+            0,
+            0,
+            MaximumHistoryOffset,
+            "offset",
+            errors);
+        if (errors.Count > 0)
+        {
+            return TypedResults.ValidationProblem(errors);
+        }
+
+        if (!await dbContext.Set<TrainingProfile>().AsNoTracking()
+                .AnyAsync(item => item.Id == profileId, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var rows = await dbContext.Set<WorkoutSession>()
+            .AsNoTracking()
+            .Where(item => item.ProfileId == profileId
+                && item.Status == WorkoutSessionStatus.Completed)
+            .OrderByDescending(item => item.FinishedAt)
+            .ThenByDescending(item => item.Id)
+            .Select(item => new
+            {
+                item.Id,
+                item.WorkoutName,
+                item.StartedAt,
+                FinishedAt = item.FinishedAt!.Value,
+                CompletedSetCount = item.Exercises
+                    .SelectMany(exercise => exercise.Sets)
+                    .Count(set => set.IsCompleted),
+                TotalSetCount = item.Exercises
+                    .SelectMany(exercise => exercise.Sets)
+                    .Count(),
+                SkippedExerciseCount = item.Exercises.Count(exercise => exercise.IsSkipped),
+                item.CorrectedAt,
+            })
+            .Skip(parsedOffset)
+            .Take(parsedLimit + 1)
+            .ToListAsync(cancellationToken);
+
+        var hasMore = rows.Count > parsedLimit;
+        var items = rows.Take(parsedLimit)
+            .Select(item => new WorkoutHistorySummaryResponse(
+                item.Id,
+                item.WorkoutName,
+                item.StartedAt,
+                item.FinishedAt,
+                ToDurationSeconds(item.StartedAt, item.FinishedAt),
+                item.CompletedSetCount,
+                item.TotalSetCount,
+                item.SkippedExerciseCount,
+                item.CorrectedAt))
+            .ToArray();
+        return TypedResults.Ok(new WorkoutHistoryListResponse(
+            items,
+            hasMore ? parsedOffset + parsedLimit : null));
+    }
+
     private static async Task<Results<Ok<WorkoutSessionResponse>, NotFound>> GetSessionAsync(
         Guid profileId,
         Guid sessionId,
@@ -223,6 +348,60 @@ internal static class WorkoutSessionEndpoints
         return TypedResults.Ok(Map(session));
     }
 
+    private static async Task<Results<
+        Ok<WorkoutSessionResponse>,
+        NotFound,
+        ValidationProblem,
+        ProblemHttpResult>> CorrectSessionAsync(
+            Guid profileId,
+            Guid sessionId,
+            CorrectWorkoutSessionRequest request,
+            FitnessCoachDbContext dbContext,
+            TimeProvider timeProvider,
+            CancellationToken cancellationToken)
+    {
+        var session = await LoadSessionAsync(
+            profileId,
+            sessionId,
+            dbContext,
+            cancellationToken);
+        if (session is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (session.Status != WorkoutSessionStatus.Completed)
+        {
+            return CreateActiveCorrectionConflict();
+        }
+
+        if (request.ExpectedRevision != session.Revision)
+        {
+            return CreateRevisionConflict();
+        }
+
+        var errors = WorkoutSessionRequestValidator.ValidateCorrection(
+            session,
+            request,
+            out var input);
+        if (errors.Count > 0)
+        {
+            return TypedResults.ValidationProblem(errors);
+        }
+
+        session.Correct(input, timeProvider.GetUtcNow());
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return CreateRevisionConflict();
+        }
+
+        return TypedResults.Ok(Map(session));
+    }
+
     private static async Task<Results<NoContent, NotFound, ProblemHttpResult>>
         DiscardSessionAsync(
             Guid profileId,
@@ -281,6 +460,7 @@ internal static class WorkoutSessionEndpoints
         session.StartedAt,
         session.UpdatedAt,
         session.FinishedAt,
+        session.CorrectedAt,
         session.Notes,
         session.Exercises
             .OrderBy(item => item.Position)
@@ -328,7 +508,46 @@ internal static class WorkoutSessionEndpoints
         title: "The workout session changed after it was loaded.");
 
     private static ProblemHttpResult CreateCompletedSessionConflict() => TypedResults.Problem(
-        detail: "Completed workout sessions cannot be changed in this phase.",
+        detail: "Use the correction endpoint to update a completed workout record.",
         statusCode: StatusCodes.Status409Conflict,
         title: "The workout session is already complete.");
+
+    private static ProblemHttpResult CreateActiveCorrectionConflict() => TypedResults.Problem(
+        detail: "Finish the workout before correcting its recorded history.",
+        statusCode: StatusCodes.Status409Conflict,
+        title: "The workout session is still active.");
+
+    private static int ParseBoundedInteger(
+        string? value,
+        int defaultValue,
+        int minimum,
+        int maximum,
+        string fieldName,
+        Dictionary<string, string[]> errors)
+    {
+        if (value is null)
+        {
+            return defaultValue;
+        }
+
+        if (int.TryParse(
+                value,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var parsed)
+            && parsed >= minimum
+            && parsed <= maximum)
+        {
+            return parsed;
+        }
+
+        errors[fieldName] = [$"Choose a whole number from {minimum} to {maximum}."];
+        return defaultValue;
+    }
+
+    private static int ToDurationSeconds(DateTimeOffset startedAt, DateTimeOffset finishedAt)
+    {
+        var seconds = Math.Max(0, (finishedAt - startedAt).TotalSeconds);
+        return (int)Math.Min(seconds, int.MaxValue);
+    }
 }

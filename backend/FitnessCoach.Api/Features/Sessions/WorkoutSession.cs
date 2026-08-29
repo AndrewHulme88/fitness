@@ -43,6 +43,7 @@ internal sealed class WorkoutSession
     public DateTimeOffset StartedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public DateTimeOffset? FinishedAt { get; private set; }
+    public DateTimeOffset? CorrectedAt { get; private set; }
     public string? Notes { get; private set; }
     public ICollection<WorkoutSessionExercise> Exercises { get; } = [];
 
@@ -62,6 +63,22 @@ internal sealed class WorkoutSession
         LastMutationId = input.ClientMutationId;
         Revision++;
         UpdatedAt = updatedAt;
+
+        foreach (var desiredExercise in input.Exercises)
+        {
+            Exercises.Single(item => item.ExerciseId == desiredExercise.ExerciseId)
+                .Update(desiredExercise);
+        }
+    }
+
+    public void Correct(
+        CorrectWorkoutSessionInput input,
+        DateTimeOffset correctedAt)
+    {
+        Notes = input.Notes;
+        Revision++;
+        UpdatedAt = correctedAt;
+        CorrectedAt = correctedAt;
 
         foreach (var desiredExercise in input.Exercises)
         {
@@ -204,6 +221,10 @@ internal sealed record UpdateWorkoutSessionInput(
     Guid ClientMutationId,
     WorkoutSessionStatus Status,
     DateTimeOffset? FinishedAt,
+    string? Notes,
+    IReadOnlyList<WorkoutSessionExerciseInput> Exercises);
+
+internal sealed record CorrectWorkoutSessionInput(
     string? Notes,
     IReadOnlyList<WorkoutSessionExerciseInput> Exercises);
 

@@ -244,11 +244,21 @@ Verification completed on 2026-08-28:
 
 ### 3.5 Add history and basic progress
 
-Status: pending
+Status: complete
 
 - Show accurate workout history and a small number of useful derived metrics.
 - Do not invent scores or trends that cannot be explained.
 - Benchmark important list and database queries with representative data.
+
+Verification completed on 2026-08-29:
+
+- Completed history is profile-scoped, newest first, device-local date grouped, and loaded in explicit bounded pages. Compact rows show recorded duration, completed-set totals, skips, and correction state with dedicated empty, initial-error, and load-more-error behavior.
+- Completed workout detail is read-only until the user enters correction mode. Revision-checked corrections may change only recorded completion, supported actuals, skips, and bounded notes; snapshot identity/order and session timing remain fixed, and the latest correction time is visible.
+- The progress overview reports only completed workouts, completed sets, and recorded duration for the rolling four-week window. Exercise detail shows up to the latest 12 recorded appearances using tracking-mode-specific actuals, with explicit empty and insufficient-data states and no inferred scores, records, calories, or trends.
+- History and corrections remain online-only. Server queries are bounded and projected, and completed-session retrieval is supported by a profile/status/finish-time index. Migrations, OpenAPI, and generated TypeScript types are current.
+- The Release backend suite passes 56 PostgreSQL integration tests, and the frontend passes formatting, strict TypeScript, lint, all 60 tests, contract drift verification, and a production iOS export.
+- With 200 synthetic completed sessions in disposable PostgreSQL, warm in-process requests measured a 1.16 ms median and 1.70 ms p95 for the first history page, and a 2.52 ms median and 2.90 ms p95 for progress overview across 30 samples. This is a development-machine baseline, not a CI threshold or production latency claim.
+- Populated history, completed-detail, progress-overview, and single-exercise states were visually reviewed in Expo Go on an iPhone 16 Pro simulator. The review found and removed wording that implied a future inferred trend; the final state promises only additional recorded comparisons.
 
 ## Phase 4 — Identity and account lifecycle
 
@@ -312,4 +322,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Discuss and define Phase 3.5 only: workout history, explainable progress, correction policy, query bounds, and representative database performance requirements before implementation.
+Discuss and define Phase 4 identity and account lifecycle before selecting a provider or implementing authentication.

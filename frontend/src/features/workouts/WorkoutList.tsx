@@ -6,11 +6,14 @@ import { AppScreen } from "../../components/AppScreen";
 import { AppText } from "../../components/AppText";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { RouteStatus } from "../../components/RouteStatus";
+import { TrainingSections } from "../../components/TrainingSections";
 import { colors, layout, spacing } from "../../theme/tokens";
 
 type WorkoutListProps = {
   onCreate: () => void;
   onEdit: (workoutId: string) => void;
+  onHistory: () => void;
+  onProgress: () => void;
   onStart: (workoutId: string) => void;
   profileId: string;
 };
@@ -18,6 +21,8 @@ type WorkoutListProps = {
 export function WorkoutList({
   onCreate,
   onEdit,
+  onHistory,
+  onProgress,
   onStart,
   profileId,
 }: WorkoutListProps) {
@@ -83,6 +88,12 @@ export function WorkoutList({
         keyExtractor={(workout) => workout.id}
         ListHeaderComponent={
           <View style={styles.header}>
+            <TrainingSections
+              active="plans"
+              onHistory={onHistory}
+              onPlans={() => undefined}
+              onProgress={onProgress}
+            />
             <View style={styles.intro}>
               <AppText tone="accent" variant="eyebrow">
                 Workout plans
