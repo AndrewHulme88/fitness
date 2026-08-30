@@ -19,7 +19,7 @@ import {
 type DraggableExerciseListProps = {
   drafts: readonly WorkoutExerciseDraft[];
   errors: Record<string, string>;
-  onAutoScroll: (absoluteY: number) => void;
+  onDragStateChange: (isDragging: boolean) => void;
   onEdit: (exerciseId: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   unitSystem: UnitSystem;
@@ -30,7 +30,7 @@ type ItemLayout = { height: number; y: number };
 export function DraggableExerciseList({
   drafts,
   errors,
-  onAutoScroll,
+  onDragStateChange,
   onEdit,
   onReorder,
   unitSystem,
@@ -46,14 +46,12 @@ export function DraggableExerciseList({
   const targetIndexRef = useRef<number | undefined>(undefined);
   const draftsRef = useRef(drafts);
   const layoutsRef = useRef(layouts);
-  const onAutoScrollRef = useRef(onAutoScroll);
   const onReorderRef = useRef(onReorder);
 
   useEffect(() => {
     draftsRef.current = drafts;
-    onAutoScrollRef.current = onAutoScroll;
     onReorderRef.current = onReorder;
-  }, [drafts, onAutoScroll, onReorder]);
+  }, [drafts, onReorder]);
 
   const activeIndex = activeId
     ? drafts.findIndex((draft) => draft.exercise.id === activeId)
@@ -82,7 +80,7 @@ export function DraggableExerciseList({
   );
 
   const moveDrag = useCallback(
-    (translationY: number, absoluteY: number) => {
+    (translationY: number) => {
       const layout = activeLayoutRef.current;
       if (!activeIdRef.current || !layout) return;
 
@@ -99,7 +97,6 @@ export function DraggableExerciseList({
       setTargetIndex((current) =>
         current === nextTarget ? current : nextTarget,
       );
-      onAutoScrollRef.current(absoluteY);
     },
     [dragTop],
   );
@@ -159,6 +156,7 @@ export function DraggableExerciseList({
             itemCount={drafts.length}
             onDragEnd={finishDrag}
             onDragMove={moveDrag}
+            onDragStateChange={onDragStateChange}
             onDragStart={startDrag}
             onEdit={() => onEdit(draft.exercise.id)}
             onMove={(toIndex) => onReorder(index, toIndex)}
@@ -200,6 +198,7 @@ function DraggableExerciseRow({
   itemCount,
   onDragEnd,
   onDragMove,
+  onDragStateChange,
   onDragStart,
   onEdit,
   onMove,
@@ -210,7 +209,8 @@ function DraggableExerciseRow({
   index: number;
   itemCount: number;
   onDragEnd: (succeeded: boolean) => void;
-  onDragMove: (translationY: number, absoluteY: number) => void;
+  onDragMove: (translationY: number) => void;
+  onDragStateChange: (isDragging: boolean) => void;
   onDragStart: (exerciseId: string) => void;
   onEdit: () => void;
   onMove: (toIndex: number) => void;
@@ -221,16 +221,25 @@ function DraggableExerciseRow({
       PanResponder.create({
         onStartShouldSetPanResponderCapture: () => true,
         onMoveShouldSetPanResponderCapture: () => true,
-        onPanResponderGrant: () => onDragStart(draft.exercise.id),
-        onPanResponderMove: (_event, gestureState) => {
-          onDragMove(gestureState.dy, gestureState.moveY);
+        onPanResponderGrant: () => {
+          onDragStateChange(true);
+          onDragStart(draft.exercise.id);
         },
-        onPanResponderRelease: () => onDragEnd(true),
-        onPanResponderTerminate: () => onDragEnd(false),
+        onPanResponderMove: (_event, gestureState) => {
+          onDragMove(gestureState.dy);
+        },
+        onPanResponderRelease: () => {
+          onDragEnd(true);
+          onDragStateChange(false);
+        },
+        onPanResponderTerminate: () => {
+          onDragEnd(false);
+          onDragStateChange(false);
+        },
         onPanResponderTerminationRequest: () => false,
         onShouldBlockNativeResponder: () => true,
       }),
-    [draft.exercise.id, onDragEnd, onDragMove, onDragStart],
+    [draft.exercise.id, onDragEnd, onDragMove, onDragStart, onDragStateChange],
   );
 
   const accessibilityActions = [

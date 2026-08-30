@@ -784,6 +784,28 @@ A touch beginning on the reorder handle is reserved for reordering; scrolling re
 Evidence:
 On an iPhone 16 Pro Simulator, a plain handle tap preserved the three-exercise order. A gradual downward drag moved Barbell Bench Press from position 1 to position 2, and a reverse drag restored it to position 1. Formatting, strict TypeScript, lint, all 63 frontend tests, and a production iOS export pass.
 
+### I-021 — 2026-08-29 — Workout reorder edge scrolling made the viewport unstable
+
+Status: resolved
+
+Context:
+Dragging an exercise near the top or bottom screen edge repeatedly scrolled the workout planner. Although this was intended to expose off-screen destinations, it made direct reordering feel difficult to control.
+
+Decision or finding:
+Keep the planner viewport fixed for the complete handle drag. Remove the edge-position callback, scroll-offset tracking, and programmatic `ScrollView.scrollTo` behavior. The dedicated handle already retains responder ownership, so no additional scroll-lock state or render cycle is required.
+
+Rationale:
+Predictable direct manipulation is more valuable here than reaching an off-screen destination in one gesture. Removing the scroll mechanism is also simpler and avoids changing ScrollView properties while a native interaction is active.
+
+Alternatives considered:
+Reducing the edge zone or scroll increment would retain movement the user found disruptive. Temporarily toggling `scrollEnabled` was unnecessary because handle responder ownership already prevents native scrolling that begins on the handle.
+
+Consequences / follow-up:
+Users must scroll the desired source and destination into view before beginning a reorder; the screen cannot be scrolled until the drag ends. Revisit only if longer workout plans demonstrate a clear need for a deliberately designed, slower auto-scroll interaction.
+
+Evidence:
+On an iPhone 16 Pro Simulator with a five-exercise workout, dragging Push-Up toward the bottom save bar moved it from position 3 to position 4 while the workout title, summary, and exercise-list viewport remained at the same screen coordinates. Formatting, strict TypeScript, lint, all 63 frontend tests, and a production iOS export pass.
+
 ## Performance log
 
 ### P-001 — 2026-08-28 — Active-session edit and serialization baseline

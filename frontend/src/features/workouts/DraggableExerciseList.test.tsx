@@ -34,7 +34,7 @@ describe("DraggableExerciseList", () => {
       <DraggableExerciseList
         drafts={drafts}
         errors={{}}
-        onAutoScroll={jest.fn()}
+        onDragStateChange={jest.fn()}
         onEdit={jest.fn()}
         onReorder={onReorder}
         unitSystem="metric"
@@ -59,6 +59,7 @@ describe("DraggableExerciseList", () => {
 
   it("reorders a successfully completed drag", () => {
     const onReorder = jest.fn();
+    const onDragStateChange = jest.fn();
     const drafts = [
       exercise("Back Squat", "01"),
       exercise("Bench Press", "02"),
@@ -68,7 +69,7 @@ describe("DraggableExerciseList", () => {
       <DraggableExerciseList
         drafts={drafts}
         errors={{}}
-        onAutoScroll={jest.fn()}
+        onDragStateChange={onDragStateChange}
         onEdit={jest.fn()}
         onReorder={onReorder}
         unitSystem="metric"
@@ -95,10 +96,12 @@ describe("DraggableExerciseList", () => {
     fireEvent(handle, "responderRelease", {}, gestureState(92, 130));
 
     expect(onReorder).toHaveBeenCalledWith(0, 1);
+    expect(onDragStateChange.mock.calls).toEqual([[true], [false]]);
   });
 
   it("does not reorder when an active drag is cancelled", () => {
     const onReorder = jest.fn();
+    const onDragStateChange = jest.fn();
     const drafts = [
       exercise("Back Squat", "01"),
       exercise("Bench Press", "02"),
@@ -108,7 +111,7 @@ describe("DraggableExerciseList", () => {
       <DraggableExerciseList
         drafts={drafts}
         errors={{}}
-        onAutoScroll={jest.fn()}
+        onDragStateChange={onDragStateChange}
         onEdit={jest.fn()}
         onReorder={onReorder}
         unitSystem="metric"
@@ -135,6 +138,7 @@ describe("DraggableExerciseList", () => {
     fireEvent(handle, "responderTerminate", {}, gestureState(92, 130));
 
     expect(onReorder).not.toHaveBeenCalled();
+    expect(onDragStateChange.mock.calls).toEqual([[true], [false]]);
   });
 
   it("does not reorder a tap or small pointer movement", () => {
@@ -148,7 +152,7 @@ describe("DraggableExerciseList", () => {
       <DraggableExerciseList
         drafts={drafts}
         errors={{}}
-        onAutoScroll={jest.fn()}
+        onDragStateChange={jest.fn()}
         onEdit={jest.fn()}
         onReorder={onReorder}
         unitSystem="metric"

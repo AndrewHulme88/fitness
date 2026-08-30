@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TextInput,
   View,
-  useWindowDimensions,
 } from "react-native";
 
 import type { ExerciseSummary } from "../../api/exercises";
@@ -46,9 +45,6 @@ export function WorkoutPlanner({
   profileId,
   workoutId,
 }: WorkoutPlannerProps) {
-  const { height: windowHeight } = useWindowDimensions();
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollOffset = useRef(0);
   const [profile, setProfile] = useState<TrainingProfile>();
   const [loadedWorkout, setLoadedWorkout] = useState<WorkoutDetail>();
   const [name, setName] = useState("");
@@ -59,6 +55,7 @@ export function WorkoutPlanner({
   const [submissionError, setSubmissionError] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -151,22 +148,6 @@ export function WorkoutPlanner({
     });
   };
 
-  const handleAutoScroll = (absoluteY: number) => {
-    const edge = 120;
-    const increment = 18;
-    if (absoluteY < edge) {
-      scrollRef.current?.scrollTo({
-        y: Math.max(0, scrollOffset.current - increment),
-        animated: false,
-      });
-    } else if (absoluteY > windowHeight - edge) {
-      scrollRef.current?.scrollTo({
-        y: scrollOffset.current + increment,
-        animated: false,
-      });
-    }
-  };
-
   const handleSave = async () => {
     const result = buildWorkoutRequest(name, drafts, profile.unitSystem);
     if (result.errors) {
@@ -211,16 +192,13 @@ export function WorkoutPlanner({
         style={styles.screen}
       >
         <ScrollView
-          ref={scrollRef}
           contentContainerStyle={styles.content}
           contentInsetAdjustmentBehavior="automatic"
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
-          onScroll={(event) => {
-            scrollOffset.current = event.nativeEvent.contentOffset.y;
-          }}
-          scrollEventThrottle={16}
+          scrollEnabled={!isReordering}
           showsVerticalScrollIndicator={false}
+          testID="workout-planner-scroll"
         >
           <View style={styles.intro}>
             <AppText tone="accent" variant="eyebrow">
@@ -269,7 +247,7 @@ export function WorkoutPlanner({
               <DraggableExerciseList
                 drafts={drafts}
                 errors={errors.byExercise}
-                onAutoScroll={handleAutoScroll}
+                onDragStateChange={setIsReordering}
                 onEdit={setSelectedExerciseId}
                 onReorder={handleReorder}
                 unitSystem={profile.unitSystem}

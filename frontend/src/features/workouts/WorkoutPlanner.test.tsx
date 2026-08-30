@@ -4,6 +4,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
+import { PanResponder } from "react-native";
 
 import { getTrainingProfile, type TrainingProfile } from "../../api/profiles";
 import {
@@ -74,12 +75,54 @@ const workout: WorkoutDetail = {
 
 describe("WorkoutPlanner", () => {
   beforeEach(() => {
+    jest.spyOn(PanResponder, "create").mockImplementation((config) => {
+      return {
+        panHandlers: {
+          onResponderGrant: config.onPanResponderGrant,
+          onResponderRelease: config.onPanResponderRelease,
+          onResponderTerminate: config.onPanResponderTerminate,
+        },
+      } as ReturnType<typeof PanResponder.create>;
+    });
     mockGetTrainingProfile.mockReset().mockResolvedValue(profile);
     mockGetWorkout.mockReset().mockResolvedValue(workout);
     mockCreateWorkout.mockReset();
     mockUpdateWorkout
       .mockReset()
       .mockResolvedValue({ ...workout, revision: 5 });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("locks planner scrolling while an exercise handle is active", async () => {
+    render(
+      <WorkoutPlanner
+        onSaved={jest.fn()}
+        profileId={profileId}
+        workoutId={workoutId}
+      />,
+    );
+
+    await screen.findByDisplayValue("Upper strength");
+    const handle = screen.getByTestId(`reorder-${exerciseId}`);
+    expect(screen.getByTestId("workout-planner-scroll")).toHaveProp(
+      "scrollEnabled",
+      true,
+    );
+
+    fireEvent(handle, "responderGrant", {});
+    expect(screen.getByTestId("workout-planner-scroll")).toHaveProp(
+      "scrollEnabled",
+      false,
+    );
+
+    fireEvent(handle, "responderRelease", {});
+    expect(screen.getByTestId("workout-planner-scroll")).toHaveProp(
+      "scrollEnabled",
+      true,
+    );
   });
 
   it("loads an existing plan and saves against its revision", async () => {
