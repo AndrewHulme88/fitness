@@ -25,11 +25,21 @@ export function getCognitoConfiguration(): CognitoConfiguration {
 }
 
 export function getRedirectUri() {
-  return AuthSession.makeRedirectUri({ path: "auth/callback", scheme: "fitness-coach" });
+  return AuthSession.makeRedirectUri({
+    path: "auth/callback",
+    scheme: "fitness-coach",
+  });
 }
 
 export function getDiscovery(domain: string) {
-  return `https://${domain}`;
+  const normalizedDomain = domain.replace(/^https:\/\//, "").replace(/\/$/, "");
+  const origin = `https://${normalizedDomain}`;
+
+  return {
+    authorizationEndpoint: `${origin}/oauth2/authorize`,
+    tokenEndpoint: `${origin}/oauth2/token`,
+    revocationEndpoint: `${origin}/oauth2/revoke`,
+  };
 }
 
 export async function saveSession(session: CognitoSession) {
@@ -48,7 +58,9 @@ export async function loadAccessToken(): Promise<string | null> {
   }
 }
 
-export function createAuthorizationRequest(configuration: CognitoConfiguration) {
+export function createAuthorizationRequest(
+  configuration: CognitoConfiguration,
+) {
   return new AuthSession.AuthRequest({
     clientId: configuration.appClientId,
     codeChallengeMethod: AuthSession.CodeChallengeMethod.S256,

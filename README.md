@@ -110,6 +110,8 @@ npm run ios
 
 `npm run start` starts Metro without automatically selecting a platform. Product-facing Android and browser scripts are intentionally absent from the initial iOS scope.
 
+Authentication redirects use the app's `fitness-coach://` URL scheme and therefore require an installed iOS development build, not Expo Go. Build and launch it with `npm run ios:development-build`; after the first build, use the same command when native configuration changes.
+
 ## API development
 
 Prerequisites:

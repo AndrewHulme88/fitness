@@ -21,9 +21,7 @@ export default function SignInRoute() {
     setIsSigningIn(true);
     try {
       const configuration = getCognitoConfiguration();
-      const discovery = await AuthSession.fetchDiscoveryAsync(
-        getDiscovery(configuration.domain),
-      );
+      const discovery = getDiscovery(configuration.domain);
       const request = createAuthorizationRequest(configuration);
       await request.makeAuthUrlAsync(discovery);
       const response = await request.promptAsync(discovery);
@@ -54,7 +52,9 @@ export default function SignInRoute() {
     <RouteStatus
       actionLabel={isSigningIn ? "Signing in…" : "Sign in or create account"}
       busy={isSigningIn}
-      message={error ?? "Sign in to keep your training data tied to your account."}
+      message={
+        error ?? "Sign in to keep your training data tied to your account."
+      }
       onAction={() => void signIn()}
       title="Welcome to Fitness Coach"
     />

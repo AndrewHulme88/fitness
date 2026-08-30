@@ -38,7 +38,8 @@
   },
   "scripts": {
     "start": "expo start",
-    "ios": "expo start --ios",
+    "ios": "expo run:ios",
+    "ios:development-build": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint --max-warnings=0",
     "test": "jest --runInBand",
