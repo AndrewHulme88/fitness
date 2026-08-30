@@ -1,4 +1,5 @@
 using FitnessCoach.Api.Domain;
+using FitnessCoach.Api.Features.Identity;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -22,6 +23,12 @@ internal sealed class TrainingProfileConfiguration : IEntityTypeConfiguration<Tr
         builder.HasKey(profile => profile.Id);
 
         builder.Property(profile => profile.Id).HasColumnName("id");
+        builder.Property(profile => profile.AccountId).HasColumnName("account_id");
+        builder.HasIndex(profile => profile.AccountId).IsUnique();
+        builder.HasOne<ApplicationAccount>()
+            .WithOne(account => account.Profile)
+            .HasForeignKey<TrainingProfile>(profile => profile.AccountId)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.Property(profile => profile.Experience)
             .HasColumnName("experience")
             .HasConversion<string>()

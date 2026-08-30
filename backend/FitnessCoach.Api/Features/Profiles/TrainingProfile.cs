@@ -22,6 +22,8 @@ internal sealed class TrainingProfile
 
     public Guid Id { get; private set; }
 
+    public Guid? AccountId { get; private set; }
+
     public TrainingExperience Experience { get; private set; }
 
     public UnitSystem UnitSystem { get; private set; }
@@ -52,6 +54,16 @@ internal sealed class TrainingProfile
         }
 
         return profile;
+    }
+
+    public void Claim(Guid accountId)
+    {
+        if (AccountId is not null && AccountId != accountId)
+        {
+            throw new InvalidOperationException("The profile is already claimed.");
+        }
+
+        AccountId = accountId;
     }
 }
 
