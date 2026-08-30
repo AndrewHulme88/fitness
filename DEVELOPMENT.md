@@ -103,6 +103,26 @@ The first nested EF grouping projection could not be translated. The final desig
 
 Related ADR: [ADR-0010](docs/adr/0010-explainable-workout-history.md)
 
+### D-019 — 2026-08-30 — Use managed OIDC identity with explicit prototype-data transfer
+
+Status: superseded by D-020
+
+Auth0 Universal Login with authorization code flow and PKCE was initially selected for iOS. Application ownership was to be keyed by stable issuer and subject claims, never by email or the client-held profile UUID.
+
+Existing prototype data transfers only after sign-in and explicit user confirmation through an atomic, idempotent server-side link to one unclaimed profile. This preserves the local prototype's useful data without making UUID possession a claim mechanism. The project owner chose AWS instead because Cognito consolidates managed identity with the existing cloud account.
+
+Related ADR: [ADR-0011](docs/adr/0011-managed-identity-and-prototype-migration.md)
+
+### D-020 — 2026-08-30 — Consolidate managed identity on Amazon Cognito
+
+Status: accepted
+
+Use an Amazon Cognito User Pool with managed login, authorization code flow, and PKCE for the public iOS client. The API accepts only scoped Cognito access tokens validated by standard JWT bearer middleware; it verifies the User Pool issuer, signature, expiry, access-token use, client identifier, and required scope.
+
+The application's account and explicit prototype-data migration design remain unchanged. Cognito is selected because the project owner already uses AWS, which consolidates identity's billing, IAM administration, and regional controls without putting AWS credentials in the mobile client. Sign in with Apple remains a release requirement when third-party or social login is offered.
+
+Related ADR: [ADR-0012](docs/adr/0012-cognito-identity-and-prototype-migration.md)
+
 ## Major issues and open risks
 
 ### I-001 — 2026-08-24 — Expo transitive UUID advisory

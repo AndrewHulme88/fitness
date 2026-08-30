@@ -11,11 +11,14 @@ For each behavior change:
 1. Define observable acceptance criteria.
 2. Add or update the smallest test that proves the behavior. For a bug, reproduce it with a failing regression test when practical.
 3. Implement the minimum change.
-4. Run the focused tests while iterating.
-5. Run the full affected suite, static checks, and relevant manual verification.
-6. Record important issues, decisions, or measurements in `DEVELOPMENT.md`.
+4. Run only the closest relevant checks while iterating.
+5. At increment completion, run the full affected frontend or backend suite, required static checks, and manual verification that automation cannot represent.
+6. At phase completion, run the broader repository and integration checks appropriate to the phase.
+7. Record only important issues, decisions, or measurements in `DEVELOPMENT.md`.
 
 Documentation-only changes require link, consistency, formatting, and secret checks rather than artificial unit tests.
+
+Simulator or physical-device checks are required for visual, gesture, navigation, accessibility, or other native behavior that automated tests cannot adequately establish. Do not launch them routinely for changes already covered by focused tests.
 
 ## Client tests
 

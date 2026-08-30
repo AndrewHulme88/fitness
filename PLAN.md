@@ -262,12 +262,37 @@ Verification completed on 2026-08-29:
 
 ## Phase 4 — Identity and account lifecycle
 
+Status: in progress
+
+### 4.1 Select identity boundary and prototype migration policy
+
+Status: complete
+
+- Select a standards-based managed identity provider and native-flow approach.
+- Define API token validation, application account identity, and one-time prototype-data migration requirements.
+- Record the decision and local-development implications in an ADR.
+
+Verification completed on 2026-08-30:
+
+- Cognito managed login with authorization code flow and PKCE was selected for the Expo client. ASP.NET Core will validate scoped Cognito access tokens through JWT bearer middleware and the User Pool JWKS.
+- The stable OIDC issuer and subject will identify application accounts; client profile UUIDs remain unauthenticated prototype state and cannot authorize requests.
+- Existing prototype fitness data will transfer only through an explicit, atomic, idempotent server-side migration after authentication. Sign in with Apple is required before release with any third-party or social login option.
+- See [ADR-0012](docs/adr/0012-cognito-identity-and-prototype-migration.md). Auth0's earlier selection remains recorded as superseded in ADR-0011.
+
+### 4.2 Implement authenticated ownership and prototype migration
+
 Status: pending
 
-- Write an ADR comparing standards-based managed identity options and local-development ergonomics.
-- Implement secure iOS authentication and API authorization.
-- Add ownership tests for every user-owned resource.
-- Design account export and deletion before public beta.
+- Configure a local Cognito User Pool, public native app client, managed-login domain, and resource server with uncommitted local values.
+- Add secure iOS sign-in, credential lifecycle, and authenticated API client behavior in a development build.
+- Add application account persistence, profile ownership migration, and authorization to every user-owned API route.
+- Add PostgreSQL integration tests for authentication failures, cross-account access, migration idempotency, and unclaimed-profile handling.
+
+### 4.3 Design account export and deletion
+
+Status: pending
+
+- Define the user-visible export format, account-deletion flow, provider deletion coordination, retention, and recovery boundaries before beta.
 
 Identity may move earlier if cross-device persistence becomes necessary during Phase 3. That move requires a recorded decision, not silent scope expansion.
 
@@ -322,4 +347,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Discuss and define Phase 4 identity and account lifecycle before selecting a provider or implementing authentication.
+Configure the Cognito local-development User Pool, public app client, managed-login domain, resource server and API scope, callback/logout URLs, and Sign in with Apple provider prerequisites before implementing authenticated ownership and migration.

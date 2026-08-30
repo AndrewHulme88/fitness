@@ -166,17 +166,20 @@ See [ai-safety.md](ai-safety.md) and [ADR-0003](adr/0003-ai-coach-boundary.md).
 
 ## Authentication and authorization
 
-The identity provider has not been selected. The eventual design should use established OAuth 2.0/OpenID Connect flows suitable for native applications and allow the API to validate access tokens without custom cryptography. A database readiness probe must accompany the first deployable database-backed routes; it is not required for the development-only profile prototype.
+Amazon Cognito User Pools provide managed OpenID Connect and OAuth 2.0 identity. The Expo client uses Cognito managed login in the system authentication browser with authorization code flow and PKCE; it never collects provider credentials in an embedded web view. A public native app client has no client secret, requests a minimal Cognito resource-server API scope, and retains authentication material only through secure platform storage. User Pool domain, app-client ID, region, and API scope are public configuration; no AWS credential or app-client secret belongs in the mobile bundle.
+
+The API uses ASP.NET Core JWT bearer middleware and Cognito's regional User Pool JWKS to validate signature, issuer, expiry, `token_use` of `access`, client identifier, and required API scope. The stable issuer and Cognito `sub` claim identify an application-owned account. Email and display name are not authorization keys or required fitness-domain fields. Every profile-owned route derives the profile from the authenticated account and must reject cross-account access rather than trusting a client-supplied profile identifier.
+
+Existing prototype data migrates only after sign-in and explicit user confirmation. The server atomically and idempotently links one unclaimed local prototype profile to the authenticated account; a UUID is never an ongoing claim credential. Account export and deletion, including Cognito-user coordination, retention, and recovery, require a separately approved design before beta. A database readiness probe must accompany the first deployable database-backed routes; it is not required for the development-only profile prototype. See [ADR-0012](adr/0012-cognito-identity-and-prototype-migration.md).
 
 Requirements:
 
-- Secure platform storage for refresh or session credentials.
 - Short-lived access where practical and safe revocation behavior.
+- Sign in with Apple before release alongside any third-party or social sign-in option.
 - Explicit ownership checks on every user-owned resource.
 - Account deletion and data-export design before public beta.
-- No authentication secrets embedded in the mobile bundle.
 
-An ADR is required before implementing identity because provider choice affects user experience, local development, recurring cost, and account lifecycle. Until that work is complete, user-owned prototype routes must remain unavailable outside Development and no local identifier is treated as authorization.
+Until authenticated ownership is implemented, user-owned prototype routes must remain unavailable outside Development and no local identifier is treated as authorization.
 
 ## Offline behavior
 

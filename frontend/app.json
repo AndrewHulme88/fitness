@@ -9,7 +9,12 @@
     "ios": {
       "supportsTablet": false
     },
-    "plugins": ["expo-router", "expo-status-bar", "expo-sqlite"],
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-sqlite",
+      "expo-secure-store"
+    ],
     "experiments": {
       "typedRoutes": true
     }

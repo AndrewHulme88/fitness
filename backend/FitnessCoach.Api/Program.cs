@@ -9,12 +9,48 @@ using FitnessCoach.Api.Features.Workouts;
 using FitnessCoach.Api.Persistence;
 
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
 const string postgresConnectionName = "Postgres";
+const string cognitoConfigurationSection = "Cognito";
+
+var cognitoConfiguration = builder.Configuration.GetSection(cognitoConfigurationSection).Get<CognitoConfiguration>();
+if (cognitoConfiguration is not null)
+{
+    cognitoConfiguration.Validate();
+    var issuer = $"https://cognito-idp.{cognitoConfiguration.Region}.amazonaws.com/{cognitoConfiguration.UserPoolId}";
+
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.Authority = issuer;
+            options.TokenValidationParameters.ValidateAudience = false;
+            options.Events = new JwtBearerEvents
+            {
+                OnTokenValidated = context =>
+                {
+                    var tokenUse = context.Principal?.FindFirst("token_use")?.Value;
+                    var clientId = context.Principal?.FindFirst("client_id")?.Value;
+                    var scopes = context.Principal?.FindFirst("scope")?.Value?.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        ?? [];
+
+                    if (tokenUse != "access"
+                        || clientId != cognitoConfiguration.AppClientId
+                        || !scopes.Contains(cognitoConfiguration.RequiredScope, StringComparer.Ordinal))
+                    {
+                        context.Fail("The access token is not authorized for Fitness Coach.");
+                    }
+
+                    return Task.CompletedTask;
+                },
+            };
+        });
+    builder.Services.AddAuthorization();
+}
 
 builder.Services.AddHealthChecks();
 builder.Services.AddSingleton(TimeProvider.System);
@@ -68,6 +104,12 @@ if (await ExerciseCatalogueImportCommand.TryRunAsync(app, args))
 app.UseHttpLogging();
 app.UseHttpsRedirection();
 
+if (cognitoConfiguration is not null)
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -105,3 +147,26 @@ static async Task<IResult> GetHealthAsync(
 }
 
 public partial class Program;
+
+internal sealed class CognitoConfiguration
+{
+    public string? Region { get; init; }
+
+    public string? UserPoolId { get; init; }
+
+    public string? AppClientId { get; init; }
+
+    public string? RequiredScope { get; init; }
+
+    public void Validate()
+    {
+        if (string.IsNullOrWhiteSpace(Region)
+            || string.IsNullOrWhiteSpace(UserPoolId)
+            || string.IsNullOrWhiteSpace(AppClientId)
+            || string.IsNullOrWhiteSpace(RequiredScope))
+        {
+            throw new InvalidOperationException(
+                "Cognito configuration requires Region, UserPoolId, AppClientId, and RequiredScope.");
+        }
+    }
+}
