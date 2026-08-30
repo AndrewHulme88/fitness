@@ -21,6 +21,10 @@ internal static class ExerciseEndpoints
     public static IEndpointRouteBuilder MapExerciseEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var exercises = endpoints.MapGroup("/exercises").WithTags("Exercises");
+        if (endpoints.ServiceProvider.GetRequiredService<IConfiguration>().GetSection("Cognito").Exists())
+        {
+            exercises.RequireAuthorization();
+        }
 
         exercises.MapGet("/", SearchExercisesAsync)
             .WithName("SearchExercises")

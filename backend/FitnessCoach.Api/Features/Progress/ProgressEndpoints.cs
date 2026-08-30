@@ -1,6 +1,7 @@
 using System.Globalization;
 
 using FitnessCoach.Api.Features.Profiles;
+using FitnessCoach.Api.Features.Identity;
 using FitnessCoach.Api.Features.Sessions;
 using FitnessCoach.Api.Persistence;
 
@@ -20,7 +21,12 @@ internal static class ProgressEndpoints
     {
         var progress = endpoints
             .MapGroup("/profiles/{profileId:guid}/progress")
-            .WithTags("Progress");
+            .WithTags("Progress")
+            .RequireOwnedProfile();
+        if (endpoints.ServiceProvider.GetRequiredService<IConfiguration>().GetSection("Cognito").Exists())
+        {
+            progress.RequireAuthorization();
+        }
 
         progress.MapGet("/", GetOverviewAsync)
             .WithName("GetProgressOverview")

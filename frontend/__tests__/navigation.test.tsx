@@ -12,6 +12,7 @@ import {
   loadStoredProfile,
   saveStoredProfile,
 } from "../src/features/onboarding/profile-storage";
+import { loadAccessToken } from "../src/features/auth/cognito";
 
 jest.mock("../src/api/profiles", () => ({
   createTrainingProfile: jest.fn(),
@@ -31,12 +32,16 @@ jest.mock("../src/features/onboarding/profile-storage", () => ({
 jest.mock("../src/features/sessions/session-storage", () => ({
   loadStoredSession: jest.fn(),
 }));
+jest.mock("../src/features/auth/cognito", () => ({
+  loadAccessToken: jest.fn(),
+}));
 
 const createTrainingProfileMock = jest.mocked(createTrainingProfile);
 const getTrainingProfileMock = jest.mocked(getTrainingProfile);
 const listWorkoutsMock = jest.mocked(listWorkouts);
 const loadStoredProfileMock = jest.mocked(loadStoredProfile);
 const saveStoredProfileMock = jest.mocked(saveStoredProfile);
+const loadAccessTokenMock = jest.mocked(loadAccessToken);
 const profile = {
   id: "6bf68a92-f5f8-40e5-a112-5330d83e31ed",
   goals: ["buildStrength" as const],
@@ -53,11 +58,13 @@ describe("initial navigation shell", () => {
     listWorkoutsMock.mockReset();
     loadStoredProfileMock.mockReset();
     saveStoredProfileMock.mockReset();
+    loadAccessTokenMock.mockReset();
     createTrainingProfileMock.mockResolvedValue(profile);
     getTrainingProfileMock.mockResolvedValue(profile);
     listWorkoutsMock.mockResolvedValue({ items: [], nextOffset: null });
     loadStoredProfileMock.mockResolvedValue(null);
     saveStoredProfileMock.mockResolvedValue();
+    loadAccessTokenMock.mockResolvedValue("access-token");
   });
 
   it("moves from onboarding into workout planning with the profile context", async () => {

@@ -8,6 +8,8 @@ namespace FitnessCoach.Api.Persistence.Migrations
     /// <inheritdoc />
     public partial class AddApplicationAccountOwnership : Migration
     {
+        private static readonly string[] AccountIdentityColumns = ["issuer", "subject"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -40,7 +42,7 @@ namespace FitnessCoach.Api.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_application_accounts_issuer_subject",
                 table: "application_accounts",
-                columns: new[] { "issuer", "subject" },
+                columns: AccountIdentityColumns,
                 unique: true);
 
             migrationBuilder.AddForeignKey(

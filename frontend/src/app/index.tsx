@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { RouteStatus } from "../components/RouteStatus";
 import { loadStoredProfile } from "../features/onboarding/profile-storage";
+import { loadAccessToken } from "../features/auth/cognito";
 import { loadStoredSession } from "../features/sessions/session-storage";
 
 export default function IndexRoute() {
@@ -11,6 +12,11 @@ export default function IndexRoute() {
   useEffect(() => {
     let active = true;
     async function restore() {
+      const accessToken = await loadAccessToken();
+      if (!accessToken) {
+        if (active) setDestination("/sign-in" as Href);
+        return;
+      }
       const profile = await loadStoredProfile();
       if (!profile) {
         if (active) setDestination({ pathname: "/onboarding" });

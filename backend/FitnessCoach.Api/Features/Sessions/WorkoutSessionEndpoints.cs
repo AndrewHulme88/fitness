@@ -1,6 +1,7 @@
 using System.Globalization;
 
 using FitnessCoach.Api.Features.Exercises;
+using FitnessCoach.Api.Features.Identity;
 using FitnessCoach.Api.Features.Profiles;
 using FitnessCoach.Api.Features.Workouts;
 using FitnessCoach.Api.Persistence;
@@ -25,7 +26,12 @@ internal static class WorkoutSessionEndpoints
     {
         var sessions = endpoints
             .MapGroup("/profiles/{profileId:guid}/workout-sessions")
-            .WithTags("Workout sessions");
+            .WithTags("Workout sessions")
+            .RequireOwnedProfile();
+        if (endpoints.ServiceProvider.GetRequiredService<IConfiguration>().GetSection("Cognito").Exists())
+        {
+            sessions.RequireAuthorization();
+        }
 
         sessions.MapPost("/", StartSessionAsync)
             .WithName("StartWorkoutSession")

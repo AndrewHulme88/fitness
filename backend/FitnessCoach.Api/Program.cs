@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using FitnessCoach.Api.Features.Exercises;
+using FitnessCoach.Api.Features.Identity;
 using FitnessCoach.Api.Features.Profiles;
 using FitnessCoach.Api.Features.Progress;
 using FitnessCoach.Api.Features.Sessions;
@@ -101,6 +102,11 @@ if (await ExerciseCatalogueImportCommand.TryRunAsync(app, args))
     return;
 }
 
+if (await PrototypeProfileClaimCommand.TryRunAsync(app, args))
+{
+    return;
+}
+
 app.UseHttpLogging();
 app.UseHttpsRedirection();
 
@@ -113,6 +119,10 @@ if (cognitoConfiguration is not null)
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    if (cognitoConfiguration is not null)
+    {
+        app.MapAccountEndpoints();
+    }
     app.MapExerciseEndpoints();
     app.MapProfileEndpoints();
     app.MapProgressEndpoints();

@@ -1,4 +1,5 @@
 import { createApiClient, type ApiClient } from "./client";
+import { loadAccessToken } from "../features/auth/cognito";
 
 export type ApiRequestOptions = {
   baseUrl?: string;
@@ -32,7 +33,14 @@ export async function executeApiRequest<T>(
   }
 
   try {
-    const client = createApiClient({ baseUrl, fetch: options.fetch });
+    const baseFetch = options.fetch ?? globalThis.fetch;
+    const accessToken = await loadAccessToken();
+    const authenticatedFetch: typeof globalThis.fetch = (input, init) => {
+      const headers = new Headers(init?.headers);
+      if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+      return baseFetch(input, { ...init, headers });
+    };
+    const client = createApiClient({ baseUrl, fetch: authenticatedFetch });
     return await operation(client, requestController.signal);
   } finally {
     clearTimeout(timeout);

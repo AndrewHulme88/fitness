@@ -1,4 +1,5 @@
 using FitnessCoach.Api.Persistence;
+using FitnessCoach.Api.Features.Identity;
 
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,10 @@ internal static class ProfileEndpoints
     public static IEndpointRouteBuilder MapProfileEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var profiles = endpoints.MapGroup("/profiles").WithTags("Profiles");
+        if (endpoints.ServiceProvider.GetRequiredService<IConfiguration>().GetSection("Cognito").Exists())
+        {
+            profiles.RequireAuthorization();
+        }
 
         profiles.MapPost("/", CreateProfileAsync)
             .WithName("CreateTrainingProfile")
@@ -24,6 +29,7 @@ internal static class ProfileEndpoints
     private static async Task<Results<Created<TrainingProfileResponse>, ValidationProblem>>
         CreateProfileAsync(
             CreateTrainingProfileRequest request,
+            HttpContext context,
             FitnessCoachDbContext dbContext,
             TimeProvider timeProvider,
             CancellationToken cancellationToken)
@@ -40,6 +46,12 @@ internal static class ProfileEndpoints
             request.AvailableEquipment,
             request.UnitSystem,
             timeProvider.GetUtcNow());
+        if (context.User.Identity?.IsAuthenticated == true)
+        {
+            var account = await ApplicationAccountResolver.GetOrCreateAsync(
+                context.User, dbContext, timeProvider, cancellationToken);
+            profile.Claim(account.Id);
+        }
 
         dbContext.Add(profile);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -50,15 +62,23 @@ internal static class ProfileEndpoints
 
     private static async Task<Results<Ok<TrainingProfileResponse>, NotFound>> GetProfileAsync(
         Guid profileId,
+        HttpContext context,
         FitnessCoachDbContext dbContext,
+        TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
+        var account = context.User.Identity?.IsAuthenticated == true
+            ? await ApplicationAccountResolver.GetOrCreateAsync(
+                context.User, dbContext, timeProvider, cancellationToken)
+            : null;
         var profile = await dbContext.Set<TrainingProfile>()
             .AsNoTracking()
             .AsSplitQuery()
             .Include(item => item.Goals)
             .Include(item => item.AvailableEquipment)
-            .SingleOrDefaultAsync(item => item.Id == profileId, cancellationToken);
+            .SingleOrDefaultAsync(
+                item => item.Id == profileId && (account == null || item.AccountId == account.Id),
+                cancellationToken);
 
         return profile is null
             ? TypedResults.NotFound()
