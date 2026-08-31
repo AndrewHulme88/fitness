@@ -281,12 +281,18 @@ Verification completed on 2026-08-30:
 
 ### 4.2 Implement authenticated ownership and prototype migration
 
-Status: pending
+Status: complete
 
 - Configure a local Cognito User Pool, public native app client, managed-login domain, and resource server with uncommitted local values.
 - Add secure iOS sign-in, credential lifecycle, and authenticated API client behavior in a development build.
 - Add application account persistence, profile ownership migration, and authorization to every user-owned API route.
 - Add PostgreSQL integration tests for authentication failures, cross-account access, migration idempotency, and unclaimed-profile handling.
+
+Verification completed on 2026-08-31:
+
+- The local Cognito configuration remains uncommitted. The public iOS client uses managed login, authorization-code PKCE, secure credential storage, token refresh, and sign out with refresh-token revocation when available.
+- The API validates scoped Cognito access tokens, resolves application accounts from stable issuer and subject claims, and enforces profile ownership on user-owned routes. A development-only migration command explicitly claims one unclaimed prototype profile and is idempotent for its owner.
+- PostgreSQL integration tests cover anonymous access, cross-account rejection, account lookup, migration idempotency, and rejection of a second claim. The complete Release backend suite passed 58 tests; frontend formatting, strict type checking, linting, and all 67 tests passed; API contract drift verification passed.
 
 ### 4.3 Design account export and deletion
 
@@ -347,4 +353,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Configure the Cognito local-development User Pool, public app client, managed-login domain, resource server and API scope, callback/logout URLs, and Sign in with Apple provider prerequisites before implementing authenticated ownership and migration.
+Design the account export and deletion lifecycle, including Cognito-user coordination, retention, recovery boundaries, and the user-visible experience before beta.

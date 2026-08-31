@@ -1,7 +1,3 @@
-using FitnessCoach.Api.Features.Profiles;
-
-using Microsoft.EntityFrameworkCore;
-
 namespace FitnessCoach.Api.Features.Identity;
 
 internal static class PrototypeProfileClaimCommand
@@ -37,22 +33,8 @@ internal static class PrototypeProfileClaimCommand
 
         await using var scope = app.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<Persistence.FitnessCoachDbContext>();
-        var profile = await db.Set<TrainingProfile>().SingleOrDefaultAsync(item => item.Id == profileId);
-        if (profile is null) throw new InvalidOperationException("Prototype profile was not found.");
-
-        var account = await db.Set<ApplicationAccount>()
-            .SingleOrDefaultAsync(item => item.Issuer == issuer && item.Subject == arguments[subjectIndex + 1]);
-        if (account is null)
-        {
-            account = ApplicationAccount.Create(issuer, arguments[subjectIndex + 1], TimeProvider.System.GetUtcNow());
-            db.Add(account);
-        }
-
-        if (profile.AccountId == account.Id) return true;
-        if (profile.AccountId is not null) throw new InvalidOperationException("Prototype profile is already claimed.");
-
-        profile.Claim(account.Id);
-        await db.SaveChangesAsync();
+        await PrototypeProfileClaimer.ClaimAsync(
+            db, profileId, issuer, arguments[subjectIndex + 1], TimeProvider.System, CancellationToken.None);
         return true;
     }
 }
