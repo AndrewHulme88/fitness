@@ -53,6 +53,113 @@
         }
       }
     },
+    "/profiles/{profileId}/coach/conversation": {
+      "get": {
+        "tags": ["AI coach"],
+        "summary": "Get the retained coach conversation",
+        "operationId": "GetCoachConversation",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachConversationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["AI coach"],
+        "summary": "Delete the retained coach conversation",
+        "operationId": "DeleteCoachConversation",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/profiles/{profileId}/coach/conversation/messages": {
+      "post": {
+        "tags": ["AI coach"],
+        "summary": "Ask the read-only AI coach",
+        "operationId": "SendCoachMessage",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskAiCoachRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachConversationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/exercises": {
       "get": {
         "tags": ["Exercises"],
@@ -1015,6 +1122,83 @@
   },
   "components": {
     "schemas": {
+      "AiCoachResponseKind": {
+        "enum": ["advice", "safetyLimited", "unavailable", null]
+      },
+      "AskAiCoachRequest": {
+        "required": ["question"],
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CoachConversationResponse": {
+        "required": ["id", "messages"],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoachMessageResponse"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CoachMessageResponse": {
+        "required": [
+          "id",
+          "role",
+          "content",
+          "responseKind",
+          "contextSources",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "$ref": "#/components/schemas/CoachMessageRoleResponse"
+          },
+          "content": {
+            "type": "string"
+          },
+          "responseKind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiCoachResponseKind"
+              }
+            ]
+          },
+          "contextSources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CoachMessageRoleResponse": {
+        "enum": ["user", "coach"]
+      },
       "CorrectWorkoutSessionRequest": {
         "required": ["expectedRevision", "notes", "exercises"],
         "type": "object",
@@ -2206,6 +2390,9 @@
     },
     {
       "name": "Program"
+    },
+    {
+      "name": "AI coach"
     },
     {
       "name": "Exercises"

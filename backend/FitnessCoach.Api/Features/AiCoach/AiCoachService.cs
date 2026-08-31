@@ -13,7 +13,10 @@ internal interface IAiCoachProvider
 
 internal interface IAiCoachContextAssembler
 {
-    Task<AiCoachApprovedContext?> AssembleAsync(Guid profileId, CancellationToken cancellationToken);
+    Task<AiCoachApprovedContext?> AssembleAsync(
+        Guid profileId,
+        string question,
+        CancellationToken cancellationToken);
 }
 
 internal interface IAiCoachUsageRecorder
@@ -34,6 +37,12 @@ internal sealed class AiCoachService(
     public async Task<AiCoachResponse> AskAsync(
         Guid profileId,
         AskAiCoachRequest request,
+        CancellationToken cancellationToken) => await AskAsync(profileId, request, [], cancellationToken);
+
+    public async Task<AiCoachResponse> AskAsync(
+        Guid profileId,
+        AskAiCoachRequest request,
+        IReadOnlyList<AiCoachConversationTurn> conversation,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -58,7 +67,7 @@ internal sealed class AiCoachService(
         var outcome = AiCoachResponseKind.Unavailable;
         try
         {
-            var context = await contextAssembler.AssembleAsync(profileId, cancellationToken);
+            var context = await contextAssembler.AssembleAsync(profileId, question, cancellationToken);
             if (context is null)
             {
                 return new AiCoachResponse(
@@ -72,7 +81,11 @@ internal sealed class AiCoachService(
             try
             {
                 providerResponse = await provider.RespondAsync(
-                    new AiCoachProviderRequest(PromptVersion, context, question, MaximumOutputCharacters),
+                    new AiCoachProviderRequest(
+                        PromptVersion,
+                        context with { Conversation = conversation },
+                        question,
+                        MaximumOutputCharacters),
                     timeout.Token);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -92,7 +105,10 @@ internal sealed class AiCoachService(
             }
 
             outcome = AiCoachResponseKind.Advice;
-            return new AiCoachResponse(AiCoachResponseKind.Advice, advice.Trim());
+            return new AiCoachResponse(
+                AiCoachResponseKind.Advice,
+                advice.Trim(),
+                context.Facts?.Select(item => item.Source).ToArray() ?? []);
         }
         finally
         {

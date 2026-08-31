@@ -160,7 +160,7 @@ The orchestration flow is:
 7. Require explicit confirmation before applying a consequential action.
 8. Apply the action through ordinary deterministic application services.
 
-Conversation memory should be based on application-owned messages and structured summaries as needed. A provider conversation identifier may be retained as implementation metadata, but it must not become the only copy of user-visible conversation history.
+Conversation memory is one application-owned, profile-scoped conversation retained until the user deletes it or deletes the account. The service stores only user-visible messages, timestamps, response outcome, and displayed factual-context source labels. A provider conversation identifier may be retained as implementation metadata, but it must not become the only copy of user-visible conversation history. The first implementation sends the bounded latest eight messages only when they are needed as conversational context.
 
 See [ai-safety.md](ai-safety.md) and [ADR-0003](adr/0003-ai-coach-boundary.md).
 

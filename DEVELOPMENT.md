@@ -133,6 +133,16 @@ The final deletion confirmation is irreversible: Cognito identity, application f
 
 Related ADR: [ADR-0013](docs/adr/0013-account-export-and-deletion-lifecycle.md)
 
+### D-022 — 2026-08-31 — Retain user-deletable coach conversations as account data
+
+Status: accepted
+
+Retain one application-owned, user-visible coach conversation per profile until the user explicitly deletes it or deletes their account. Store only messages shown to the user, timestamps, response outcome, and displayed context-source labels; do not retain provider payloads, hidden reasoning, credentials, or unrestricted context. This gives users review and deletion control without making the provider conversation ID authoritative.
+
+Account export and deletion must include coach conversation data when those designed capabilities are implemented.
+
+Related ADR: [ADR-0014](docs/adr/0014-retained-coach-conversations.md)
+
 ## Major issues and open risks
 
 ### I-001 — 2026-08-24 — Expo transitive UUID advisory

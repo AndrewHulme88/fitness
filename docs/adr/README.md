@@ -27,6 +27,7 @@ ADRs capture decisions that have broad or long-lived technical consequences. `DE
 | [0011](0011-managed-identity-and-prototype-migration.md) | Superseded | Auth0 identity with explicit prototype-data migration            |
 | [0012](0012-cognito-identity-and-prototype-migration.md) | Accepted   | Use Cognito identity with explicit prototype-data migration      |
 | [0013](0013-account-export-and-deletion-lifecycle.md)    | Accepted   | Export directly and coordinate irreversible account deletion     |
+| [0014](0014-retained-coach-conversations.md)             | Accepted   | Retain one user-deletable coach conversation per profile         |
 
 ## Template
 

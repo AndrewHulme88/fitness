@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { type Href, useLocalSearchParams, useRouter } from "expo-router";
 
 import { RouteStatus } from "../components/RouteStatus";
 import { WorkoutList } from "../features/workouts/WorkoutList";
@@ -27,6 +27,12 @@ export default function WorkoutsRoute() {
   return (
     <WorkoutList
       onCreate={() => openPlanner()}
+      onCoach={() =>
+        router.push({
+          pathname: "/coach",
+          params: { profileId },
+        } as unknown as Href)
+      }
       onEdit={openPlanner}
       onHistory={() =>
         router.push({ pathname: "/history", params: { profileId } })

@@ -11,6 +11,7 @@ import { colors, layout, spacing } from "../../theme/tokens";
 
 type WorkoutListProps = {
   onCreate: () => void;
+  onCoach: () => void;
   onEdit: (workoutId: string) => void;
   onHistory: () => void;
   onProgress: () => void;
@@ -20,6 +21,7 @@ type WorkoutListProps = {
 
 export function WorkoutList({
   onCreate,
+  onCoach,
   onEdit,
   onHistory,
   onProgress,
@@ -107,6 +109,15 @@ export function WorkoutList({
               </AppText>
             </View>
             <PrimaryButton label="Create workout" onPress={onCreate} />
+            <Pressable
+              accessibilityRole="button"
+              onPress={onCoach}
+              style={styles.coachLink}
+            >
+              <AppText tone="accent" variant="label">
+                Ask AI coach
+              </AppText>
+            </Pressable>
           </View>
         }
         ListEmptyComponent={
@@ -222,6 +233,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     paddingVertical: spacing.xxl,
   },
+  coachLink: { minHeight: 44, alignItems: "center", justifyContent: "center" },
   row: {
     minHeight: 104,
     flexDirection: "row",

@@ -22,6 +22,7 @@ describe("WorkoutList", () => {
     render(
       <WorkoutList
         onCreate={onCreate}
+        onCoach={jest.fn()}
         onEdit={jest.fn()}
         onHistory={jest.fn()}
         onProgress={jest.fn()}
@@ -61,6 +62,7 @@ describe("WorkoutList", () => {
     render(
       <WorkoutList
         onCreate={jest.fn()}
+        onCoach={jest.fn()}
         onEdit={onEdit}
         onHistory={jest.fn()}
         onProgress={jest.fn()}
@@ -88,6 +90,7 @@ describe("WorkoutList", () => {
     render(
       <WorkoutList
         onCreate={jest.fn()}
+        onCoach={jest.fn()}
         onEdit={jest.fn()}
         onHistory={jest.fn()}
         onProgress={jest.fn()}

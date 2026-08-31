@@ -38,6 +38,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/profiles/{profileId}/coach/conversation": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the retained coach conversation */
+    get: operations["GetCoachConversation"];
+    put?: never;
+    post?: never;
+    /** Delete the retained coach conversation */
+    delete: operations["DeleteCoachConversation"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/profiles/{profileId}/coach/conversation/messages": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Ask the read-only AI coach */
+    post: operations["SendCoachMessage"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/exercises": {
     parameters: {
       query?: never;
@@ -267,6 +302,28 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** @enum {unknown} */
+    AiCoachResponseKind: "advice" | "safetyLimited" | "unavailable" | null;
+    AskAiCoachRequest: {
+      question: string;
+    };
+    CoachConversationResponse: {
+      /** Format: uuid */
+      id: string;
+      messages: components["schemas"]["CoachMessageResponse"][];
+    };
+    CoachMessageResponse: {
+      /** Format: uuid */
+      id: string;
+      role: components["schemas"]["CoachMessageRoleResponse"];
+      content: string;
+      responseKind: null | components["schemas"]["AiCoachResponseKind"];
+      contextSources: string[];
+      /** Format: date-time */
+      createdAt: string;
+    };
+    /** @enum {unknown} */
+    CoachMessageRoleResponse: "user" | "coach";
     CorrectWorkoutSessionRequest: {
       /** Format: int32 */
       expectedRevision: number | string;
@@ -709,6 +766,97 @@ export interface operations {
         };
         content: {
           "text/plain": string;
+        };
+      };
+    };
+  };
+  GetCoachConversation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CoachConversationResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  DeleteCoachConversation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SendCoachMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AskAiCoachRequest"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CoachConversationResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
         };
       };
     };

@@ -328,11 +328,18 @@ Verification completed on 2026-08-31:
 
 ### 5.2 Add read-only contextual coaching
 
-Status: pending
+Status: complete
 
 - Answer questions using explicitly approved profile and workout context.
 - Apply the safety rules in `docs/ai-safety.md`.
 - Add adversarial, high-risk, privacy, and ordinary-use evaluation cases.
+
+Verification completed on 2026-08-31:
+
+- The authenticated API retains one user-deletable, profile-owned conversation and returns only read-only advice. Deleting the conversation cascades its messages; account deletion will cover this account data under ADR-0014.
+- The context assembler includes the approved profile for every request and adds no more than five current workout plans or five recent completed workouts when deterministic question terms make that context relevant. Notes, account identifiers, raw provider payloads, and unrestricted database access remain excluded.
+- The iOS coach screen identifies AI content, displays the factual context-source labels used for advice, supports loading, unavailable, and deletion states, and keeps workout access independent. Development uses a deterministic fake provider; non-development environments remain unavailable until a live provider is selected.
+- Deterministic service, ownership, persistence, client API, high-risk, and safe-failure coverage passes. The full backend suite has 63 passing tests; the mobile suite has 69 passing tests, with type checking, lint, formatting, and API-contract drift checks passing.
 
 ### 5.3 Add structured proposals with confirmation
 

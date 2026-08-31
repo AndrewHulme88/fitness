@@ -30,7 +30,11 @@ public sealed class AiCoachServiceTests
         var providerRequest = Assert.IsType<AiCoachProviderRequest>(provider.Request);
         Assert.Equal("v1", providerRequest.PromptVersion);
         Assert.Equal(2_000, providerRequest.MaximumOutputCharacters);
-        Assert.Equal(context, providerRequest.Context);
+        Assert.Equal(context.Goals, providerRequest.Context.Goals);
+        Assert.Equal(context.Experience, providerRequest.Context.Experience);
+        Assert.Equal(context.AvailableEquipment, providerRequest.Context.AvailableEquipment);
+        Assert.Equal(context.UnitSystem, providerRequest.Context.UnitSystem);
+        Assert.Empty(providerRequest.Context.Conversation ?? []);
         var usage = Assert.Single(usageRecorder.Records);
         Assert.Equal(AiCoachResponseKind.Advice, usage.Outcome);
         Assert.Equal(new AiCoachTokenUsage(42, 18), usage.Usage);
@@ -99,7 +103,10 @@ public sealed class AiCoachServiceTests
     {
         public bool WasCalled { get; private set; }
 
-        public Task<AiCoachApprovedContext?> AssembleAsync(Guid profileId, CancellationToken cancellationToken)
+        public Task<AiCoachApprovedContext?> AssembleAsync(
+            Guid profileId,
+            string question,
+            CancellationToken cancellationToken)
         {
             WasCalled = true;
             return Task.FromResult(context);

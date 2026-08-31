@@ -8,7 +8,10 @@ public sealed record AskAiCoachRequest
     public required string Question { get; init; }
 }
 
-public sealed record AiCoachResponse(AiCoachResponseKind Kind, string Message);
+public sealed record AiCoachResponse(
+    AiCoachResponseKind Kind,
+    string Message,
+    IReadOnlyList<string>? ContextSources = null);
 
 public enum AiCoachResponseKind
 {
@@ -21,7 +24,13 @@ internal sealed record AiCoachApprovedContext(
     IReadOnlyList<TrainingGoal> Goals,
     TrainingExperience Experience,
     IReadOnlyList<EquipmentType> AvailableEquipment,
-    UnitSystem UnitSystem);
+    UnitSystem UnitSystem,
+    IReadOnlyList<AiCoachContextFact>? Facts = null,
+    IReadOnlyList<AiCoachConversationTurn>? Conversation = null);
+
+internal sealed record AiCoachContextFact(string Source, string Summary);
+
+internal sealed record AiCoachConversationTurn(string Role, string Content);
 
 internal sealed record AiCoachProviderRequest(
     string PromptVersion,

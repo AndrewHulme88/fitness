@@ -61,7 +61,14 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<ExerciseCatalogueImporter>();
 builder.Services.AddScoped<AiCoachService>();
 builder.Services.AddScoped<IAiCoachContextAssembler, AiCoachContextAssembler>();
-builder.Services.AddSingleton<IAiCoachProvider, UnavailableAiCoachProvider>();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<IAiCoachProvider, DevelopmentFakeAiCoachProvider>();
+}
+else
+{
+    builder.Services.AddSingleton<IAiCoachProvider, UnavailableAiCoachProvider>();
+}
 builder.Services.AddSingleton<IAiCoachUsageRecorder, LoggerAiCoachUsageRecorder>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -128,6 +135,7 @@ if (app.Environment.IsDevelopment())
 if (cognitoConfiguration is not null || app.Environment.IsDevelopment())
 {
     app.MapAccountEndpoints();
+    app.MapCoachConversationEndpoints();
     app.MapExerciseEndpoints();
     app.MapProfileEndpoints();
     app.MapProgressEndpoints();
