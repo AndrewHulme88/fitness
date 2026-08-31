@@ -19,8 +19,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 const string postgresConnectionName = "Postgres";
 const string cognitoConfigurationSection = "Cognito";
+const string openAiConfigurationSection = "OpenAi";
 
 var cognitoConfiguration = builder.Configuration.GetSection(cognitoConfigurationSection).Get<CognitoConfiguration>();
+var openAiConfiguration = builder.Configuration.GetSection(openAiConfigurationSection).Get<OpenAiConfiguration>()
+    ?? new OpenAiConfiguration();
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
 if (cognitoConfiguration is not null)
@@ -61,7 +64,13 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<ExerciseCatalogueImporter>();
 builder.Services.AddScoped<AiCoachService>();
 builder.Services.AddScoped<IAiCoachContextAssembler, AiCoachContextAssembler>();
-if (builder.Environment.IsDevelopment())
+builder.Services.AddSingleton(openAiConfiguration);
+if (openAiConfiguration.IsConfigured)
+{
+    builder.Services.AddHttpClient("OpenAI", client => client.BaseAddress = new Uri("https://api.openai.com/"));
+    builder.Services.AddSingleton<IAiCoachProvider, OpenAiAiCoachProvider>();
+}
+else if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddSingleton<IAiCoachProvider, DevelopmentFakeAiCoachProvider>();
 }

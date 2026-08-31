@@ -143,6 +143,14 @@ Account export and deletion must include coach conversation data when those desi
 
 Related ADR: [ADR-0014](docs/adr/0014-retained-coach-conversations.md)
 
+### D-023 — 2026-08-31 — Use OpenAI Responses with GPT-5.6 Terra for read-only coaching
+
+Status: accepted
+
+Use the OpenAI Responses API with `gpt-5.6-terra`, low reasoning effort, no tools, a 600-token output cap, `store: false`, and a hashed stable safety identifier. The adapter receives only bounded application-owned context and uses a server-side API key. Live release still requires synthetic evaluation against Sol, project data-retention review, spend/rate limits, and a rollout plan.
+
+Related ADR: [ADR-0015](docs/adr/0015-openai-responses-coach-provider.md)
+
 ## Major issues and open risks
 
 ### I-001 — 2026-08-24 — Expo transitive UUID advisory
@@ -209,6 +217,30 @@ The final implementation keeps transient drag identity and layout in stable refs
 This approach intentionally requires source and destination rows to be visible before a drag begins. Attempts to coordinate external gesture-handler scroll relations, change iOS cancellation flags, accept cancelled drops, or rely on responder ownership without explicitly disabling the `ScrollView` did not provide reliable behavior.
 
 Evidence: controlled Simulator drags work in both directions; taps, small movements, and terminated gestures do not reorder; and on 2026-08-30 the user confirmed that the planner now remains locked while dragging and reordering.
+
+### I-020 — 2026-08-31 — Responses text can be nested instead of using `output_text`
+
+Status: resolved
+
+The first synthetic OpenAI Responses smoke request completed successfully but omitted the top-level `output_text` shortcut while returning a standard nested `message` → `output_text` content item. Reading only the shortcut would have made the coach fail closed despite a valid provider answer.
+
+The adapter now accepts the shortcut when present and otherwise extracts the first nested output-text item. A deterministic regression test covers the nested shape; the live synthetic smoke request used `gpt-5.6-terra`, `store: false`, and no user data.
+
+### I-021 — 2026-08-31 — Deleting a conversation could race an in-flight coach reply
+
+Status: resolved
+
+The send endpoint loads the retained conversation before awaiting the provider, so a concurrent delete can remove that row before the reply is saved. EF Core correctly reports the resulting zero-row update as a `DbUpdateConcurrencyException`, but allowing it to escape produced a backend 500 and left the mobile client in its generic unavailable state.
+
+The client now disables deletion while a reply is pending, including a guard inside the destructive confirmation callback. The API still treats the race as possible across requests and returns a documented HTTP 409 rather than throwing. A PostgreSQL-backed integration test holds the provider response open, deletes the conversation concurrently, and verifies the 409 response.
+
+### I-022 — 2026-08-31 — Follow-up coach messages were tracked as updates
+
+Status: resolved
+
+Coach messages use client-generated UUIDs. When a retained conversation was loaded and new messages were appended to its collection, EF Core inferred the non-default identifiers represented existing rows and emitted `UPDATE` statements instead of `INSERT`s. The updates affected zero rows and the endpoint correctly returned 409, although no concurrent change had occurred.
+
+The endpoint now explicitly marks each newly appended coach message as `Added`. The retained-conversation integration test sends a follow-up question and verifies that all four turns persist. The delete-race handling also recognizes the resulting foreign-key violation if deletion occurs after the provider reply but before the insert transaction commits, returning the same 409 conflict.
 
 ## Performance baselines
 

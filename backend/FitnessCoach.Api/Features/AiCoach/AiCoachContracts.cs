@@ -36,7 +36,8 @@ internal sealed record AiCoachProviderRequest(
     string PromptVersion,
     AiCoachApprovedContext Context,
     string Question,
-    int MaximumOutputCharacters);
+    int MaximumOutputCharacters,
+    string SafetyIdentifier);
 
 internal sealed record AiCoachProviderResponse(
     string? Message,

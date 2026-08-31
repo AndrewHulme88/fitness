@@ -859,6 +859,15 @@ export interface operations {
           "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
         };
       };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
     };
   };
   SearchExercises: {

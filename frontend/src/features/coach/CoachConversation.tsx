@@ -74,7 +74,9 @@ export function CoachConversation({ profileId }: { profileId: string }) {
     }
   };
 
-  const clear = () =>
+  const clear = () => {
+    if (sending) return;
+
     Alert.alert(
       "Delete conversation?",
       "This permanently deletes the coach messages saved to your account.",
@@ -84,6 +86,7 @@ export function CoachConversation({ profileId }: { profileId: string }) {
           text: "Delete",
           style: "destructive",
           onPress: () => {
+            if (sending) return;
             void deleteCoachConversation(profileId)
               .then(() => setConversation(undefined))
               .catch(() => setError("The conversation could not be deleted."));
@@ -91,6 +94,7 @@ export function CoachConversation({ profileId }: { profileId: string }) {
         },
       ],
     );
+  };
 
   return (
     <AppScreen>
@@ -163,6 +167,7 @@ export function CoachConversation({ profileId }: { profileId: string }) {
         {conversation ? (
           <Pressable
             accessibilityRole="button"
+            disabled={sending}
             onPress={clear}
             style={styles.delete}
           >

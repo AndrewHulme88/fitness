@@ -4,6 +4,8 @@ using FitnessCoach.Api.Persistence;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
+using Npgsql;
+
 namespace FitnessCoach.Api.Features.AiCoach;
 
 internal static class CoachConversationEndpoints
@@ -17,7 +19,10 @@ internal static class CoachConversationEndpoints
             .RequireOwnedProfile()
             .RequireAuthorization();
         coach.MapGet("/", GetAsync).WithName("GetCoachConversation").WithSummary("Get the retained coach conversation");
-        coach.MapPost("/messages", SendAsync).WithName("SendCoachMessage").WithSummary("Ask the read-only AI coach");
+        coach.MapPost("/messages", SendAsync)
+            .WithName("SendCoachMessage")
+            .WithSummary("Ask the read-only AI coach")
+            .ProducesProblem(StatusCodes.Status409Conflict);
         coach.MapDelete("/", DeleteAsync).WithName("DeleteCoachConversation").WithSummary("Delete the retained coach conversation");
         return endpoints;
     }
@@ -29,7 +34,10 @@ internal static class CoachConversationEndpoints
         return conversation is null ? TypedResults.NotFound() : TypedResults.Ok(Map(conversation));
     }
 
-    private static async Task<Results<Ok<CoachConversationResponse>, ValidationProblem>> SendAsync(
+    private static async Task<Results<
+        Ok<CoachConversationResponse>,
+        ValidationProblem,
+        ProblemHttpResult>> SendAsync(
         Guid profileId,
         AskAiCoachRequest request,
         AiCoachService coachService,
@@ -57,15 +65,29 @@ internal static class CoachConversationEndpoints
             .OrderBy(item => item.CreatedAt)
             .Select(item => new AiCoachConversationTurn(item.Role.ToString(), item.Content))
             .ToArray();
-        conversation.AddMessage(CoachMessageRole.User, question, null, [], now);
+        var userMessage = conversation.AddMessage(CoachMessageRole.User, question, null, [], now);
+        dbContext.Entry(userMessage).State = EntityState.Added;
         var answer = await coachService.AskAsync(profileId, request, contextTurns, cancellationToken);
-        conversation.AddMessage(
+        var coachMessage = conversation.AddMessage(
             CoachMessageRole.Coach,
             answer.Message,
             answer.Kind,
             answer.ContextSources ?? [],
             timeProvider.GetUtcNow());
-        await dbContext.SaveChangesAsync(cancellationToken);
+        dbContext.Entry(coachMessage).State = EntityState.Added;
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ConversationChangedConflict();
+        }
+        catch (DbUpdateException exception) when (IsConversationDeleted(exception))
+        {
+            return ConversationChangedConflict();
+        }
+
         return TypedResults.Ok(Map(conversation));
     }
 
@@ -93,4 +115,15 @@ internal static class CoachConversationEndpoints
             item.ResponseKind,
             item.ContextSources,
             item.CreatedAt)).ToArray());
+
+    private static ProblemHttpResult ConversationChangedConflict() => TypedResults.Problem(
+        detail: "The saved conversation changed while the coach was preparing a reply. Reload it before trying again.",
+        statusCode: StatusCodes.Status409Conflict,
+        title: "The coach conversation changed.");
+
+    private static bool IsConversationDeleted(DbUpdateException exception) =>
+        exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.ForeignKeyViolation,
+        };
 }

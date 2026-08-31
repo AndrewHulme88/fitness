@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace FitnessCoach.Api.Features.AiCoach;
 
@@ -85,7 +86,8 @@ internal sealed class AiCoachService(
                         PromptVersion,
                         context with { Conversation = conversation },
                         question,
-                        MaximumOutputCharacters),
+                        MaximumOutputCharacters,
+                        CreateSafetyIdentifier(profileId)),
                     timeout.Token);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -123,6 +125,9 @@ internal sealed class AiCoachService(
     private static AiCoachResponse UnavailableResponse() => new(
         AiCoachResponseKind.Unavailable,
         "The coach is unavailable right now. Your workouts and plans are still available.");
+
+    private static string CreateSafetyIdentifier(Guid profileId) => Convert.ToHexString(
+        SHA256.HashData(profileId.ToByteArray()));
 
     private void Record(
         string providerName,
