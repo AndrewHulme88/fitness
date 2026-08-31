@@ -1,4 +1,5 @@
 import {
+  AuthenticationRequiredError,
   createTrainingProfile,
   type CreateTrainingProfileRequest,
   type TrainingProfile,
@@ -45,6 +46,7 @@ describe("createTrainingProfile", () => {
 
     expect(sentRequest.method).toBe("POST");
     expect(sentRequest.url).toBe("https://api.example.test/profiles");
+    expect(sentRequest.headers.get("Content-Type")).toBe("application/json");
     await expect(sentRequest.clone().json()).resolves.toEqual(request);
   });
 
@@ -59,5 +61,18 @@ describe("createTrainingProfile", () => {
     } finally {
       process.env.EXPO_PUBLIC_API_URL = previousApiUrl;
     }
+  });
+
+  it("requires a fresh session when the API rejects authentication", async () => {
+    const fetch = jest
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 401 }));
+
+    await expect(
+      createTrainingProfile(request, {
+        baseUrl: "https://api.example.test",
+        fetch,
+      }),
+    ).rejects.toBeInstanceOf(AuthenticationRequiredError);
   });
 });

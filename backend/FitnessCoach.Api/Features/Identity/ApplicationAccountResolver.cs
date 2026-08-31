@@ -14,8 +14,10 @@ internal static class ApplicationAccountResolver
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
-        var issuer = principal.FindFirst("iss")?.Value;
-        var subject = principal.FindFirst("sub")?.Value;
+        var subjectClaim = principal.FindFirst("sub")
+            ?? principal.FindFirst(ClaimTypes.NameIdentifier);
+        var issuer = principal.FindFirst("iss")?.Value ?? subjectClaim?.Issuer;
+        var subject = subjectClaim?.Value;
         if (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(subject))
         {
             throw new UnauthorizedAccessException("The access token has no stable account identity.");

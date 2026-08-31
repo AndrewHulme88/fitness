@@ -46,6 +46,10 @@ export async function saveSession(session: CognitoSession) {
   await SecureStore.setItemAsync(sessionKey, JSON.stringify(session));
 }
 
+export async function clearSession() {
+  await SecureStore.deleteItemAsync(sessionKey);
+}
+
 export async function loadAccessToken(): Promise<string | null> {
   const serialized = await SecureStore.getItemAsync(sessionKey);
   if (!serialized) return null;
@@ -53,7 +57,7 @@ export async function loadAccessToken(): Promise<string | null> {
     const session = JSON.parse(serialized) as CognitoSession;
     return typeof session.accessToken === "string" ? session.accessToken : null;
   } catch {
-    await SecureStore.deleteItemAsync(sessionKey);
+    await clearSession();
     return null;
   }
 }

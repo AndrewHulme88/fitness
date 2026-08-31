@@ -29,6 +29,7 @@ if (cognitoConfiguration is not null)
         .AddJwtBearer(options =>
         {
             options.Authority = issuer;
+            options.MapInboundClaims = false;
             options.TokenValidationParameters.ValidateAudience = false;
             options.Events = new JwtBearerEvents
             {

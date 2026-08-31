@@ -36,7 +36,12 @@ export async function executeApiRequest<T>(
     const baseFetch = options.fetch ?? globalThis.fetch;
     const accessToken = await loadAccessToken();
     const authenticatedFetch: typeof globalThis.fetch = (input, init) => {
-      const headers = new Headers(init?.headers);
+      const headers = new Headers(
+        input instanceof Request ? input.headers : undefined,
+      );
+      new Headers(init?.headers).forEach((value, name) =>
+        headers.set(name, value),
+      );
       if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
       return baseFetch(input, { ...init, headers });
     };
