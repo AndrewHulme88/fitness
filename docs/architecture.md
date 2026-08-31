@@ -170,14 +170,20 @@ Amazon Cognito User Pools provide managed OpenID Connect and OAuth 2.0 identity.
 
 The API uses ASP.NET Core JWT bearer middleware and Cognito's regional User Pool JWKS to validate signature, issuer, expiry, `token_use` of `access`, client identifier, and required API scope. The stable issuer and Cognito `sub` claim identify an application-owned account. Email and display name are not authorization keys or required fitness-domain fields. Every profile-owned route derives the profile from the authenticated account and must reject cross-account access rather than trusting a client-supplied profile identifier.
 
-Existing prototype data migrates only after sign-in and explicit user confirmation. The server atomically and idempotently links one unclaimed local prototype profile to the authenticated account; a UUID is never an ongoing claim credential. Account export and deletion, including Cognito-user coordination, retention, and recovery, require a separately approved design before beta. A database readiness probe must accompany the first deployable database-backed routes; it is not required for the development-only profile prototype. See [ADR-0012](adr/0012-cognito-identity-and-prototype-migration.md).
+Existing prototype data migrates only after sign-in and explicit user confirmation. The server atomically and idempotently links one unclaimed local prototype profile to the authenticated account; a UUID is never an ongoing claim credential.
+
+Account settings will provide a direct, versioned JSON export of application fitness data without retaining a server-side copy. Export is freshly authorized, ownership-scoped, streamed with no-store caching, and delivered through the native share/save experience. It never contains credentials, tokens, internal operational records, or another account's data.
+
+Deletion is a separate, irreversible action. It needs fresh Cognito authorization, typed confirmation, and the Cognito self-service scope. The API durably records a minimal deletion operation, calls Cognito `DeleteUser` using the verified user token only in memory, then atomically purges the application account and all owned data. A protected worker completes an interrupted purge after Cognito success; its short-lived keyed-identity tombstone also protects backup restoration. The app clears local profile/session cache and secure credentials once deletion starts. See [ADR-0013](adr/0013-account-export-and-deletion-lifecycle.md).
+
+A database readiness probe must accompany the first deployable database-backed routes; it is not required for the development-only profile prototype. See [ADR-0012](adr/0012-cognito-identity-and-prototype-migration.md).
 
 Requirements:
 
 - Short-lived access where practical and safe revocation behavior.
 - Sign in with Apple before release alongside any third-party or social sign-in option.
 - Explicit ownership checks on every user-owned resource.
-- Account deletion and data-export design before public beta.
+- Account export and deletion must follow [ADR-0013](adr/0013-account-export-and-deletion-lifecycle.md) before public beta.
 
 Until authenticated ownership is implemented, user-owned prototype routes must remain unavailable outside Development and no local identifier is treated as authorization.
 

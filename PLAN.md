@@ -296,9 +296,16 @@ Verification completed on 2026-08-31:
 
 ### 4.3 Design account export and deletion
 
-Status: pending
+Status: complete
 
 - Define the user-visible export format, account-deletion flow, provider deletion coordination, retention, and recovery boundaries before beta.
+
+Verification completed on 2026-08-31:
+
+- A versioned, direct JSON export will cover the current application account, profile, plans, sessions, snapshots/actuals, notes, corrections, and factual progress context. It uses canonical units and UTC instants, is ownership-scoped and no-store, and is sent through native share/save without a retained application export copy.
+- Account deletion requires fresh Cognito authorization, typed and final confirmation, and Cognito's self-service user-management scope. It records a data-minimized deletion operation, then deletes the Cognito user and idempotently purges application-owned data. There is no user recovery after final confirmation.
+- The design sets 45-day deletion-operation retention and a 35-day maximum encrypted-backup lifetime, with reconciliation before restored data is available. It records implementation, integration, physical-device, threat-model, provider-configuration, and backup-restore checks before beta.
+- See [ADR-0013](docs/adr/0013-account-export-and-deletion-lifecycle.md). This increment is documentation-only; no runtime behavior or automated suite changed.
 
 Identity may move earlier if cross-device persistence becomes necessary during Phase 3. That move requires a recorded decision, not silent scope expansion.
 
@@ -353,4 +360,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Design the account export and deletion lifecycle, including Cognito-user coordination, retention, recovery boundaries, and the user-visible experience before beta.
+Implement the provider-independent AI coach product boundary with deterministic fake-provider tests, minimized context, cancellation, usage accounting, and safe failure behavior.

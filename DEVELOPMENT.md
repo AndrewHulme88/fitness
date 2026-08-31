@@ -123,6 +123,16 @@ The application's account and explicit prototype-data migration design remain un
 
 Related ADR: [ADR-0012](docs/adr/0012-cognito-identity-and-prototype-migration.md)
 
+### D-021 — 2026-08-31 — Export directly and coordinate irreversible deletion through Cognito
+
+Status: accepted
+
+Export application-held account data as a versioned JSON attachment generated directly from PostgreSQL, without email delivery, object-storage copies, or server-side export retention. Require fresh authorization for export and deletion. Deletion persists a data-minimized, short-lived operation before Cognito self-service user deletion, then purges the PostgreSQL account transactionally. A protected retry path completes a purge interrupted after Cognito success, while a 45-day keyed-identity tombstone prevents a backup restore from resurrecting deleted data.
+
+The final deletion confirmation is irreversible: Cognito identity, application fitness data, active local session state, and local credentials are removed with no recovery or grace period. Encrypted production backups must expire within 35 days and reconcile deletion operations before restored data is available. This is a design decision only; implementation, provider configuration, threat model, and backup-restore verification remain beta gates.
+
+Related ADR: [ADR-0013](docs/adr/0013-account-export-and-deletion-lifecycle.md)
+
 ## Major issues and open risks
 
 ### I-001 — 2026-08-24 — Expo transitive UUID advisory

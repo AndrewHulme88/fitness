@@ -79,7 +79,7 @@ Security testing grows with the feature surface and includes:
 - Rate-limit and abuse-control verification.
 - Log inspection to ensure tokens and sensitive bodies are absent.
 - Mobile storage and transport review before beta.
-- A lightweight threat model for identity, AI tools, offline data, photos, and account deletion when those capabilities are introduced.
+- A lightweight threat model for identity, AI tools, offline data, photos, and account deletion when those capabilities are introduced. For account lifecycle, cover authenticated export, share/save copies, fresh authorization, local-cache cleanup, deletion-operation recovery, Cognito coordination, backup restoration, and deletion-record expiry.
 
 ## Accessibility and visual quality
 
