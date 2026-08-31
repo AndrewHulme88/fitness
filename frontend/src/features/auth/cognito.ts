@@ -55,10 +55,47 @@ export async function loadAccessToken(): Promise<string | null> {
   if (!serialized) return null;
   try {
     const session = JSON.parse(serialized) as CognitoSession;
-    return typeof session.accessToken === "string" ? session.accessToken : null;
+    if (typeof session.accessToken !== "string") return null;
+    if (AuthSession.TokenResponse.isTokenFresh(session))
+      return session.accessToken;
+    if (!session.refreshToken) {
+      await clearSession();
+      return null;
+    }
+
+    const configuration = getCognitoConfiguration();
+    const refreshed = await AuthSession.refreshAsync(
+      {
+        clientId: configuration.appClientId,
+        refreshToken: session.refreshToken,
+      },
+      getDiscovery(configuration.domain),
+    );
+    await saveSession(refreshed);
+    return refreshed.accessToken;
   } catch {
     await clearSession();
     return null;
+  }
+}
+
+export async function signOut() {
+  const serialized = await SecureStore.getItemAsync(sessionKey);
+  try {
+    const session = serialized
+      ? (JSON.parse(serialized) as CognitoSession)
+      : null;
+    if (session?.refreshToken) {
+      const configuration = getCognitoConfiguration();
+      await AuthSession.revokeAsync(
+        { clientId: configuration.appClientId, token: session.refreshToken },
+        getDiscovery(configuration.domain),
+      );
+    }
+  } catch {
+    // Local credential removal still completes if the network or revocation endpoint is unavailable.
+  } finally {
+    await clearSession();
   }
 }
 

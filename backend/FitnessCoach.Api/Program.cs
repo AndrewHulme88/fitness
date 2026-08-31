@@ -20,6 +20,8 @@ const string postgresConnectionName = "Postgres";
 const string cognitoConfigurationSection = "Cognito";
 
 var cognitoConfiguration = builder.Configuration.GetSection(cognitoConfigurationSection).Get<CognitoConfiguration>();
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
 if (cognitoConfiguration is not null)
 {
     cognitoConfiguration.Validate();
@@ -51,7 +53,6 @@ if (cognitoConfiguration is not null)
                 },
             };
         });
-    builder.Services.AddAuthorization();
 }
 
 builder.Services.AddHealthChecks();
@@ -111,15 +112,16 @@ if (await PrototypeProfileClaimCommand.TryRunAsync(app, args))
 app.UseHttpLogging();
 app.UseHttpsRedirection();
 
-if (cognitoConfiguration is not null)
-{
-    app.UseAuthentication();
-    app.UseAuthorization();
-}
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
+
+if (cognitoConfiguration is not null || app.Environment.IsDevelopment())
+{
     app.MapAccountEndpoints();
     app.MapExerciseEndpoints();
     app.MapProfileEndpoints();

@@ -39,7 +39,6 @@ internal static class PrototypeProfileClaimCommand
         var db = scope.ServiceProvider.GetRequiredService<Persistence.FitnessCoachDbContext>();
         var profile = await db.Set<TrainingProfile>().SingleOrDefaultAsync(item => item.Id == profileId);
         if (profile is null) throw new InvalidOperationException("Prototype profile was not found.");
-        if (profile.AccountId is not null) throw new InvalidOperationException("Prototype profile is already claimed.");
 
         var account = await db.Set<ApplicationAccount>()
             .SingleOrDefaultAsync(item => item.Issuer == issuer && item.Subject == arguments[subjectIndex + 1]);
@@ -48,6 +47,9 @@ internal static class PrototypeProfileClaimCommand
             account = ApplicationAccount.Create(issuer, arguments[subjectIndex + 1], TimeProvider.System.GetUtcNow());
             db.Add(account);
         }
+
+        if (profile.AccountId == account.Id) return true;
+        if (profile.AccountId is not null) throw new InvalidOperationException("Prototype profile is already claimed.");
 
         profile.Claim(account.Id);
         await db.SaveChangesAsync();

@@ -2,7 +2,7 @@ import { usePathname, useRouter } from "expo-router";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { clearSession } from "../features/auth/cognito";
+import { signOut } from "../features/auth/cognito";
 import {
   loadStoredProfile,
   removeStoredProfile,
@@ -60,7 +60,7 @@ async function signOutLocally(replace: (href: "/sign-in") => void) {
     await removeStoredSession(profile.profileId);
     await removeStoredProfile();
   }
-  await clearSession();
+  await signOut();
   replace("/sign-in");
 }
 
