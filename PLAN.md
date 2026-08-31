@@ -313,11 +313,18 @@ Identity may move earlier if cross-device persistence becomes necessary during P
 
 ### 5.1 Implement the provider-independent product boundary
 
-Status: pending
+Status: complete
 
 - Define product-level request and response contracts.
 - Use a fake provider for deterministic tests.
 - Implement context minimization, timeouts, cancellation, usage accounting, and safe failure behavior.
+
+Verification completed on 2026-08-31:
+
+- A product-level coach service accepts a bounded question and passes only explicitly approved profile goals, experience, equipment, and unit preference to a provider-independent adapter. Account identifiers, notes, workout history, and arbitrary database access are excluded.
+- A safety pre-check limits known urgent, diagnosis, rehabilitation, medication, pregnancy, pain, and disordered-eating signals before context loading or provider calls. The production default has no provider configured and safely reports coach unavailability.
+- Provider calls are cancellation-aware, time-bounded to 15 seconds, output-bounded, and fail closed for errors, cancellation caused by timeout, and malformed responses. Metadata-only usage records contain provider, prompt version, outcome, latency, and token counts—never raw prompts, responses, or profile context.
+- Four deterministic fake-provider tests cover minimized context, usage accounting, high-risk pre-check behavior, malformed output, and cancellation propagation. Formatting, Release build, and the complete 62-test backend suite pass.
 
 ### 5.2 Add read-only contextual coaching
 

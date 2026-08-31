@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using FitnessCoach.Api.Features.Exercises;
+using FitnessCoach.Api.Features.AiCoach;
 using FitnessCoach.Api.Features.Identity;
 using FitnessCoach.Api.Features.Profiles;
 using FitnessCoach.Api.Features.Progress;
@@ -58,6 +59,10 @@ if (cognitoConfiguration is not null)
 builder.Services.AddHealthChecks();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<ExerciseCatalogueImporter>();
+builder.Services.AddScoped<AiCoachService>();
+builder.Services.AddScoped<IAiCoachContextAssembler, AiCoachContextAssembler>();
+builder.Services.AddSingleton<IAiCoachProvider, UnavailableAiCoachProvider>();
+builder.Services.AddSingleton<IAiCoachUsageRecorder, LoggerAiCoachUsageRecorder>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(
