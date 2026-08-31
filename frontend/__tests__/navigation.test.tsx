@@ -7,6 +7,7 @@ import {
 } from "expo-router/testing-library";
 
 import { createTrainingProfile, getTrainingProfile } from "../src/api/profiles";
+import { getCurrentAccount } from "../src/api/accounts";
 import { listWorkouts } from "../src/api/workouts";
 import {
   loadStoredProfile,
@@ -18,6 +19,7 @@ jest.mock("../src/api/profiles", () => ({
   createTrainingProfile: jest.fn(),
   getTrainingProfile: jest.fn(),
 }));
+jest.mock("../src/api/accounts", () => ({ getCurrentAccount: jest.fn() }));
 jest.mock("../src/api/workouts", () => ({
   createWorkout: jest.fn(),
   getWorkout: jest.fn(),
@@ -37,6 +39,7 @@ jest.mock("../src/features/auth/cognito", () => ({
 }));
 
 const createTrainingProfileMock = jest.mocked(createTrainingProfile);
+const getCurrentAccountMock = jest.mocked(getCurrentAccount);
 const getTrainingProfileMock = jest.mocked(getTrainingProfile);
 const listWorkoutsMock = jest.mocked(listWorkouts);
 const loadStoredProfileMock = jest.mocked(loadStoredProfile);
@@ -54,12 +57,14 @@ const profile = {
 describe("initial navigation shell", () => {
   beforeEach(() => {
     createTrainingProfileMock.mockReset();
+    getCurrentAccountMock.mockReset();
     getTrainingProfileMock.mockReset();
     listWorkoutsMock.mockReset();
     loadStoredProfileMock.mockReset();
     saveStoredProfileMock.mockReset();
     loadAccessTokenMock.mockReset();
     createTrainingProfileMock.mockResolvedValue(profile);
+    getCurrentAccountMock.mockResolvedValue({ profileId: null });
     getTrainingProfileMock.mockResolvedValue(profile);
     listWorkoutsMock.mockResolvedValue({ items: [], nextOffset: null });
     loadStoredProfileMock.mockResolvedValue(null);
@@ -124,5 +129,20 @@ describe("initial navigation shell", () => {
 
     expect(router.getPathname()).toBe("/onboarding");
     expect(testRouter.canGoBack()).toBe(false);
+  });
+
+  it("restores an existing account profile after local sign-out", async () => {
+    loadStoredProfileMock.mockResolvedValue(null);
+    getCurrentAccountMock.mockResolvedValue({ profileId: profile.id });
+
+    const router = renderRouter("./src/app", { initialUrl: "/" });
+
+    await waitFor(() => expect(router.getPathname()).toBe("/workouts"));
+    expect(getTrainingProfileMock).toHaveBeenCalledWith(profile.id);
+    expect(saveStoredProfileMock).toHaveBeenCalledWith({
+      schemaVersion: 1,
+      profileId: profile.id,
+      unitSystem: "metric",
+    });
   });
 });

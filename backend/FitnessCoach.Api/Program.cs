@@ -120,10 +120,7 @@ if (cognitoConfiguration is not null)
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    if (cognitoConfiguration is not null)
-    {
-        app.MapAccountEndpoints();
-    }
+    app.MapAccountEndpoints();
     app.MapExerciseEndpoints();
     app.MapProfileEndpoints();
     app.MapProgressEndpoints();

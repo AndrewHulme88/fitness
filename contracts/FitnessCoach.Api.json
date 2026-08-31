@@ -5,6 +5,25 @@
     "version": "v1"
   },
   "paths": {
+    "/account": {
+      "get": {
+        "tags": ["Account"],
+        "summary": "Get the authenticated account and its training profile",
+        "operationId": "GetCurrentAccount",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentAccountResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": ["Program"],
@@ -1054,6 +1073,17 @@
             "items": {
               "$ref": "#/components/schemas/WorkoutExerciseRequest"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CurrentAccountResponse": {
+        "required": ["profileId"],
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": ["null", "string"],
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -2171,6 +2201,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Account"
+    },
     {
       "name": "Program"
     },

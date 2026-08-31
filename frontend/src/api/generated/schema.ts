@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+  "/account": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the authenticated account and its training profile */
+    get: operations["GetCurrentAccount"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -265,6 +282,10 @@ export interface components {
     CreateWorkoutRequest: {
       name: string;
       exercises: components["schemas"]["WorkoutExerciseRequest"][];
+    };
+    CurrentAccountResponse: {
+      /** Format: uuid */
+      profileId: null | string;
     };
     /** @enum {unknown} */
     EquipmentType:
@@ -643,6 +664,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  GetCurrentAccount: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CurrentAccountResponse"];
+        };
+      };
+    };
+  };
   GetHealth: {
     parameters: {
       query?: never;

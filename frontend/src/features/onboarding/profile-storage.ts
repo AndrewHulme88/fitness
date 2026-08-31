@@ -27,6 +27,10 @@ export function saveStoredProfile(profile: StoredProfile) {
   return Storage.setItemAsync(profileKey, JSON.stringify(profile));
 }
 
+export function removeStoredProfile() {
+  return Storage.removeItemAsync(profileKey);
+}
+
 function isStoredProfile(value: unknown): value is StoredProfile {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;

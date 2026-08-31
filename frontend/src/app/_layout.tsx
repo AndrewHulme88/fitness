@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { RouteStatus } from "../components/RouteStatus";
+import { SignOutControl } from "../components/SignOutControl";
 import { colors } from "../theme/tokens";
 
 export function SuspenseFallback() {
@@ -60,6 +61,7 @@ export default function RootLayout() {
         />
         <Stack.Screen name="+not-found" options={{ title: "Unavailable" }} />
       </Stack>
+      <SignOutControl />
       <StatusBar style="light" />
     </GestureHandlerRootView>
   );
