@@ -357,7 +357,38 @@ Verification completed on 2026-09-01:
 - The coach screen loads the current workout to show the current name and revision beside the proposed name, exercise count, and set count. Applying is an explicit button press; a separate authenticated confirmation endpoint invokes the ordinary workout aggregate update and records `confirmed_at` for the accepted action.
 - A PostgreSQL integration test proves that a proposal does not alter a plan until confirmation. The complete backend suite passed 66 tests; the mobile suite passed 70 tests; frontend format, strict typing, and lint plus API-contract drift verification passed.
 
-## Phase 6 — Beta hardening
+## Phase 6 — AI coach capability expansion
+
+Status: pending
+
+Build useful, bounded AI-assisted review and proposal experiences without giving the model direct application or database authority.
+
+### 6.1 Review one named workout with an exercise-level proposal diff
+
+Status: pending
+
+- Assemble an approved, bounded snapshot for one explicitly named workout: workout identity and revision, exercise names and tracking prescriptions, and relevant approved equipment.
+- Let the coach explain the recorded workout and draft conservative substitutions or prescription changes using strict structured output.
+- Present an exercise-level diff showing additions, removals, substitutions, and prescription changes before the user can apply anything.
+- Reuse deterministic ownership, catalogue, tracking-mode, bounds, revision, and confirmation checks; discard malformed, stale, or invalid proposals.
+
+### 6.2 Add factual, bounded progress review
+
+Status: pending
+
+- Assemble only traceable recorded progress facts for an explicitly requested exercise or bounded recent period.
+- Distinguish supplied facts from general coaching interpretation and avoid invented personal records, readiness, scores, diagnoses, or unsupported trend claims.
+- Show the context sources and keep existing progress screens authoritative and independently usable.
+
+### 6.3 Define scoped coach tasks and evaluation gates
+
+Status: pending
+
+- Define product-level task contracts for workout review, progress review, exercise substitution, and workout-update proposals.
+- Keep model access server-owned and minimum-context; do not add unrestricted database access or direct write tools.
+- Add deterministic, adversarial, privacy, stale-data, and confirmation-path evaluations before each task is enabled.
+
+## Phase 7 — Beta hardening
 
 Status: pending
 
@@ -381,4 +412,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Begin Phase 6 beta-hardening work by selecting one bounded reliability, privacy, accessibility, or operational increment.
+Implement Phase 6.1: review one explicitly named workout with an approved snapshot and exercise-level, confirmable proposal diff.
