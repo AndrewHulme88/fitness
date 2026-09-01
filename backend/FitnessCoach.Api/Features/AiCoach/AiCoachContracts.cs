@@ -6,6 +6,8 @@ namespace FitnessCoach.Api.Features.AiCoach;
 public sealed record AskAiCoachRequest
 {
     public required string Question { get; init; }
+
+    public Guid? WorkoutId { get; init; }
 }
 
 public sealed record AiCoachResponse(
@@ -27,9 +29,27 @@ internal sealed record AiCoachApprovedContext(
     IReadOnlyList<EquipmentType> AvailableEquipment,
     UnitSystem UnitSystem,
     IReadOnlyList<AiCoachContextFact>? Facts = null,
+    AiCoachWorkoutSnapshot? Workout = null,
     IReadOnlyList<AiCoachConversationTurn>? Conversation = null);
 
 internal sealed record AiCoachContextFact(string Source, string Summary);
+
+internal sealed record AiCoachWorkoutSnapshot(
+    Guid Id,
+    int Revision,
+    string Name,
+    IReadOnlyList<AiCoachWorkoutSnapshotExercise> Exercises);
+
+internal sealed record AiCoachWorkoutSnapshotExercise(
+    Guid ExerciseId,
+    string Name,
+    string TrackingMode,
+    int PlannedSets,
+    int? MinimumRepetitions,
+    int? MaximumRepetitions,
+    decimal? TargetLoadKilograms,
+    int? TargetDurationSeconds,
+    decimal? TargetDistanceMetres);
 
 internal sealed record AiCoachConversationTurn(string Role, string Content);
 

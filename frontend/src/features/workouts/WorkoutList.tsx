@@ -11,7 +11,7 @@ import { colors, layout, spacing } from "../../theme/tokens";
 
 type WorkoutListProps = {
   onCreate: () => void;
-  onCoach: () => void;
+  onCoach: (workoutId?: string) => void;
   onEdit: (workoutId: string) => void;
   onHistory: () => void;
   onProgress: () => void;
@@ -111,7 +111,7 @@ export function WorkoutList({
             <PrimaryButton label="Create workout" onPress={onCreate} />
             <Pressable
               accessibilityRole="button"
-              onPress={onCoach}
+              onPress={() => onCoach()}
               style={styles.coachLink}
             >
               <AppText tone="accent" variant="label">
@@ -131,6 +131,7 @@ export function WorkoutList({
         }
         renderItem={({ item }) => (
           <WorkoutRow
+            onCoach={() => onCoach(item.id)}
             onEdit={() => onEdit(item.id)}
             onStart={() => onStart(item.id)}
             workout={item}
@@ -143,10 +144,12 @@ export function WorkoutList({
 }
 
 function WorkoutRow({
+  onCoach,
   onEdit,
   onStart,
   workout,
 }: {
+  onCoach: () => void;
   onEdit: () => void;
   onStart: () => void;
   workout: WorkoutSummary;
@@ -188,6 +191,15 @@ function WorkoutRow({
         >
           <AppText tone="secondary" variant="label">
             Edit
+          </AppText>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onCoach}
+          style={styles.coachButton}
+        >
+          <AppText tone="accent" variant="label">
+            Review
           </AppText>
         </Pressable>
       </View>
@@ -258,6 +270,12 @@ const styles = StyleSheet.create({
   },
   startLabel: { color: colors.onAccent },
   editButton: {
+    minHeight: 44,
+    minWidth: 72,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coachButton: {
     minHeight: 44,
     minWidth: 72,
     alignItems: "center",

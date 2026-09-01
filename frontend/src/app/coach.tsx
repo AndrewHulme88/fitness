@@ -5,7 +5,10 @@ import { CoachConversation } from "../features/coach/CoachConversation";
 
 export default function CoachRoute() {
   const router = useRouter();
-  const { profileId } = useLocalSearchParams<{ profileId?: string }>();
+  const { profileId, workoutId } = useLocalSearchParams<{
+    profileId?: string;
+    workoutId?: string;
+  }>();
   if (!profileId)
     return (
       <RouteStatus
@@ -15,5 +18,7 @@ export default function CoachRoute() {
         title="Profile required"
       />
     );
-  return <CoachConversation profileId={profileId} />;
+  return (
+    <CoachConversation initialWorkoutId={workoutId} profileId={profileId} />
+  );
 }

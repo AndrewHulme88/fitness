@@ -1,5 +1,4 @@
-using System.Text.Json;
-
+using FitnessCoach.Api.Features.Exercises;
 using FitnessCoach.Api.Features.Profiles;
 using FitnessCoach.Api.Features.Sessions;
 using FitnessCoach.Api.Features.Workouts;
@@ -14,6 +13,7 @@ internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) :
     public async Task<AiCoachApprovedContext?> AssembleAsync(
         Guid profileId,
         string question,
+        Guid? workoutId,
         CancellationToken cancellationToken)
     {
         var profile = await dbContext.Set<TrainingProfile>()
@@ -30,7 +30,36 @@ internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) :
             new("Training profile", $"Goals: {string.Join(", ", profile.Goals.Select(item => item.Goal))}; experience: {profile.Experience}; equipment: {string.Join(", ", profile.AvailableEquipment.Select(item => item.Equipment))}; units: {profile.UnitSystem}."),
         };
 
-        if (ShouldIncludeWorkoutContext(question))
+        AiCoachWorkoutSnapshot? workout = null;
+        if (workoutId is not null)
+        {
+            var selectedWorkout = await dbContext.Set<WorkoutPlan>()
+                .AsNoTracking()
+                .Include(item => item.Exercises)
+                .AsSplitQuery()
+                .SingleOrDefaultAsync(
+                    item => item.Id == workoutId && item.ProfileId == profileId,
+                    cancellationToken);
+            if (selectedWorkout is null) return null;
+
+            var exerciseIds = selectedWorkout.Exercises.Select(item => item.ExerciseId).ToArray();
+            var catalogue = await dbContext.Set<Exercise>()
+                .AsNoTracking()
+                .Where(item => exerciseIds.Contains(item.Id))
+                .ToDictionaryAsync(item => item.Id, cancellationToken);
+            workout = new AiCoachWorkoutSnapshot(
+                selectedWorkout.Id, selectedWorkout.Revision, selectedWorkout.Name,
+                selectedWorkout.Exercises.OrderBy(item => item.Position).Select(item =>
+                {
+                    var exercise = catalogue[item.ExerciseId];
+                    return new AiCoachWorkoutSnapshotExercise(
+                        item.ExerciseId, exercise.Name, exercise.TrackingMode.ToString(), item.PlannedSets,
+                        item.MinimumRepetitions, item.MaximumRepetitions, item.TargetLoadKilograms,
+                        item.TargetDurationSeconds, item.TargetDistanceMetres);
+                }).ToArray());
+            facts.Add(new AiCoachContextFact("Selected workout", $"{workout.Name} (revision {workout.Revision})."));
+        }
+        else if (ShouldIncludeWorkoutContext(question))
         {
             var plans = await dbContext.Set<WorkoutPlan>()
                 .AsNoTracking()
@@ -46,37 +75,6 @@ internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) :
                     string.Join("; ", plans.Select(item => $"{item.Name} ({item.ExerciseCount} exercises)"))));
             }
 
-            if (ShouldIncludeProposalContext(question))
-            {
-                var proposalPlans = await dbContext.Set<WorkoutPlan>()
-                    .AsNoTracking()
-                    .Include(item => item.Exercises)
-                    .Where(item => item.ProfileId == profileId)
-                    .OrderByDescending(item => item.UpdatedAt)
-                    .Take(5)
-                    .ToListAsync(cancellationToken);
-                if (proposalPlans.Count > 0)
-                {
-                    facts.Add(new AiCoachContextFact(
-                        "Proposal-ready workouts",
-                        JsonSerializer.Serialize(proposalPlans.Select(item => new
-                        {
-                            item.Id,
-                            item.Revision,
-                            item.Name,
-                            Exercises = item.Exercises.OrderBy(exercise => exercise.Position).Select(exercise => new
-                            {
-                                exercise.ExerciseId,
-                                exercise.PlannedSets,
-                                exercise.MinimumRepetitions,
-                                exercise.MaximumRepetitions,
-                                exercise.TargetLoadKilograms,
-                                exercise.TargetDurationSeconds,
-                                exercise.TargetDistanceMetres,
-                            }),
-                        }))));
-                }
-            }
         }
 
         if (ShouldIncludeHistoryContext(question))
@@ -101,7 +99,8 @@ internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) :
             profile.Experience,
             profile.AvailableEquipment.Select(equipment => equipment.Equipment).Order().ToArray(),
             profile.UnitSystem,
-            facts);
+            facts,
+            workout);
     }
 
     private static bool ShouldIncludeWorkoutContext(string question) => ContainsAny(
@@ -109,9 +108,6 @@ internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) :
 
     private static bool ShouldIncludeHistoryContext(string question) => ContainsAny(
         question, "recent", "history", "progress", "last", "volume", "performance");
-
-    private static bool ShouldIncludeProposalContext(string question) => ContainsAny(
-        question, "change", "adjust", "update", "modify", "swap", "replace", "proposal");
 
     private static bool ContainsAny(string value, params string[] terms) => terms.Any(
         term => value.Contains(term, StringComparison.OrdinalIgnoreCase));

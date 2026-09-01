@@ -319,6 +319,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** @enum {unknown} */
+    AiCoachProposalChangeKind:
+      "addition" | "removal" | "substitution" | "prescriptionChange";
+    AiCoachProposalChangeResponse: {
+      kind: components["schemas"]["AiCoachProposalChangeKind"];
+      current: null | components["schemas"]["AiCoachProposalExerciseResponse"];
+      proposed: null | components["schemas"]["AiCoachProposalExerciseResponse"];
+    };
+    AiCoachProposalExerciseResponse: {
+      /** Format: uuid */
+      exerciseId: string;
+      name: string;
+      trackingMode: components["schemas"]["ExerciseTrackingMode"];
+      /** Format: int32 */
+      plannedSets: number | string;
+      /** Format: int32 */
+      minimumRepetitions: null | number | string;
+      /** Format: int32 */
+      maximumRepetitions: null | number | string;
+      /** Format: double */
+      targetLoadKilograms: null | number | string;
+      /** Format: int32 */
+      targetDurationSeconds: null | number | string;
+      /** Format: double */
+      targetDistanceMetres: null | number | string;
+    };
     AiCoachProposalResponse: {
       /** Format: uuid */
       id: string;
@@ -329,6 +355,7 @@ export interface components {
       rationale: string;
       name: string;
       exercises: components["schemas"]["WorkoutExerciseRequest"][];
+      changes: components["schemas"]["AiCoachProposalChangeResponse"][];
       /** Format: date-time */
       createdAt: string;
     };
@@ -336,6 +363,8 @@ export interface components {
     AiCoachResponseKind: "advice" | "safetyLimited" | "unavailable" | null;
     AskAiCoachRequest: {
       question: string;
+      /** Format: uuid */
+      workoutId?: null | string;
     };
     CoachConversationResponse: {
       /** Format: uuid */

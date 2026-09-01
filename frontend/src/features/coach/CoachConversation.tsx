@@ -15,7 +15,12 @@ import {
   sendCoachMessage,
   type CoachConversation as CoachConversationDocument,
 } from "../../api/coach";
-import { getWorkout, type WorkoutDetail } from "../../api/workouts";
+import {
+  getWorkout,
+  listWorkouts,
+  type WorkoutDetail,
+  type WorkoutSummary,
+} from "../../api/workouts";
 import { AppScreen } from "../../components/AppScreen";
 import { AppText } from "../../components/AppText";
 import { PrimaryButton } from "../../components/PrimaryButton";
@@ -24,9 +29,21 @@ import { colors, layout, radii, spacing } from "../../theme/tokens";
 
 const emptyProposals: NonNullable<CoachConversationDocument["proposals"]> = [];
 
-export function CoachConversation({ profileId }: { profileId: string }) {
+export function CoachConversation({
+  initialWorkoutId,
+  profileId,
+}: {
+  initialWorkoutId?: string;
+  profileId: string;
+}) {
   const [conversation, setConversation] = useState<CoachConversationDocument>();
   const [question, setQuestion] = useState("");
+  const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
+  const [selectedWorkoutId, setSelectedWorkoutId] = useState<
+    string | undefined
+  >(initialWorkoutId);
+  const [workoutLoading, setWorkoutLoading] = useState(true);
+  const [workoutError, setWorkoutError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [confirmingProposalId, setConfirmingProposalId] = useState<string>();
@@ -48,6 +65,21 @@ export function CoachConversation({ profileId }: { profileId: string }) {
       .finally(() => !controller.signal.aborted && setLoading(false));
     return () => controller.abort();
   }, [profileId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    listWorkouts(
+      profileId,
+      { limit: 50, offset: 0 },
+      { signal: controller.signal },
+    )
+      .then((result) => setWorkouts(result.items))
+      .catch(() => !controller.signal.aborted && setWorkoutError(true))
+      .finally(() => !controller.signal.aborted && setWorkoutLoading(false));
+    return () => controller.abort();
+  }, [profileId]);
+
+  useEffect(() => setSelectedWorkoutId(initialWorkoutId), [initialWorkoutId]);
 
   useEffect(() => {
     if (proposals.length === 0) return;
@@ -91,7 +123,9 @@ export function CoachConversation({ profileId }: { profileId: string }) {
     if (!value || sending) return;
     setSending(true);
     try {
-      setConversation(await sendCoachMessage(profileId, value));
+      setConversation(
+        await sendCoachMessage(profileId, value, {}, selectedWorkoutId),
+      );
       setQuestion("");
     } catch {
       setError(
@@ -218,6 +252,23 @@ export function CoachConversation({ profileId }: { profileId: string }) {
                 )}{" "}
                 sets
               </AppText>
+              <View
+                accessibilityLabel="Exercise-level proposal changes"
+                style={styles.changes}
+              >
+                <AppText variant="label">Exercise-level changes</AppText>
+                {proposal.changes.length === 0 ? (
+                  <AppText tone="secondary">
+                    No exercise changes were proposed.
+                  </AppText>
+                ) : (
+                  proposal.changes.map((change, index) => (
+                    <AppText key={`${change.kind}-${index}`} tone="secondary">
+                      {formatChange(change)}
+                    </AppText>
+                  ))
+                )}
+              </View>
               <PrimaryButton
                 disabled={sending || Boolean(confirmingProposalId)}
                 label={
@@ -232,6 +283,45 @@ export function CoachConversation({ profileId }: { profileId: string }) {
             </View>
           );
         })}
+        <View style={styles.reviewPicker}>
+          <AppText variant="label">Review one workout</AppText>
+          <AppText tone="secondary">
+            Choose the only workout the coach may review or propose changes to.
+          </AppText>
+          {workoutLoading ? (
+            <AppText tone="secondary">Loading workouts…</AppText>
+          ) : null}
+          {workoutError ? (
+            <AppText tone="secondary">
+              Workout selection is unavailable. Return to Plans and try again.
+            </AppText>
+          ) : null}
+          {!workoutLoading && !workoutError && workouts.length === 0 ? (
+            <AppText tone="secondary">
+              Create a workout in Plans before reviewing it.
+            </AppText>
+          ) : null}
+          {workouts.map((workout) => {
+            const selected = workout.id === selectedWorkoutId;
+            return (
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                key={workout.id}
+                onPress={() => setSelectedWorkoutId(workout.id)}
+                style={[
+                  styles.workoutChoice,
+                  selected && styles.workoutChoiceSelected,
+                ]}
+              >
+                <AppText tone={selected ? "accent" : "primary"} variant="label">
+                  {workout.name}
+                </AppText>
+                <AppText tone="secondary">Revision {workout.revision}</AppText>
+              </Pressable>
+            );
+          })}
+        </View>
         <View style={styles.composer}>
           <TextInput
             accessibilityLabel="Question for the AI coach"
@@ -239,7 +329,11 @@ export function CoachConversation({ profileId }: { profileId: string }) {
             maxLength={1000}
             multiline
             onChangeText={setQuestion}
-            placeholder="Ask a training question"
+            placeholder={
+              selectedWorkoutId
+                ? "Ask about the selected workout"
+                : "Ask a training question"
+            }
             placeholderTextColor={colors.textSecondary}
             style={styles.input}
             value={question}
@@ -298,7 +392,26 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   proposalNote: { fontSize: 13 },
+  changes: {
+    gap: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingTop: spacing.sm,
+  },
   basis: { fontSize: 13 },
+  reviewPicker: { gap: spacing.sm },
+  workoutChoice: {
+    minHeight: 44,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    justifyContent: "center",
+    paddingVertical: spacing.sm,
+  },
+  workoutChoiceSelected: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
+    paddingLeft: spacing.sm,
+  },
   composer: { gap: spacing.md },
   input: {
     minHeight: 108,
@@ -311,3 +424,17 @@ const styles = StyleSheet.create({
   },
   delete: { minHeight: 44, alignItems: "center", justifyContent: "center" },
 });
+
+function formatChange(
+  change: NonNullable<
+    CoachConversationDocument["proposals"]
+  >[number]["changes"][number],
+) {
+  const current = change.current?.name;
+  const proposed = change.proposed?.name;
+  if (change.kind === "substitution")
+    return `Substitute ${current} with ${proposed}.`;
+  if (change.kind === "addition") return `Add ${proposed}.`;
+  if (change.kind === "removal") return `Remove ${current}.`;
+  return `Change the prescription for ${current}.`;
+}

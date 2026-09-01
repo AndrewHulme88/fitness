@@ -84,7 +84,7 @@ internal static class CoachConversationEndpoints
             timeProvider.GetUtcNow());
         dbContext.Entry(coachMessage).State = EntityState.Added;
         var proposal = await CreateValidatedProposalAsync(
-            profileId, answer.Proposal, dbContext, timeProvider.GetUtcNow(), cancellationToken);
+            profileId, request.WorkoutId, answer.Proposal, dbContext, timeProvider.GetUtcNow(), cancellationToken);
         if (proposal is not null) dbContext.Add(proposal);
         try
         {
@@ -168,12 +168,15 @@ internal static class CoachConversationEndpoints
 
     private static async Task<CoachWorkoutProposal?> CreateValidatedProposalAsync(
         Guid profileId,
+        Guid? selectedWorkoutId,
         AiCoachWorkoutProposal? proposal,
         FitnessCoachDbContext dbContext,
         DateTimeOffset createdAt,
         CancellationToken cancellationToken)
     {
-        if (proposal is null
+        if (selectedWorkoutId is null
+            || proposal is null
+            || proposal.WorkoutId != selectedWorkoutId
             || string.IsNullOrWhiteSpace(proposal.Rationale)
             || proposal.Rationale.Length > 600
             || proposal.Rationale != proposal.Rationale.Trim()
@@ -211,15 +214,87 @@ internal static class CoachConversationEndpoints
     private static async Task<IReadOnlyList<AiCoachProposalResponse>> LoadPendingProposalsAsync(
         Guid profileId,
         FitnessCoachDbContext dbContext,
-        CancellationToken cancellationToken) => await dbContext.Set<CoachWorkoutProposal>()
+        CancellationToken cancellationToken)
+    {
+        var proposals = await dbContext.Set<CoachWorkoutProposal>()
             .AsNoTracking()
             .Where(item => item.ProfileId == profileId && item.ConfirmedAt == null)
             .OrderByDescending(item => item.CreatedAt)
             .Take(5)
-            .Select(item => new AiCoachProposalResponse(
-                item.Id, item.WorkoutId, item.ExpectedRevision, item.Rationale,
-                item.Name, item.Exercises, item.CreatedAt))
             .ToListAsync(cancellationToken);
+        if (proposals.Count == 0) return [];
+
+        var workoutIds = proposals.Select(item => item.WorkoutId).Distinct().ToArray();
+        var workouts = await dbContext.Set<WorkoutPlan>()
+            .AsNoTracking()
+            .Include(item => item.Exercises)
+            .Where(item => workoutIds.Contains(item.Id) && item.ProfileId == profileId)
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+        var exerciseIds = proposals.SelectMany(item => item.Exercises.Select(exercise => exercise.ExerciseId))
+            .Concat(workouts.Values.SelectMany(item => item.Exercises.Select(exercise => exercise.ExerciseId)))
+            .Distinct().ToArray();
+        var catalogue = await dbContext.Set<Exercise>()
+            .AsNoTracking()
+            .Where(item => exerciseIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+
+        return proposals.Select(proposal => new AiCoachProposalResponse(
+            proposal.Id, proposal.WorkoutId, proposal.ExpectedRevision, proposal.Rationale,
+            proposal.Name, proposal.Exercises,
+            workouts.TryGetValue(proposal.WorkoutId, out var workout)
+                ? BuildDiff(workout, proposal.Exercises, catalogue) : [],
+            proposal.CreatedAt)).ToArray();
+    }
+
+    private static List<AiCoachProposalChangeResponse> BuildDiff(
+        WorkoutPlan current,
+        IReadOnlyList<WorkoutExerciseRequest> proposed,
+        IReadOnlyDictionary<Guid, Exercise> catalogue)
+    {
+        var currentExercises = current.Exercises.OrderBy(item => item.Position).ToArray();
+        var currentIds = currentExercises.Select(item => item.ExerciseId).ToHashSet();
+        var proposedIds = proposed.Select(item => item.ExerciseId).ToHashSet();
+        var changes = new List<AiCoachProposalChangeResponse>();
+        foreach (var item in currentExercises.Where(item => proposedIds.Contains(item.ExerciseId)))
+        {
+            var replacement = proposed.Single(candidate => candidate.ExerciseId == item.ExerciseId);
+            if (!HasSamePrescription(item, replacement)) changes.Add(new(
+                AiCoachProposalChangeKind.PrescriptionChange,
+                MapExercise(item, catalogue), MapExercise(replacement, catalogue)));
+        }
+
+        var removals = currentExercises.Where(item => !proposedIds.Contains(item.ExerciseId)).ToArray();
+        var additions = proposed.Where(item => !currentIds.Contains(item.ExerciseId)).ToArray();
+        var substitutions = Math.Min(removals.Length, additions.Length);
+        for (var index = 0; index < substitutions; index++) changes.Add(new(
+            AiCoachProposalChangeKind.Substitution,
+            MapExercise(removals[index], catalogue), MapExercise(additions[index], catalogue)));
+        changes.AddRange(removals.Skip(substitutions).Select(item => new AiCoachProposalChangeResponse(
+            AiCoachProposalChangeKind.Removal, MapExercise(item, catalogue), null)));
+        changes.AddRange(additions.Skip(substitutions).Select(item => new AiCoachProposalChangeResponse(
+            AiCoachProposalChangeKind.Addition, null, MapExercise(item, catalogue))));
+        return changes;
+    }
+
+    private static bool HasSamePrescription(WorkoutPlanExercise current, WorkoutExerciseRequest proposed) =>
+        current.PlannedSets == proposed.PlannedSets
+        && current.MinimumRepetitions == proposed.MinimumRepetitions
+        && current.MaximumRepetitions == proposed.MaximumRepetitions
+        && current.TargetLoadKilograms == proposed.TargetLoadKilograms
+        && current.TargetDurationSeconds == proposed.TargetDurationSeconds
+        && current.TargetDistanceMetres == proposed.TargetDistanceMetres;
+
+    private static AiCoachProposalExerciseResponse MapExercise(
+        WorkoutPlanExercise exercise, IReadOnlyDictionary<Guid, Exercise> catalogue) => new(
+        exercise.ExerciseId, catalogue[exercise.ExerciseId].Name, catalogue[exercise.ExerciseId].TrackingMode,
+        exercise.PlannedSets, exercise.MinimumRepetitions, exercise.MaximumRepetitions,
+        exercise.TargetLoadKilograms, exercise.TargetDurationSeconds, exercise.TargetDistanceMetres);
+
+    private static AiCoachProposalExerciseResponse MapExercise(
+        WorkoutExerciseRequest exercise, IReadOnlyDictionary<Guid, Exercise> catalogue) => new(
+        exercise.ExerciseId, catalogue[exercise.ExerciseId].Name, catalogue[exercise.ExerciseId].TrackingMode,
+        exercise.PlannedSets, exercise.MinimumRepetitions, exercise.MaximumRepetitions,
+        exercise.TargetLoadKilograms, exercise.TargetDurationSeconds, exercise.TargetDistanceMetres);
 
     private static ProblemHttpResult ConversationChangedConflict() => TypedResults.Problem(
         detail: "The saved conversation changed while the coach was preparing a reply. Reload it before trying again.",

@@ -26,11 +26,16 @@ export async function sendCoachMessage(
   profileId: string,
   question: string,
   options: ApiRequestOptions = {},
+  workoutId?: string,
 ): Promise<CoachConversation> {
   return executeApiRequest(options, async (client, signal) => {
     const { data, error } = await client.POST(
       "/profiles/{profileId}/coach/conversation/messages",
-      { params: { path: { profileId } }, body: { question }, signal },
+      {
+        params: { path: { profileId } },
+        body: { question, workoutId },
+        signal,
+      },
     );
     if (error || !data) throw new Error("The coach is unavailable right now.");
     return data;

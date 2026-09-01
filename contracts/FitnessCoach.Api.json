@@ -1187,6 +1187,96 @@
   },
   "components": {
     "schemas": {
+      "AiCoachProposalChangeKind": {
+        "enum": ["addition", "removal", "substitution", "prescriptionChange"]
+      },
+      "AiCoachProposalChangeResponse": {
+        "required": ["kind", "current", "proposed"],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/AiCoachProposalChangeKind"
+          },
+          "current": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiCoachProposalExerciseResponse"
+              }
+            ]
+          },
+          "proposed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiCoachProposalExerciseResponse"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "AiCoachProposalExerciseResponse": {
+        "required": [
+          "exerciseId",
+          "name",
+          "trackingMode",
+          "plannedSets",
+          "minimumRepetitions",
+          "maximumRepetitions",
+          "targetLoadKilograms",
+          "targetDurationSeconds",
+          "targetDistanceMetres"
+        ],
+        "type": "object",
+        "properties": {
+          "exerciseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "trackingMode": {
+            "$ref": "#/components/schemas/ExerciseTrackingMode"
+          },
+          "plannedSets": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "minimumRepetitions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "maximumRepetitions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "targetLoadKilograms": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          },
+          "targetDurationSeconds": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
+          },
+          "targetDistanceMetres": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": ["null", "number", "string"],
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
       "AiCoachProposalResponse": {
         "required": [
           "id",
@@ -1195,6 +1285,7 @@
           "rationale",
           "name",
           "exercises",
+          "changes",
           "createdAt"
         ],
         "type": "object",
@@ -1224,6 +1315,12 @@
               "$ref": "#/components/schemas/WorkoutExerciseRequest"
             }
           },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiCoachProposalChangeResponse"
+            }
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1240,6 +1337,10 @@
         "properties": {
           "question": {
             "type": "string"
+          },
+          "workoutId": {
+            "type": ["null", "string"],
+            "format": "uuid"
           }
         },
         "additionalProperties": false

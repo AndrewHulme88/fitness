@@ -27,10 +27,10 @@ export default function WorkoutsRoute() {
   return (
     <WorkoutList
       onCreate={() => openPlanner()}
-      onCoach={() =>
+      onCoach={(workoutId) =>
         router.push({
           pathname: "/coach",
-          params: { profileId },
+          params: { profileId, ...(workoutId ? { workoutId } : {}) },
         } as unknown as Href)
       }
       onEdit={openPlanner}

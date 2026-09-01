@@ -121,7 +121,7 @@ public sealed class CoachConversationEndpointTests : IClassFixture<PostgreSqlApi
 
         using var sent = await client.PostAsJsonAsync(
             $"/profiles/{profileId}/coach/conversation/messages",
-            new { question = "Please adjust my workout." }, TestContext.Current.CancellationToken);
+            new { question = "Please adjust my workout.", workoutId = workout.Id }, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
         var conversation = await sent.Content.ReadFromJsonAsync<ConversationDocument>(TestContext.Current.CancellationToken);
         var proposal = Assert.Single(conversation?.Proposals ?? throw new InvalidOperationException("Expected proposal."));
@@ -135,6 +135,41 @@ public sealed class CoachConversationEndpointTests : IClassFixture<PostgreSqlApi
         var updated = await updatedResponse.Content.ReadFromJsonAsync<WorkoutDocument>(TestContext.Current.CancellationToken);
         Assert.Equal(2, updated?.Revision);
         Assert.Equal(52.5m, Assert.Single(updated?.Exercises ?? []).TargetLoadKilograms);
+    }
+
+    [Fact]
+    public async Task NamedWorkoutReviewUsesOnlyTheSelectedSnapshotAndReturnsAnExerciseDiff()
+    {
+        using var initialFactory = fixture.Factory.WithTestAuthentication();
+        using var initialClient = CreateClient(initialFactory, "coach-named-review");
+        var profileId = await CreateProfileAsync(initialClient);
+        var catalogue = ExerciseCatalogueManifestLoader.Load().Exercises;
+        var benchPressId = catalogue.Single(item => item.Slug == "barbell-bench-press").Id;
+        var pushUpId = catalogue.Single(item => item.Slug == "push-up").Id;
+        var workout = await CreateWorkoutAsync(initialClient, profileId, benchPressId);
+        var provider = new CapturingProposalProvider(new AiCoachWorkoutProposal(
+            workout.Id, workout.Revision, "A lower-equipment alternative.", workout.Name,
+            [new WorkoutExerciseRequest(pushUpId, 3, 8, 10, null, null, null)]));
+        using var factory = initialFactory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IAiCoachProvider>();
+            services.AddSingleton<IAiCoachProvider>(provider);
+        }));
+        using var client = CreateClient(factory, "coach-named-review");
+
+        using var sent = await client.PostAsJsonAsync(
+            $"/profiles/{profileId}/coach/conversation/messages",
+            new { question = "Review this named workout and suggest a conservative swap.", workoutId = workout.Id },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
+        var conversation = await sent.Content.ReadFromJsonAsync<ConversationDocument>(TestContext.Current.CancellationToken);
+        var proposal = Assert.Single(conversation?.Proposals ?? throw new InvalidOperationException("Expected proposal."));
+        var change = Assert.Single(proposal.Changes);
+        Assert.Equal("substitution", change.Kind);
+        Assert.Equal("Barbell Bench Press", change.Current?.Name);
+        Assert.Equal("Push-Up", change.Proposed?.Name);
+        Assert.Equal(workout.Id, provider.Request?.Context.Workout?.Id);
+        Assert.Single(provider.Request?.Context.Workout?.Exercises ?? []);
     }
 
     private static HttpClient CreateClient(WebApplicationFactory<Program> factory, string subject)
@@ -187,8 +222,10 @@ public sealed class CoachConversationEndpointTests : IClassFixture<PostgreSqlApi
         IReadOnlyList<MessageDocument> Messages,
         IReadOnlyList<ProposalDocument> Proposals);
     private sealed record MessageDocument(string Role, string? ResponseKind);
-    private sealed record ProposalDocument(Guid Id);
-    private sealed record WorkoutDocument(Guid Id, int Revision, IReadOnlyList<WorkoutExerciseDocument> Exercises);
+    private sealed record ProposalDocument(Guid Id, IReadOnlyList<ProposalChangeDocument> Changes);
+    private sealed record ProposalChangeDocument(string Kind, ProposalExerciseDocument? Current, ProposalExerciseDocument? Proposed);
+    private sealed record ProposalExerciseDocument(string Name);
+    private sealed record WorkoutDocument(Guid Id, int Revision, string Name, IReadOnlyList<WorkoutExerciseDocument> Exercises);
     private sealed record WorkoutExerciseDocument(decimal? TargetLoadKilograms);
 
     private sealed class BlockingProvider : IAiCoachProvider
@@ -218,5 +255,20 @@ public sealed class CoachConversationEndpointTests : IClassFixture<PostgreSqlApi
             CancellationToken cancellationToken) => Task.FromResult(
                 new AiCoachProviderResponse(
                     "Here is a reviewable change.", new AiCoachTokenUsage(1, 1), proposal));
+    }
+
+    private sealed class CapturingProposalProvider(AiCoachWorkoutProposal proposal) : IAiCoachProvider
+    {
+        public string Name => "capturing-proposal-test";
+        public AiCoachProviderRequest? Request { get; private set; }
+
+        public Task<AiCoachProviderResponse> RespondAsync(
+            AiCoachProviderRequest request,
+            CancellationToken cancellationToken)
+        {
+            Request = request;
+            return Task.FromResult(new AiCoachProviderResponse(
+                "Here is a reviewable substitution.", new AiCoachTokenUsage(1, 1), proposal));
+        }
     }
 }

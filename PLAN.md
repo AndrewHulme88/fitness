@@ -359,18 +359,25 @@ Verification completed on 2026-09-01:
 
 ## Phase 6 — AI coach capability expansion
 
-Status: pending
+Status: in progress
 
 Build useful, bounded AI-assisted review and proposal experiences without giving the model direct application or database authority.
 
 ### 6.1 Review one named workout with an exercise-level proposal diff
 
-Status: pending
+Status: in progress
 
 - Assemble an approved, bounded snapshot for one explicitly named workout: workout identity and revision, exercise names and tracking prescriptions, and relevant approved equipment.
 - Let the coach explain the recorded workout and draft conservative substitutions or prescription changes using strict structured output.
 - Present an exercise-level diff showing additions, removals, substitutions, and prescription changes before the user can apply anything.
 - Reuse deterministic ownership, catalogue, tracking-mode, bounds, revision, and confirmation checks; discard malformed, stale, or invalid proposals.
+
+Verification completed on 2026-09-01:
+
+- A coach request may name one owned workout. Its approved snapshot contains only that workout's identity, revision, exercise names, tracking prescriptions, and the profile's approved equipment; it does not provide a proposal-ready list of other plans.
+- The OpenAI prompt and structured output are versioned as `v2` and constrain any review-only proposal to that selected workout. The API refuses a proposal without a selected workout or one targeting another workout.
+- Pending proposals now return a server-derived exercise diff with named additions, removals, substitutions, and prescription changes. Each saved plan has a direct Review action that opens the coach with that workout selected; the coach also makes its selection state explicit and shows the diff before the existing confirmation action.
+- PostgreSQL integration coverage verifies the named snapshot and substitution diff. The complete backend suite passed 67 tests; the complete frontend suite passed 72 tests; format, strict typing, lint, and API-contract drift verification passed. Simulator visual and accessibility review remains outstanding because CoreSimulatorService is unavailable in this environment.
 
 ### 6.2 Add factual, bounded progress review
 
@@ -412,4 +419,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Implement Phase 6.1: review one explicitly named workout with an approved snapshot and exercise-level, confirmable proposal diff.
+Complete the Phase 6.1 simulator visual and accessibility review, then implement Phase 6.2: add factual, bounded progress review.
