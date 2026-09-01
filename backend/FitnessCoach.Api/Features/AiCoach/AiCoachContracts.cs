@@ -11,7 +11,8 @@ public sealed record AskAiCoachRequest
 public sealed record AiCoachResponse(
     AiCoachResponseKind Kind,
     string Message,
-    IReadOnlyList<string>? ContextSources = null);
+    IReadOnlyList<string>? ContextSources = null,
+    AiCoachWorkoutProposal? Proposal = null);
 
 public enum AiCoachResponseKind
 {
@@ -41,7 +42,8 @@ internal sealed record AiCoachProviderRequest(
 
 internal sealed record AiCoachProviderResponse(
     string? Message,
-    AiCoachTokenUsage Usage);
+    AiCoachTokenUsage Usage,
+    AiCoachWorkoutProposal? Proposal = null);
 
 internal sealed record AiCoachTokenUsage(int InputTokens, int OutputTokens)
 {

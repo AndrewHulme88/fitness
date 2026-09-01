@@ -343,12 +343,19 @@ Verification completed on 2026-08-31:
 
 ### 5.3 Add structured proposals with confirmation
 
-Status: pending
+Status: complete
 
 - Allow the model to propose a typed workout or program change.
 - Validate proposals using deterministic domain rules.
 - Present a clear diff and require explicit user confirmation.
 - Audit the accepted action without storing unnecessary sensitive reasoning.
+
+Verification completed on 2026-09-01:
+
+- The OpenAI adapter requests strict `json_schema` output containing concise advice and, only when appropriate, one optional typed existing-workout proposal. The provider has no tools or write access; malformed output and proposals that fail deterministic validation are discarded.
+- Pending proposals retain only the intended workout payload, short user-visible rationale, expected revision, and timestamps. The API validates profile ownership, curated exercise identifiers, tracking-mode-specific units, bounded prescriptions, and optimistic revision before it persists or confirms a proposal.
+- The coach screen loads the current workout to show the current name and revision beside the proposed name, exercise count, and set count. Applying is an explicit button press; a separate authenticated confirmation endpoint invokes the ordinary workout aggregate update and records `confirmed_at` for the accepted action.
+- A PostgreSQL integration test proves that a proposal does not alter a plan until confirmation. The complete backend suite passed 66 tests; the mobile suite passed 70 tests; frontend format, strict typing, and lint plus API-contract drift verification passed.
 
 ## Phase 6 — Beta hardening
 
@@ -374,4 +381,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Implement the provider-independent AI coach product boundary with deterministic fake-provider tests, minimized context, cancellation, usage accounting, and safe failure behavior.
+Begin Phase 6 beta-hardening work by selecting one bounded reliability, privacy, accessibility, or operational increment.

@@ -170,6 +170,61 @@
         }
       }
     },
+    "/profiles/{profileId}/coach/conversation/proposals/{proposalId}/confirm": {
+      "post": {
+        "tags": ["AI coach"],
+        "summary": "Confirm a validated coach workout proposal",
+        "operationId": "ConfirmCoachWorkoutProposal",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/exercises": {
       "get": {
         "tags": ["Exercises"],
@@ -1132,6 +1187,50 @@
   },
   "components": {
     "schemas": {
+      "AiCoachProposalResponse": {
+        "required": [
+          "id",
+          "workoutId",
+          "expectedRevision",
+          "rationale",
+          "name",
+          "exercises",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["integer", "string"],
+            "format": "int32"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutExerciseRequest"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "AiCoachResponseKind": {
         "enum": ["advice", "safetyLimited", "unavailable", null]
       },
@@ -1146,7 +1245,7 @@
         "additionalProperties": false
       },
       "CoachConversationResponse": {
-        "required": ["id", "messages"],
+        "required": ["id", "messages", "proposals"],
         "type": "object",
         "properties": {
           "id": {
@@ -1157,6 +1256,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CoachMessageResponse"
+            }
+          },
+          "proposals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiCoachProposalResponse"
             }
           }
         },

@@ -4,6 +4,9 @@ import { executeApiRequest, type ApiRequestOptions } from "./request";
 export type CoachConversation =
   components["schemas"]["CoachConversationResponse"];
 
+export type CoachWorkoutProposal =
+  components["schemas"]["AiCoachProposalResponse"];
+
 export async function getCoachConversation(
   profileId: string,
   options: ApiRequestOptions = {},
@@ -44,5 +47,19 @@ export async function deleteCoachConversation(
       { params: { path: { profileId } }, signal },
     );
     if (error) throw new Error("The coach conversation could not be deleted.");
+  });
+}
+
+export async function confirmCoachWorkoutProposal(
+  profileId: string,
+  proposalId: string,
+  options: ApiRequestOptions = {},
+): Promise<void> {
+  return executeApiRequest(options, async (client, signal) => {
+    const { error } = await client.POST(
+      "/profiles/{profileId}/coach/conversation/proposals/{proposalId}/confirm",
+      { params: { path: { profileId, proposalId } }, signal },
+    );
+    if (error) throw new Error("The proposal could not be applied.");
   });
 }

@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 
 using FitnessCoach.Api.Features.AiCoach;
+using FitnessCoach.Api.Features.Exercises;
+using FitnessCoach.Api.Features.Workouts;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -98,6 +100,43 @@ public sealed class CoachConversationEndpointTests : IClassFixture<PostgreSqlApi
         Assert.Equal(HttpStatusCode.Conflict, send.StatusCode);
     }
 
+    [Fact]
+    public async Task ValidProposalIsPersistedAndUpdatesItsWorkoutOnlyAfterConfirmation()
+    {
+        using var initialFactory = fixture.Factory.WithTestAuthentication();
+        using var initialClient = CreateClient(initialFactory, "coach-proposal");
+        var profileId = await CreateProfileAsync(initialClient);
+        var exerciseId = ExerciseCatalogueManifestLoader.Load().Exercises
+            .Single(item => item.Slug == "barbell-bench-press").Id;
+        var workout = await CreateWorkoutAsync(initialClient, profileId, exerciseId);
+        var provider = new ProposalProvider(new AiCoachWorkoutProposal(
+            workout.Id, workout.Revision, "A small, reviewable progression.", "Upper strength",
+            [new WorkoutExerciseRequest(exerciseId, 3, 8, 10, 52.5m, null, null)]));
+        using var factory = initialFactory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IAiCoachProvider>();
+            services.AddSingleton<IAiCoachProvider>(provider);
+        }));
+        using var client = CreateClient(factory, "coach-proposal");
+
+        using var sent = await client.PostAsJsonAsync(
+            $"/profiles/{profileId}/coach/conversation/messages",
+            new { question = "Please adjust my workout." }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
+        var conversation = await sent.Content.ReadFromJsonAsync<ConversationDocument>(TestContext.Current.CancellationToken);
+        var proposal = Assert.Single(conversation?.Proposals ?? throw new InvalidOperationException("Expected proposal."));
+
+        using var confirmation = await client.PostAsync(
+            $"/profiles/{profileId}/coach/conversation/proposals/{proposal.Id}/confirm",
+            null, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, confirmation.StatusCode);
+        using var updatedResponse = await client.GetAsync(
+            $"/profiles/{profileId}/workouts/{workout.Id}", TestContext.Current.CancellationToken);
+        var updated = await updatedResponse.Content.ReadFromJsonAsync<WorkoutDocument>(TestContext.Current.CancellationToken);
+        Assert.Equal(2, updated?.Revision);
+        Assert.Equal(52.5m, Assert.Single(updated?.Exercises ?? []).TargetLoadKilograms);
+    }
+
     private static HttpClient CreateClient(WebApplicationFactory<Program> factory, string subject)
     {
         var client = factory.CreateClient();
@@ -122,9 +161,35 @@ public sealed class CoachConversationEndpointTests : IClassFixture<PostgreSqlApi
         return profile?.Id ?? throw new InvalidOperationException("Expected a profile.");
     }
 
+    private static async Task<WorkoutDocument> CreateWorkoutAsync(HttpClient client, Guid profileId, Guid exerciseId)
+    {
+        using var response = await client.PostAsJsonAsync(
+            $"/profiles/{profileId}/workouts",
+            new
+            {
+                name = "Upper strength",
+                exercises = new[]
+                {
+                    new
+                    {
+                        exerciseId, plannedSets = 3, minimumRepetitions = 8, maximumRepetitions = 10,
+                        targetLoadKilograms = 50m, targetDurationSeconds = (int?)null, targetDistanceMetres = (decimal?)null,
+                    },
+                },
+            }, TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<WorkoutDocument>(TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException("Expected workout.");
+    }
+
     private sealed record ProfileDocument(Guid Id);
-    private sealed record ConversationDocument(IReadOnlyList<MessageDocument> Messages);
+    private sealed record ConversationDocument(
+        IReadOnlyList<MessageDocument> Messages,
+        IReadOnlyList<ProposalDocument> Proposals);
     private sealed record MessageDocument(string Role, string? ResponseKind);
+    private sealed record ProposalDocument(Guid Id);
+    private sealed record WorkoutDocument(Guid Id, int Revision, IReadOnlyList<WorkoutExerciseDocument> Exercises);
+    private sealed record WorkoutExerciseDocument(decimal? TargetLoadKilograms);
 
     private sealed class BlockingProvider : IAiCoachProvider
     {
@@ -142,5 +207,16 @@ public sealed class CoachConversationEndpointTests : IClassFixture<PostgreSqlApi
             return new AiCoachProviderResponse(
                 "Start with a short, gradual warm-up.", new AiCoachTokenUsage(1, 1));
         }
+    }
+
+    private sealed class ProposalProvider(AiCoachWorkoutProposal proposal) : IAiCoachProvider
+    {
+        public string Name => "proposal-test";
+
+        public Task<AiCoachProviderResponse> RespondAsync(
+            AiCoachProviderRequest request,
+            CancellationToken cancellationToken) => Task.FromResult(
+                new AiCoachProviderResponse(
+                    "Here is a reviewable change.", new AiCoachTokenUsage(1, 1), proposal));
     }
 }

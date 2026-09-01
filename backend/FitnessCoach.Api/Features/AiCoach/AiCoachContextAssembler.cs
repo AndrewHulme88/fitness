@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using FitnessCoach.Api.Features.Profiles;
 using FitnessCoach.Api.Features.Sessions;
 using FitnessCoach.Api.Features.Workouts;
@@ -43,6 +45,38 @@ internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) :
                     "Current workout plans",
                     string.Join("; ", plans.Select(item => $"{item.Name} ({item.ExerciseCount} exercises)"))));
             }
+
+            if (ShouldIncludeProposalContext(question))
+            {
+                var proposalPlans = await dbContext.Set<WorkoutPlan>()
+                    .AsNoTracking()
+                    .Include(item => item.Exercises)
+                    .Where(item => item.ProfileId == profileId)
+                    .OrderByDescending(item => item.UpdatedAt)
+                    .Take(5)
+                    .ToListAsync(cancellationToken);
+                if (proposalPlans.Count > 0)
+                {
+                    facts.Add(new AiCoachContextFact(
+                        "Proposal-ready workouts",
+                        JsonSerializer.Serialize(proposalPlans.Select(item => new
+                        {
+                            item.Id,
+                            item.Revision,
+                            item.Name,
+                            Exercises = item.Exercises.OrderBy(exercise => exercise.Position).Select(exercise => new
+                            {
+                                exercise.ExerciseId,
+                                exercise.PlannedSets,
+                                exercise.MinimumRepetitions,
+                                exercise.MaximumRepetitions,
+                                exercise.TargetLoadKilograms,
+                                exercise.TargetDurationSeconds,
+                                exercise.TargetDistanceMetres,
+                            }),
+                        }))));
+                }
+            }
         }
 
         if (ShouldIncludeHistoryContext(question))
@@ -75,6 +109,9 @@ internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) :
 
     private static bool ShouldIncludeHistoryContext(string question) => ContainsAny(
         question, "recent", "history", "progress", "last", "volume", "performance");
+
+    private static bool ShouldIncludeProposalContext(string question) => ContainsAny(
+        question, "change", "adjust", "update", "modify", "swap", "replace", "proposal");
 
     private static bool ContainsAny(string value, params string[] terms) => terms.Any(
         term => value.Contains(term, StringComparison.OrdinalIgnoreCase));

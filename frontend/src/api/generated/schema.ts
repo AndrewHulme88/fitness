@@ -73,6 +73,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/profiles/{profileId}/coach/conversation/proposals/{proposalId}/confirm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Confirm a validated coach workout proposal */
+    post: operations["ConfirmCoachWorkoutProposal"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/exercises": {
     parameters: {
       query?: never;
@@ -302,6 +319,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    AiCoachProposalResponse: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      workoutId: string;
+      /** Format: int32 */
+      expectedRevision: number | string;
+      rationale: string;
+      name: string;
+      exercises: components["schemas"]["WorkoutExerciseRequest"][];
+      /** Format: date-time */
+      createdAt: string;
+    };
     /** @enum {unknown} */
     AiCoachResponseKind: "advice" | "safetyLimited" | "unavailable" | null;
     AskAiCoachRequest: {
@@ -311,6 +341,7 @@ export interface components {
       /** Format: uuid */
       id: string;
       messages: components["schemas"]["CoachMessageResponse"][];
+      proposals: components["schemas"]["AiCoachProposalResponse"][];
     };
     CoachMessageResponse: {
       /** Format: uuid */
@@ -858,6 +889,52 @@ export interface operations {
         content: {
           "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
         };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  ConfirmCoachWorkoutProposal: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+        proposalId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Conflict */
       409: {

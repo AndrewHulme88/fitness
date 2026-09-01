@@ -1,4 +1,6 @@
 using FitnessCoach.Api.Features.Identity;
+using FitnessCoach.Api.Features.Exercises;
+using FitnessCoach.Api.Features.Workouts;
 using FitnessCoach.Api.Persistence;
 
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -23,6 +25,10 @@ internal static class CoachConversationEndpoints
             .WithName("SendCoachMessage")
             .WithSummary("Ask the read-only AI coach")
             .ProducesProblem(StatusCodes.Status409Conflict);
+        coach.MapPost("/proposals/{proposalId:guid}/confirm", ConfirmProposalAsync)
+            .WithName("ConfirmCoachWorkoutProposal")
+            .WithSummary("Confirm a validated coach workout proposal")
+            .ProducesProblem(StatusCodes.Status409Conflict);
         coach.MapDelete("/", DeleteAsync).WithName("DeleteCoachConversation").WithSummary("Delete the retained coach conversation");
         return endpoints;
     }
@@ -31,7 +37,9 @@ internal static class CoachConversationEndpoints
         Guid profileId, FitnessCoachDbContext dbContext, CancellationToken cancellationToken)
     {
         var conversation = await LoadAsync(profileId, dbContext, cancellationToken);
-        return conversation is null ? TypedResults.NotFound() : TypedResults.Ok(Map(conversation));
+        return conversation is null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(Map(conversation, await LoadPendingProposalsAsync(profileId, dbContext, cancellationToken)));
     }
 
     private static async Task<Results<
@@ -75,6 +83,9 @@ internal static class CoachConversationEndpoints
             answer.ContextSources ?? [],
             timeProvider.GetUtcNow());
         dbContext.Entry(coachMessage).State = EntityState.Added;
+        var proposal = await CreateValidatedProposalAsync(
+            profileId, answer.Proposal, dbContext, timeProvider.GetUtcNow(), cancellationToken);
+        if (proposal is not null) dbContext.Add(proposal);
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -88,7 +99,8 @@ internal static class CoachConversationEndpoints
             return ConversationChangedConflict();
         }
 
-        return TypedResults.Ok(Map(conversation));
+        var proposals = await LoadPendingProposalsAsync(profileId, dbContext, cancellationToken);
+        return TypedResults.Ok(Map(conversation, proposals));
     }
 
     private static async Task<Results<NoContent, NotFound>> DeleteAsync(
@@ -101,12 +113,49 @@ internal static class CoachConversationEndpoints
         return TypedResults.NoContent();
     }
 
+    private static async Task<Results<NoContent, NotFound, ValidationProblem, ProblemHttpResult>> ConfirmProposalAsync(
+        Guid profileId,
+        Guid proposalId,
+        FitnessCoachDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var proposal = await dbContext.Set<CoachWorkoutProposal>()
+            .SingleOrDefaultAsync(item => item.Id == proposalId && item.ProfileId == profileId, cancellationToken);
+        if (proposal is null) return TypedResults.NotFound();
+        if (proposal.IsConfirmed) return ProposalChangedConflict();
+
+        var workout = await dbContext.Set<WorkoutPlan>()
+            .Include(item => item.Exercises)
+            .SingleOrDefaultAsync(item => item.Id == proposal.WorkoutId && item.ProfileId == profileId, cancellationToken);
+        if (workout is null || workout.Revision != proposal.ExpectedRevision) return ProposalChangedConflict();
+
+        var exercises = await LoadExercisesAsync(proposal.Exercises, dbContext, cancellationToken);
+        var errors = WorkoutRequestValidator.Validate(proposal.Name, proposal.Exercises, exercises, out var inputs);
+        if (errors.Count > 0) return TypedResults.ValidationProblem(errors);
+
+        workout.Update(proposal.Name, inputs, timeProvider.GetUtcNow());
+        proposal.Confirm(timeProvider.GetUtcNow());
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ProposalChangedConflict();
+        }
+
+        return TypedResults.NoContent();
+    }
+
     private static Task<CoachConversation?> LoadAsync(
         Guid profileId, FitnessCoachDbContext dbContext, CancellationToken cancellationToken) => dbContext.Set<CoachConversation>()
             .Include(item => item.Messages)
             .SingleOrDefaultAsync(item => item.ProfileId == profileId, cancellationToken);
 
-    private static CoachConversationResponse Map(CoachConversation conversation) => new(
+    private static CoachConversationResponse Map(
+        CoachConversation conversation,
+        IReadOnlyList<AiCoachProposalResponse> proposals) => new(
         conversation.Id,
         conversation.Messages.OrderBy(item => item.CreatedAt).Select(item => new CoachMessageResponse(
             item.Id,
@@ -114,12 +163,73 @@ internal static class CoachConversationEndpoints
             item.Content,
             item.ResponseKind,
             item.ContextSources,
-            item.CreatedAt)).ToArray());
+            item.CreatedAt)).ToArray(),
+        proposals);
+
+    private static async Task<CoachWorkoutProposal?> CreateValidatedProposalAsync(
+        Guid profileId,
+        AiCoachWorkoutProposal? proposal,
+        FitnessCoachDbContext dbContext,
+        DateTimeOffset createdAt,
+        CancellationToken cancellationToken)
+    {
+        if (proposal is null
+            || string.IsNullOrWhiteSpace(proposal.Rationale)
+            || proposal.Rationale.Length > 600
+            || proposal.Rationale != proposal.Rationale.Trim()
+            || proposal.Exercises is null)
+        {
+            return null;
+        }
+
+        var workout = await dbContext.Set<WorkoutPlan>()
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == proposal.WorkoutId && item.ProfileId == profileId,
+                cancellationToken);
+        if (workout is null || workout.Revision != proposal.ExpectedRevision) return null;
+
+        var exercises = await LoadExercisesAsync(proposal.Exercises, dbContext, cancellationToken);
+        var errors = WorkoutRequestValidator.Validate(proposal.Name, proposal.Exercises, exercises, out _);
+        return errors.Count == 0 ? new CoachWorkoutProposal(profileId, proposal, createdAt) : null;
+    }
+
+    private static Task<Dictionary<Guid, Exercise>> LoadExercisesAsync(
+        IEnumerable<WorkoutExerciseRequest> requests,
+        FitnessCoachDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var ids = requests.Select(item => item.ExerciseId).Distinct().ToArray();
+        return dbContext.Set<Exercise>()
+            .AsNoTracking()
+            .Where(item => ids.Contains(item.Id))
+            .Include(item => item.Muscles)
+            .AsSplitQuery()
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<AiCoachProposalResponse>> LoadPendingProposalsAsync(
+        Guid profileId,
+        FitnessCoachDbContext dbContext,
+        CancellationToken cancellationToken) => await dbContext.Set<CoachWorkoutProposal>()
+            .AsNoTracking()
+            .Where(item => item.ProfileId == profileId && item.ConfirmedAt == null)
+            .OrderByDescending(item => item.CreatedAt)
+            .Take(5)
+            .Select(item => new AiCoachProposalResponse(
+                item.Id, item.WorkoutId, item.ExpectedRevision, item.Rationale,
+                item.Name, item.Exercises, item.CreatedAt))
+            .ToListAsync(cancellationToken);
 
     private static ProblemHttpResult ConversationChangedConflict() => TypedResults.Problem(
         detail: "The saved conversation changed while the coach was preparing a reply. Reload it before trying again.",
         statusCode: StatusCodes.Status409Conflict,
         title: "The coach conversation changed.");
+
+    private static ProblemHttpResult ProposalChangedConflict() => TypedResults.Problem(
+        detail: "The workout or proposal changed before confirmation. Review the current workout before trying again.",
+        statusCode: StatusCodes.Status409Conflict,
+        title: "The proposal can no longer be applied.");
 
     private static bool IsConversationDeleted(DbUpdateException exception) =>
         exception.InnerException is PostgresException

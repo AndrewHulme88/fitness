@@ -110,7 +110,8 @@ internal sealed class AiCoachService(
             return new AiCoachResponse(
                 AiCoachResponseKind.Advice,
                 advice.Trim(),
-                context.Facts?.Select(item => item.Source).ToArray() ?? []);
+                context.Facts?.Select(item => item.Source).ToArray() ?? [],
+                providerResponse.Proposal);
         }
         finally
         {

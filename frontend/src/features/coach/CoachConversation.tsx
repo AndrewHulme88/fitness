@@ -10,22 +10,31 @@ import {
 
 import {
   deleteCoachConversation,
+  confirmCoachWorkoutProposal,
   getCoachConversation,
   sendCoachMessage,
   type CoachConversation as CoachConversationDocument,
 } from "../../api/coach";
+import { getWorkout, type WorkoutDetail } from "../../api/workouts";
 import { AppScreen } from "../../components/AppScreen";
 import { AppText } from "../../components/AppText";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { RouteStatus } from "../../components/RouteStatus";
 import { colors, layout, radii, spacing } from "../../theme/tokens";
 
+const emptyProposals: NonNullable<CoachConversationDocument["proposals"]> = [];
+
 export function CoachConversation({ profileId }: { profileId: string }) {
   const [conversation, setConversation] = useState<CoachConversationDocument>();
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [confirmingProposalId, setConfirmingProposalId] = useState<string>();
+  const [proposalWorkouts, setProposalWorkouts] = useState<
+    Record<string, WorkoutDetail>
+  >({});
   const [error, setError] = useState<string>();
+  const proposals = conversation?.proposals ?? emptyProposals;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,6 +48,25 @@ export function CoachConversation({ profileId }: { profileId: string }) {
       .finally(() => !controller.signal.aborted && setLoading(false));
     return () => controller.abort();
   }, [profileId]);
+
+  useEffect(() => {
+    if (proposals.length === 0) return;
+    let active = true;
+    void Promise.all(
+      proposals.map(
+        async (proposal) =>
+          [
+            proposal.workoutId,
+            await getWorkout(profileId, proposal.workoutId),
+          ] as const,
+      ),
+    ).then((entries) => {
+      if (active) setProposalWorkouts(Object.fromEntries(entries));
+    });
+    return () => {
+      active = false;
+    };
+  }, [profileId, proposals]);
 
   if (loading)
     return (
@@ -96,6 +124,30 @@ export function CoachConversation({ profileId }: { profileId: string }) {
     );
   };
 
+  const confirmProposal = async (proposalId: string) => {
+    if (sending || confirmingProposalId) return;
+    setConfirmingProposalId(proposalId);
+    try {
+      await confirmCoachWorkoutProposal(profileId, proposalId);
+      setConversation((current) =>
+        current
+          ? {
+              ...current,
+              proposals: (current.proposals ?? []).filter(
+                (proposal) => proposal.id !== proposalId,
+              ),
+            }
+          : current,
+      );
+    } catch {
+      setError(
+        "The proposal could not be applied. Review your current workout and try again.",
+      );
+    } finally {
+      setConfirmingProposalId(undefined);
+    }
+  };
+
   return (
     <AppScreen>
       <ScrollView
@@ -146,6 +198,40 @@ export function CoachConversation({ profileId }: { profileId: string }) {
             </AppText>
           ) : null}
         </View>
+        {proposals.map((proposal) => {
+          const currentWorkout = proposalWorkouts[proposal.workoutId];
+          const isConfirming = confirmingProposalId === proposal.id;
+          return (
+            <View key={proposal.id} style={styles.proposal}>
+              <AppText variant="label">Proposed workout change</AppText>
+              <AppText>{proposal.rationale}</AppText>
+              <AppText tone="secondary">
+                Current: {currentWorkout?.name ?? "Loading workout"} · revision{" "}
+                {proposal.expectedRevision}
+              </AppText>
+              <AppText tone="secondary">
+                Proposed: {proposal.name} · {proposal.exercises.length}{" "}
+                exercises,{" "}
+                {proposal.exercises.reduce(
+                  (total, exercise) => total + Number(exercise.plannedSets),
+                  0,
+                )}{" "}
+                sets
+              </AppText>
+              <PrimaryButton
+                disabled={sending || Boolean(confirmingProposalId)}
+                label={
+                  isConfirming ? "Applying change…" : "Apply proposed change"
+                }
+                onPress={() => void confirmProposal(proposal.id)}
+              />
+              <AppText tone="secondary" style={styles.proposalNote}>
+                Applying this updates your workout. You can still edit it
+                afterwards.
+              </AppText>
+            </View>
+          );
+        })}
         <View style={styles.composer}>
           <TextInput
             accessibilityLabel="Question for the AI coach"
@@ -203,6 +289,15 @@ const styles = StyleSheet.create({
     borderRadius: radii.panel,
     padding: spacing.md,
   },
+  proposal: {
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radii.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  proposalNote: { fontSize: 13 },
   basis: { fontSize: 13 },
   composer: { gap: spacing.md },
   input: {

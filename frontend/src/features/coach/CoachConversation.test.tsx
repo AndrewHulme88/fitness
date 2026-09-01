@@ -29,13 +29,15 @@ describe("CoachConversation", () => {
     mockGetCoachConversation.mockReset().mockResolvedValue({
       id: "20000000-0000-0000-0000-000000000002",
       messages: [],
+      proposals: [],
     });
     mockSendCoachMessage.mockReset();
   });
 
   it("does not allow deleting a saved conversation while a reply is pending", async () => {
     let resolveSend:
-      ((value: { id: string; messages: [] }) => void) | undefined;
+      | ((value: { id: string; messages: []; proposals: [] }) => void)
+      | undefined;
     mockSendCoachMessage.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -62,7 +64,19 @@ describe("CoachConversation", () => {
       resolveSend?.({
         id: "20000000-0000-0000-0000-000000000002",
         messages: [],
+        proposals: [],
       }),
     );
+  });
+
+  it("renders a conversation returned by the previous API contract", async () => {
+    mockGetCoachConversation.mockResolvedValue({
+      id: "20000000-0000-0000-0000-000000000002",
+      messages: [],
+    } as never);
+
+    render(<CoachConversation profileId={profileId} />);
+
+    expect(await screen.findByText("Delete saved conversation")).toBeTruthy();
   });
 });

@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
+
 using FitnessCoach.Api.Features.Workouts;
 
 namespace FitnessCoach.Api.Features.AiCoach;
@@ -10,7 +13,9 @@ internal sealed class CoachWorkoutProposal
     {
         Id = Guid.NewGuid(); ProfileId = profileId; WorkoutId = proposal.WorkoutId;
         ExpectedRevision = proposal.ExpectedRevision; Rationale = proposal.Rationale;
-        Name = proposal.Name; Exercises = proposal.Exercises.ToArray(); CreatedAt = createdAt;
+        Name = proposal.Name;
+        ExercisesJson = JsonSerializer.Serialize(proposal.Exercises);
+        CreatedAt = createdAt;
     }
 
     public Guid Id { get; private set; }
@@ -19,9 +24,21 @@ internal sealed class CoachWorkoutProposal
     public int ExpectedRevision { get; private set; }
     public string Rationale { get; private set; } = string.Empty;
     public string Name { get; private set; } = string.Empty;
-    public WorkoutExerciseRequest[] Exercises { get; private set; } = [];
+    public string ExercisesJson { get; private set; } = "[]";
+    [NotMapped]
+    public WorkoutExerciseRequest[] Exercises => JsonSerializer.Deserialize<WorkoutExerciseRequest[]>(ExercisesJson) ?? [];
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? ConfirmedAt { get; private set; }
 
-    public void Confirm(DateTimeOffset confirmedAt) => ConfirmedAt = confirmedAt;
+    public bool IsConfirmed => ConfirmedAt is not null;
+
+    public void Confirm(DateTimeOffset confirmedAt)
+    {
+        if (ConfirmedAt is not null)
+        {
+            throw new InvalidOperationException("A proposal can be confirmed only once.");
+        }
+
+        ConfirmedAt = confirmedAt;
+    }
 }
