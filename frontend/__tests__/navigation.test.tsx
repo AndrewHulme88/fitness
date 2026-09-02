@@ -11,9 +11,11 @@ import { getCurrentAccount } from "../src/api/accounts";
 import { listWorkouts } from "../src/api/workouts";
 import {
   loadStoredProfile,
+  removeStoredProfile,
   saveStoredProfile,
 } from "../src/features/onboarding/profile-storage";
 import { loadAccessToken } from "../src/features/auth/cognito";
+import { removeStoredSession } from "../src/features/sessions/session-storage";
 
 jest.mock("../src/api/profiles", () => ({
   createTrainingProfile: jest.fn(),
@@ -29,10 +31,12 @@ jest.mock("../src/api/workouts", () => ({
 }));
 jest.mock("../src/features/onboarding/profile-storage", () => ({
   loadStoredProfile: jest.fn(),
+  removeStoredProfile: jest.fn(),
   saveStoredProfile: jest.fn(),
 }));
 jest.mock("../src/features/sessions/session-storage", () => ({
   loadStoredSession: jest.fn(),
+  removeStoredSession: jest.fn(),
 }));
 jest.mock("../src/features/auth/cognito", () => ({
   loadAccessToken: jest.fn(),
@@ -43,8 +47,10 @@ const getCurrentAccountMock = jest.mocked(getCurrentAccount);
 const getTrainingProfileMock = jest.mocked(getTrainingProfile);
 const listWorkoutsMock = jest.mocked(listWorkouts);
 const loadStoredProfileMock = jest.mocked(loadStoredProfile);
+const removeStoredProfileMock = jest.mocked(removeStoredProfile);
 const saveStoredProfileMock = jest.mocked(saveStoredProfile);
 const loadAccessTokenMock = jest.mocked(loadAccessToken);
+const removeStoredSessionMock = jest.mocked(removeStoredSession);
 const profile = {
   id: "6bf68a92-f5f8-40e5-a112-5330d83e31ed",
   goals: ["buildStrength" as const],
@@ -61,15 +67,19 @@ describe("initial navigation shell", () => {
     getTrainingProfileMock.mockReset();
     listWorkoutsMock.mockReset();
     loadStoredProfileMock.mockReset();
+    removeStoredProfileMock.mockReset();
     saveStoredProfileMock.mockReset();
     loadAccessTokenMock.mockReset();
+    removeStoredSessionMock.mockReset();
     createTrainingProfileMock.mockResolvedValue(profile);
     getCurrentAccountMock.mockResolvedValue({ profileId: null });
     getTrainingProfileMock.mockResolvedValue(profile);
     listWorkoutsMock.mockResolvedValue({ items: [], nextOffset: null });
     loadStoredProfileMock.mockResolvedValue(null);
-    saveStoredProfileMock.mockResolvedValue();
+    removeStoredProfileMock.mockResolvedValue(true);
+    saveStoredProfileMock.mockResolvedValue(undefined);
     loadAccessTokenMock.mockResolvedValue("access-token");
+    removeStoredSessionMock.mockResolvedValue(true);
   });
 
   it("moves from onboarding into workout planning with the profile context", async () => {
@@ -144,5 +154,42 @@ describe("initial navigation shell", () => {
       profileId: profile.id,
       unitSystem: "metric",
     });
+  });
+
+  it("clears another account's local workout before restoring this account", async () => {
+    const otherProfileId = "20b843e5-4194-423d-a406-0418969178f5";
+    loadStoredProfileMock.mockResolvedValue({
+      schemaVersion: 1,
+      profileId: otherProfileId,
+      unitSystem: "imperial",
+    });
+    getCurrentAccountMock.mockResolvedValue({ profileId: profile.id });
+
+    const router = renderRouter("./src/app", { initialUrl: "/" });
+
+    await waitFor(() => expect(router.getPathname()).toBe("/workouts"));
+    expect(removeStoredSessionMock).toHaveBeenCalledWith(otherProfileId);
+    expect(getTrainingProfileMock).toHaveBeenCalledWith(profile.id);
+    expect(saveStoredProfileMock).toHaveBeenCalledWith({
+      schemaVersion: 1,
+      profileId: profile.id,
+      unitSystem: "metric",
+    });
+  });
+
+  it("clears local fitness cache when the signed-in account has no profile", async () => {
+    loadStoredProfileMock.mockResolvedValue({
+      schemaVersion: 1,
+      profileId: profile.id,
+      unitSystem: "metric",
+    });
+    getCurrentAccountMock.mockResolvedValue({ profileId: null });
+
+    const router = renderRouter("./src/app", { initialUrl: "/" });
+
+    await waitFor(() => expect(router.getPathname()).toBe("/onboarding"));
+    expect(removeStoredSessionMock).toHaveBeenCalledWith(profile.id);
+    expect(removeStoredProfileMock).toHaveBeenCalledTimes(1);
+    expect(getTrainingProfileMock).not.toHaveBeenCalled();
   });
 });

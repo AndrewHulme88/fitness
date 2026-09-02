@@ -414,14 +414,55 @@ Verification completed on 2026-09-02:
 
 ## Phase 7 — Beta hardening
 
+Status: in progress
+
+Each item below is a separate increment. Do not combine release gates simply because they are all required before beta.
+
+### 7.1 Reconcile authenticated local cache before restoring fitness state
+
+Status: complete
+
+- Treat the authenticated `/account` profile association as authoritative before using the device-local profile or active-workout cache.
+- Clear a previous account's profile-bound active-workout cache before restoring the newly authenticated account, and clear both cache records when the account has no profile.
+- Refresh the current profile from the API so profile preferences changed on another device are not inferred from stale local state.
+
+Acceptance:
+
+- Switching accounts on one device cannot route a person into another account's cached active workout.
+- A server account with no profile cannot retain an accessible local profile or active-workout cache.
+- Focused navigation tests prove cache cleanup and the ordinary authenticated restore flow.
+
+### 7.2 Define and prove active-workout multi-device conflict recovery
+
 Status: pending
 
-- Harden authenticated multi-device synchronization and local-cache lifecycle behavior.
-- Add monitoring, crash reporting, rate limits, backups, and restore verification.
-- Complete accessibility, threat-model, privacy, and AI-safety reviews.
-- Establish stable client, API, database, and AI performance baselines.
-- Prepare synthetic demo data, app-store materials, and a manual release checklist.
-- Test on supported physical iOS devices before beta distribution.
+- Specify server-wins, device-copy, retry, and completion behavior for concurrent active-session mutations from two authenticated devices.
+- Add PostgreSQL integration and client-state coverage for the chosen conflict paths.
+
+### 7.3 Add production observability, abuse controls, and recovery operations
+
+Status: pending
+
+- Add privacy-safe monitoring, crash reporting, rate limits, backup configuration, and a documented restore verification drill.
+
+### 7.4 Complete beta security, privacy, accessibility, and AI-safety reviews
+
+Status: pending
+
+- Complete the required threat model and review evidence without adding unsupported health or AI scope.
+
+### 7.5 Establish representative beta performance baselines
+
+Status: pending
+
+- Measure stable client, API, database, and AI paths with synthetic bounded workloads and record meaningful baseline context.
+
+### 7.6 Prepare beta release evidence and physical-device validation
+
+Status: pending
+
+- Prepare synthetic demo data, app-store materials, a manual release checklist, and supported physical-iPhone verification before beta distribution.
+
 
 ## Later, evidence-driven possibilities
 
@@ -436,4 +477,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Plan the first narrow Phase 7 beta-hardening increment.
+Implement Phase 7.2: define and prove active-workout multi-device conflict recovery.

@@ -6,10 +6,14 @@ import { getTrainingProfile } from "../api/profiles";
 import { RouteStatus } from "../components/RouteStatus";
 import {
   loadStoredProfile,
+  removeStoredProfile,
   saveStoredProfile,
 } from "../features/onboarding/profile-storage";
 import { loadAccessToken } from "../features/auth/cognito";
-import { loadStoredSession } from "../features/sessions/session-storage";
+import {
+  loadStoredSession,
+  removeStoredSession,
+} from "../features/sessions/session-storage";
 
 export default function IndexRoute() {
   const [destination, setDestination] = useState<Href>();
@@ -26,22 +30,28 @@ export default function IndexRoute() {
           return;
         }
 
-        let profile = await loadStoredProfile();
-        if (!profile) {
-          const account = await getCurrentAccount();
-          if (!account.profileId) {
-            if (active) setDestination({ pathname: "/onboarding" });
-            return;
+        const storedProfile = await loadStoredProfile();
+        const account = await getCurrentAccount();
+        if (!account.profileId) {
+          if (storedProfile) {
+            await removeStoredSession(storedProfile.profileId);
+            await removeStoredProfile();
           }
-
-          const serverProfile = await getTrainingProfile(account.profileId);
-          profile = {
-            schemaVersion: 1,
-            profileId: serverProfile.id,
-            unitSystem: serverProfile.unitSystem,
-          };
-          await saveStoredProfile(profile);
+          if (active) setDestination({ pathname: "/onboarding" });
+          return;
         }
+
+        if (storedProfile && storedProfile.profileId !== account.profileId) {
+          await removeStoredSession(storedProfile.profileId);
+        }
+
+        const serverProfile = await getTrainingProfile(account.profileId);
+        const profile = {
+          schemaVersion: 1 as const,
+          profileId: serverProfile.id,
+          unitSystem: serverProfile.unitSystem,
+        };
+        await saveStoredProfile(profile);
 
         const session = await loadStoredSession(profile.profileId);
         if (!active) return;
