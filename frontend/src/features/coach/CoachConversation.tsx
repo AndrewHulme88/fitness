@@ -21,6 +21,7 @@ import {
   type WorkoutDetail,
   type WorkoutSummary,
 } from "../../api/workouts";
+import { getProgressOverview, type ProgressOverview } from "../../api/progress";
 import { AppScreen } from "../../components/AppScreen";
 import { AppText } from "../../components/AppText";
 import { PrimaryButton } from "../../components/PrimaryButton";
@@ -44,6 +45,9 @@ export function CoachConversation({
   >(initialWorkoutId);
   const [workoutLoading, setWorkoutLoading] = useState(true);
   const [workoutError, setWorkoutError] = useState(false);
+  const [progress, setProgress] = useState<ProgressOverview>();
+  const [progressExerciseId, setProgressExerciseId] = useState<string>();
+  const [progressPeriodDays, setProgressPeriodDays] = useState<7 | 28>();
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [confirmingProposalId, setConfirmingProposalId] = useState<string>();
@@ -79,7 +83,13 @@ export function CoachConversation({
     return () => controller.abort();
   }, [profileId]);
 
-  useEffect(() => setSelectedWorkoutId(initialWorkoutId), [initialWorkoutId]);
+  useEffect(() => {
+    const controller = new AbortController();
+    getProgressOverview(profileId, { signal: controller.signal })
+      .then(setProgress)
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [profileId]);
 
   useEffect(() => {
     if (proposals.length === 0) return;
@@ -124,7 +134,14 @@ export function CoachConversation({
     setSending(true);
     try {
       setConversation(
-        await sendCoachMessage(profileId, value, {}, selectedWorkoutId),
+        await sendCoachMessage(
+          profileId,
+          value,
+          {},
+          selectedWorkoutId,
+          progressExerciseId,
+          progressPeriodDays,
+        ),
       );
       setQuestion("");
     } catch {
@@ -308,7 +325,11 @@ export function CoachConversation({
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
                 key={workout.id}
-                onPress={() => setSelectedWorkoutId(workout.id)}
+                onPress={() => {
+                  setSelectedWorkoutId(workout.id);
+                  setProgressExerciseId(undefined);
+                  setProgressPeriodDays(undefined);
+                }}
                 style={[
                   styles.workoutChoice,
                   selected && styles.workoutChoiceSelected,
@@ -318,6 +339,62 @@ export function CoachConversation({
                   {workout.name}
                 </AppText>
                 <AppText tone="secondary">Revision {workout.revision}</AppText>
+              </Pressable>
+            );
+          })}
+        </View>
+        <View style={styles.reviewPicker}>
+          <AppText variant="label">Review recorded progress</AppText>
+          <AppText tone="secondary">
+            Select one factual source. The coach will not infer records, scores,
+            or readiness.
+          </AppText>
+          <View style={styles.progressPeriods}>
+            {[7, 28].map((days) => {
+              const selected = progressPeriodDays === days;
+              return (
+                <Pressable
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  key={days}
+                  onPress={() => {
+                    setProgressPeriodDays(days as 7 | 28);
+                    setProgressExerciseId(undefined);
+                    setSelectedWorkoutId(undefined);
+                  }}
+                  style={[
+                    styles.periodChoice,
+                    selected && styles.workoutChoiceSelected,
+                  ]}
+                >
+                  <AppText variant="label">Last {days} days</AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+          {progress?.recordedExercises.map((exercise) => {
+            const selected = progressExerciseId === exercise.exerciseId;
+            return (
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                key={exercise.exerciseId}
+                onPress={() => {
+                  setProgressExerciseId(exercise.exerciseId);
+                  setProgressPeriodDays(undefined);
+                  setSelectedWorkoutId(undefined);
+                }}
+                style={[
+                  styles.workoutChoice,
+                  selected && styles.workoutChoiceSelected,
+                ]}
+              >
+                <AppText tone={selected ? "accent" : "primary"} variant="label">
+                  {exercise.exerciseName}
+                </AppText>
+                <AppText tone="secondary">
+                  Recorded completed-set values
+                </AppText>
               </Pressable>
             );
           })}
@@ -400,6 +477,15 @@ const styles = StyleSheet.create({
   },
   basis: { fontSize: 13 },
   reviewPicker: { gap: spacing.sm },
+  progressPeriods: { flexDirection: "row", gap: spacing.sm },
+  periodChoice: {
+    minHeight: 44,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: "center",
+    paddingHorizontal: spacing.sm,
+  },
   workoutChoice: {
     minHeight: 44,
     borderTopWidth: StyleSheet.hairlineWidth,

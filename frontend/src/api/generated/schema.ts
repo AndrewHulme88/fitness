@@ -365,6 +365,10 @@ export interface components {
       question: string;
       /** Format: uuid */
       workoutId?: null | string;
+      /** Format: uuid */
+      progressExerciseId?: null | string;
+      /** Format: int32 */
+      progressPeriodDays?: null | number | string;
     };
     CoachConversationResponse: {
       /** Format: uuid */

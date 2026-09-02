@@ -1341,6 +1341,15 @@
           "workoutId": {
             "type": ["null", "string"],
             "format": "uuid"
+          },
+          "progressExerciseId": {
+            "type": ["null", "string"],
+            "format": "uuid"
+          },
+          "progressPeriodDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": ["null", "integer", "string"],
+            "format": "int32"
           }
         },
         "additionalProperties": false

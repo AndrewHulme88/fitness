@@ -172,6 +172,26 @@ public sealed class CoachConversationEndpointTests : IClassFixture<PostgreSqlApi
         Assert.Single(provider.Request?.Context.Workout?.Exercises ?? []);
     }
 
+    [Fact]
+    public async Task ProgressReviewRejectsCombinedOrUnboundedScopes()
+    {
+        using var factory = fixture.Factory.WithTestAuthentication();
+        using var client = CreateClient(factory, "coach-progress-scope");
+        var profileId = await CreateProfileAsync(client);
+
+        using var combined = await client.PostAsJsonAsync(
+            $"/profiles/{profileId}/coach/conversation/messages",
+            new { question = "Review my progress.", progressExerciseId = Guid.NewGuid(), progressPeriodDays = 28 },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, combined.StatusCode);
+
+        using var unbounded = await client.PostAsJsonAsync(
+            $"/profiles/{profileId}/coach/conversation/messages",
+            new { question = "Review my progress.", progressPeriodDays = 90 },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, unbounded.StatusCode);
+    }
+
     private static HttpClient CreateClient(WebApplicationFactory<Program> factory, string subject)
     {
         var client = factory.CreateClient();

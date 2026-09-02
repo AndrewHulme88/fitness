@@ -27,13 +27,15 @@ export async function sendCoachMessage(
   question: string,
   options: ApiRequestOptions = {},
   workoutId?: string,
+  progressExerciseId?: string,
+  progressPeriodDays?: 7 | 28,
 ): Promise<CoachConversation> {
   return executeApiRequest(options, async (client, signal) => {
     const { data, error } = await client.POST(
       "/profiles/{profileId}/coach/conversation/messages",
       {
         params: { path: { profileId } },
-        body: { question, workoutId },
+        body: { question, workoutId, progressExerciseId, progressPeriodDays },
         signal,
       },
     );

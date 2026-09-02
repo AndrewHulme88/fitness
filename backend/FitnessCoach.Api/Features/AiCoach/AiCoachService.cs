@@ -18,6 +18,8 @@ internal interface IAiCoachContextAssembler
         Guid profileId,
         string question,
         Guid? workoutId,
+        Guid? progressExerciseId,
+        int? progressPeriodDays,
         CancellationToken cancellationToken);
 }
 
@@ -31,7 +33,7 @@ internal sealed class AiCoachService(
     IAiCoachProvider provider,
     IAiCoachUsageRecorder usageRecorder)
 {
-    private const string PromptVersion = "v2";
+    private const string PromptVersion = "v3";
     private const int MaximumQuestionLength = 1_000;
     private const int MaximumOutputCharacters = 2_000;
     private static readonly TimeSpan ProviderTimeout = TimeSpan.FromSeconds(15);
@@ -70,7 +72,8 @@ internal sealed class AiCoachService(
         try
         {
             var context = await contextAssembler.AssembleAsync(
-                profileId, question, request.WorkoutId, cancellationToken);
+                profileId, question, request.WorkoutId, request.ProgressExerciseId,
+                request.ProgressPeriodDays, cancellationToken);
             if (context is null)
             {
                 return new AiCoachResponse(

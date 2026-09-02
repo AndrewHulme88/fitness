@@ -8,12 +8,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessCoach.Api.Features.AiCoach;
 
-internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) : IAiCoachContextAssembler
+internal sealed class AiCoachContextAssembler(
+    FitnessCoachDbContext dbContext,
+    TimeProvider timeProvider) : IAiCoachContextAssembler
 {
     public async Task<AiCoachApprovedContext?> AssembleAsync(
         Guid profileId,
         string question,
         Guid? workoutId,
+        Guid? progressExerciseId,
+        int? progressPeriodDays,
         CancellationToken cancellationToken)
     {
         var profile = await dbContext.Set<TrainingProfile>()
@@ -77,21 +81,11 @@ internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) :
 
         }
 
-        if (ShouldIncludeHistoryContext(question))
+        var progress = await AssembleProgressAsync(
+            profileId, progressExerciseId, progressPeriodDays, cancellationToken);
+        if (progress is not null)
         {
-            var completed = await dbContext.Set<WorkoutSession>()
-                .AsNoTracking()
-                .Where(item => item.ProfileId == profileId && item.Status == WorkoutSessionStatus.Completed)
-                .OrderByDescending(item => item.FinishedAt)
-                .Take(5)
-                .Select(item => new { item.WorkoutName, item.FinishedAt })
-                .ToListAsync(cancellationToken);
-            if (completed.Count > 0)
-            {
-                facts.Add(new AiCoachContextFact(
-                    "Recent completed workouts",
-                    string.Join("; ", completed.Select(item => $"{item.WorkoutName} on {item.FinishedAt:yyyy-MM-dd}"))));
-            }
+            facts.Add(new AiCoachContextFact("Recorded progress", progress.Scope));
         }
 
         return new AiCoachApprovedContext(
@@ -100,15 +94,84 @@ internal sealed class AiCoachContextAssembler(FitnessCoachDbContext dbContext) :
             profile.AvailableEquipment.Select(equipment => equipment.Equipment).Order().ToArray(),
             profile.UnitSystem,
             facts,
-            workout);
+            workout,
+            progress);
     }
 
     private static bool ShouldIncludeWorkoutContext(string question) => ContainsAny(
         question, "workout", "plan", "exercise", "routine", "session");
 
-    private static bool ShouldIncludeHistoryContext(string question) => ContainsAny(
-        question, "recent", "history", "progress", "last", "volume", "performance");
-
     private static bool ContainsAny(string value, params string[] terms) => terms.Any(
         term => value.Contains(term, StringComparison.OrdinalIgnoreCase));
+
+    private async Task<AiCoachProgressSnapshot?> AssembleProgressAsync(
+        Guid profileId,
+        Guid? exerciseId,
+        int? periodDays,
+        CancellationToken cancellationToken)
+    {
+        if (exerciseId is not null)
+        {
+            var appearances = await dbContext.Set<WorkoutSession>()
+                .AsNoTracking()
+                .Where(session => session.ProfileId == profileId
+                    && session.Status == WorkoutSessionStatus.Completed)
+                .SelectMany(session => session.Exercises
+                    .Where(exercise => exercise.ExerciseId == exerciseId
+                        && exercise.Sets.Any(set => set.IsCompleted))
+                    .Select(exercise => new
+                    {
+                        SessionId = session.Id,
+                        session.WorkoutName,
+                        PerformedAt = session.FinishedAt!.Value,
+                        exercise.ExerciseName,
+                        exercise.TrackingMode,
+                    }))
+                .OrderByDescending(item => item.PerformedAt)
+                .ThenByDescending(item => item.SessionId)
+                .Take(12)
+                .ToListAsync(cancellationToken);
+            if (appearances.Count == 0) return null;
+
+            var sessionIds = appearances.Select(item => item.SessionId).ToArray();
+            var sets = await dbContext.Set<WorkoutSessionSet>()
+                .AsNoTracking()
+                .Where(set => sessionIds.Contains(set.WorkoutSessionId)
+                    && set.ExerciseId == exerciseId && set.IsCompleted)
+                .OrderBy(set => set.WorkoutSessionId).ThenBy(set => set.Position)
+                .Select(set => new
+                {
+                    set.WorkoutSessionId,
+                    Set = new AiCoachRecordedSetSnapshot(set.Position, set.ActualRepetitions,
+                        set.ActualLoadKilograms, set.ActualDurationSeconds, set.ActualDistanceMetres),
+                })
+                .ToListAsync(cancellationToken);
+            var setsBySession = sets.GroupBy(item => item.WorkoutSessionId).ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<AiCoachRecordedSetSnapshot>)group.Select(item => item.Set).ToArray());
+            var first = appearances[0];
+            var exercise = new AiCoachExerciseProgressSnapshot(
+                exerciseId.Value, first.ExerciseName, first.TrackingMode.ToString(),
+                appearances.Select(item => new AiCoachExerciseAppearanceSnapshot(
+                    item.SessionId, item.WorkoutName, item.PerformedAt, setsBySession[item.SessionId])).ToArray());
+            return new AiCoachProgressSnapshot(
+                $"Recorded completed sets for {first.ExerciseName} from its {appearances.Count} most recent appearance(s).",
+                appearances.Min(item => item.PerformedAt), appearances.Max(item => item.PerformedAt), Exercise: exercise);
+        }
+
+        if (periodDays is null) return null;
+        var periodEnd = timeProvider.GetUtcNow();
+        var periodStart = periodEnd.AddDays(-periodDays.Value);
+        var sessions = dbContext.Set<WorkoutSession>().AsNoTracking().Where(item =>
+            item.ProfileId == profileId && item.Status == WorkoutSessionStatus.Completed
+            && item.FinishedAt >= periodStart && item.FinishedAt <= periodEnd);
+        var completedWorkoutCount = await sessions.CountAsync(cancellationToken);
+        var completedSetCount = await sessions.SelectMany(session => session.Exercises)
+            .SelectMany(exercise => exercise.Sets).CountAsync(set => set.IsCompleted, cancellationToken);
+        var duration = await sessions.SumAsync(session =>
+            (session.FinishedAt!.Value - session.StartedAt).TotalSeconds, cancellationToken);
+        return new AiCoachProgressSnapshot(
+            $"Recorded completed-workout totals for the most recent {periodDays} days.", periodStart, periodEnd,
+            completedWorkoutCount, completedSetCount, (int)Math.Max(0, Math.Min(duration, int.MaxValue)));
+    }
 }

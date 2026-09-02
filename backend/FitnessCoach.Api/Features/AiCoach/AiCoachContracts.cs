@@ -8,6 +8,10 @@ public sealed record AskAiCoachRequest
     public required string Question { get; init; }
 
     public Guid? WorkoutId { get; init; }
+
+    public Guid? ProgressExerciseId { get; init; }
+
+    public int? ProgressPeriodDays { get; init; }
 }
 
 public sealed record AiCoachResponse(
@@ -30,6 +34,7 @@ internal sealed record AiCoachApprovedContext(
     UnitSystem UnitSystem,
     IReadOnlyList<AiCoachContextFact>? Facts = null,
     AiCoachWorkoutSnapshot? Workout = null,
+    AiCoachProgressSnapshot? Progress = null,
     IReadOnlyList<AiCoachConversationTurn>? Conversation = null);
 
 internal sealed record AiCoachContextFact(string Source, string Summary);
@@ -50,6 +55,34 @@ internal sealed record AiCoachWorkoutSnapshotExercise(
     decimal? TargetLoadKilograms,
     int? TargetDurationSeconds,
     decimal? TargetDistanceMetres);
+
+internal sealed record AiCoachProgressSnapshot(
+    string Scope,
+    DateTimeOffset PeriodStart,
+    DateTimeOffset PeriodEnd,
+    int? CompletedWorkoutCount = null,
+    int? CompletedSetCount = null,
+    int? TotalWorkoutDurationSeconds = null,
+    AiCoachExerciseProgressSnapshot? Exercise = null);
+
+internal sealed record AiCoachExerciseProgressSnapshot(
+    Guid ExerciseId,
+    string ExerciseName,
+    string TrackingMode,
+    IReadOnlyList<AiCoachExerciseAppearanceSnapshot> Appearances);
+
+internal sealed record AiCoachExerciseAppearanceSnapshot(
+    Guid SessionId,
+    string WorkoutName,
+    DateTimeOffset PerformedAt,
+    IReadOnlyList<AiCoachRecordedSetSnapshot> Sets);
+
+internal sealed record AiCoachRecordedSetSnapshot(
+    int Position,
+    int? ActualRepetitions,
+    decimal? ActualLoadKilograms,
+    int? ActualDurationSeconds,
+    decimal? ActualDistanceMetres);
 
 internal sealed record AiCoachConversationTurn(string Role, string Content);
 

@@ -28,7 +28,7 @@ public sealed class AiCoachServiceTests
         Assert.Equal(AiCoachResponseKind.Advice, response.Kind);
         Assert.Equal("Focus on a comfortable, repeatable progression.", response.Message);
         var providerRequest = Assert.IsType<AiCoachProviderRequest>(provider.Request);
-        Assert.Equal("v2", providerRequest.PromptVersion);
+        Assert.Equal("v3", providerRequest.PromptVersion);
         Assert.Equal(2_000, providerRequest.MaximumOutputCharacters);
         Assert.Matches("^[A-F0-9]{64}$", providerRequest.SafetyIdentifier);
         Assert.Equal(context.Goals, providerRequest.Context.Goals);
@@ -108,6 +108,8 @@ public sealed class AiCoachServiceTests
             Guid profileId,
             string question,
             Guid? workoutId,
+            Guid? progressExerciseId,
+            int? progressPeriodDays,
             CancellationToken cancellationToken)
         {
             WasCalled = true;

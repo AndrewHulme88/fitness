@@ -61,6 +61,28 @@ internal static class CoachConversationEndpoints
                 ["question"] = ["Ask a fitness question of 1,000 characters or fewer."],
             });
         }
+        if (request.WorkoutId is not null
+            && (request.ProgressExerciseId is not null || request.ProgressPeriodDays is not null))
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["review"] = ["Review either one workout or one progress scope at a time."],
+            });
+        }
+        if (request.ProgressExerciseId is not null && request.ProgressPeriodDays is not null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["progress"] = ["Review either one recorded exercise or one recent period at a time."],
+            });
+        }
+        if (request.ProgressPeriodDays is not null && request.ProgressPeriodDays is not (7 or 28))
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["progressPeriodDays"] = ["Choose a recent 7- or 28-day period."],
+            });
+        }
 
         var now = timeProvider.GetUtcNow();
         var conversation = await LoadAsync(profileId, dbContext, cancellationToken)

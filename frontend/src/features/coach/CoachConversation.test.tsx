@@ -8,6 +8,7 @@ import {
 
 import { getCoachConversation, sendCoachMessage } from "../../api/coach";
 import { getWorkout, listWorkouts } from "../../api/workouts";
+import { getProgressOverview } from "../../api/progress";
 import { CoachConversation } from "./CoachConversation";
 
 jest.mock("../../api/coach", () => ({
@@ -19,6 +20,7 @@ jest.mock("../../api/workouts", () => ({
   getWorkout: jest.fn(),
   listWorkouts: jest.fn(),
 }));
+jest.mock("../../api/progress", () => ({ getProgressOverview: jest.fn() }));
 
 const mockGetCoachConversation = getCoachConversation as jest.MockedFunction<
   typeof getCoachConversation
@@ -29,6 +31,9 @@ const mockSendCoachMessage = sendCoachMessage as jest.MockedFunction<
 const mockGetWorkout = getWorkout as jest.MockedFunction<typeof getWorkout>;
 const mockListWorkouts = listWorkouts as jest.MockedFunction<
   typeof listWorkouts
+>;
+const mockGetProgressOverview = getProgressOverview as jest.MockedFunction<
+  typeof getProgressOverview
 >;
 
 const profileId = "10000000-0000-0000-0000-000000000001";
@@ -45,6 +50,9 @@ describe("CoachConversation", () => {
     mockListWorkouts
       .mockReset()
       .mockResolvedValue({ items: [], nextOffset: null });
+    mockGetProgressOverview.mockReset().mockResolvedValue({
+      recordedExercises: [],
+    } as never);
   });
 
   it("does not allow deleting a saved conversation while a reply is pending", async () => {
@@ -127,5 +135,33 @@ describe("CoachConversation", () => {
     expect(
       screen.getByRole("button", { name: "Apply proposed change" }),
     ).toBeTruthy();
+  });
+
+  it("sends only an explicitly selected recent progress period", async () => {
+    mockSendCoachMessage.mockResolvedValue({
+      id: "20000000-0000-0000-0000-000000000002",
+      messages: [],
+      proposals: [],
+    });
+    render(<CoachConversation profileId={profileId} />);
+
+    await screen.findByText("Review recorded progress");
+    fireEvent.press(screen.getByRole("radio", { name: "Last 7 days" }));
+    fireEvent.changeText(
+      screen.getByLabelText("Question for the AI coach"),
+      "What do these facts show?",
+    );
+    fireEvent.press(screen.getByRole("button", { name: "Ask coach" }));
+
+    await waitFor(() =>
+      expect(mockSendCoachMessage).toHaveBeenCalledWith(
+        profileId,
+        "What do these facts show?",
+        {},
+        undefined,
+        undefined,
+        7,
+      ),
+    );
   });
 });
