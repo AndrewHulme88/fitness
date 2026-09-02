@@ -193,7 +193,19 @@ export function ActiveWorkout({
                     {
                       text: "Use server version",
                       style: "destructive",
-                      onPress: () => void reloadServerVersion(),
+                      onPress: () => {
+                        void reloadServerVersion()
+                          .then((serverSession) => {
+                            if (serverSession.status === "completed")
+                              onFinished();
+                          })
+                          .catch(() =>
+                            Alert.alert(
+                              "Couldn’t load server version",
+                              "Connect to the API and try again.",
+                            ),
+                          );
+                      },
                     },
                   ],
                 );

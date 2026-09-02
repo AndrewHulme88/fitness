@@ -157,6 +157,14 @@ Status: accepted
 
 The model may return one strict-schema proposal for an existing profile-owned workout alongside ordinary advice, but it has no write capability. The API validates the complete proposed replacement with the same curated-exercise and tracking-mode prescription rules as normal workout editing, binds it to the plan revision observed when proposed, and discards invalid or stale output. Confirmation is a separate authenticated action that updates the ordinary workout aggregate and records only the accepted proposal's timestamp, user-visible rationale, and intended payload; provider reasoning and raw payloads remain unretained.
 
+### D-025 — 2026-09-02 — Preserve conflicting device copies; recover explicitly from the authoritative session
+
+Status: accepted
+
+Multi-device active-session synchronization keeps the existing optimistic-revision and mutation-idempotency rules. A stale, different mutation receives `409` and cannot overwrite the newer session; the device retains its copy until the person explicitly chooses the server copy. Recovery loads the stable session identifier, rather than only the active-session route, so it also works when another device has completed the workout. There is no automatic merge or last-write-wins behavior.
+
+Related ADR: [ADR-0009](docs/adr/0009-recoverable-workout-sessions.md)
+
 ## Major issues and open risks
 
 ### I-001 — 2026-08-24 — Expo transitive UUID advisory

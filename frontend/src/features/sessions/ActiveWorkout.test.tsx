@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
 
 import type { LocalWorkoutSession } from "./session-model";
@@ -133,6 +133,51 @@ describe("ActiveWorkout", () => {
       "Complete at least one set, or discard this session.",
     );
     expect(mutate).not.toHaveBeenCalled();
+    alert.mockRestore();
+  });
+
+  it("opens the summary after accepting a completed server copy", async () => {
+    const alert = jest
+      .spyOn(Alert, "alert")
+      .mockImplementation(() => undefined);
+    const reloadServerVersion = jest.fn().mockResolvedValue({
+      ...session,
+      finishedAt: "2026-08-28T01:00:00Z",
+      status: "completed" as const,
+      syncState: "synced" as const,
+    });
+    const onFinished = jest.fn();
+    useSessionMock.mockReturnValue({
+      session: { ...session, syncState: "conflict" },
+      loadState: "ready",
+      message:
+        "This session also changed elsewhere. Your device copy is still safe.",
+      mutate,
+      setRestTimer,
+      retry: jest.fn(),
+      reloadServerVersion,
+      discard: jest.fn(),
+      clearCompleted: jest.fn(),
+    });
+
+    render(
+      <ActiveWorkout
+        onExit={jest.fn()}
+        onFinished={onFinished}
+        profileId="profile-id"
+        unitSystem="metric"
+      />,
+    );
+
+    fireEvent.press(screen.getByRole("button", { name: "Review server copy" }));
+    const buttons = alert.mock.calls[0]?.[2];
+    const useServerVersion = buttons?.find(
+      (button) => button.text === "Use server version",
+    );
+    await act(async () => useServerVersion?.onPress?.());
+
+    expect(reloadServerVersion).toHaveBeenCalledTimes(1);
+    expect(onFinished).toHaveBeenCalledTimes(1);
     alert.mockRestore();
   });
 });

@@ -225,6 +225,36 @@ public sealed class WorkoutSessionEndpointTests : IClassFixture<PostgreSqlApiFix
     }
 
     [Fact]
+    public async Task ConcurrentDeviceCompletionPreservesTheServerCopyForExplicitRecovery()
+    {
+        using var client = CreateClient();
+        var profileId = await CreateProfileAsync(client);
+        var workout = await CreateWorkoutAsync(client, profileId, "Workout");
+        var deviceCopy = await StartAndReadAsync(client, profileId, workout.Id);
+
+        using var completionResponse = await client.PutAsJsonAsync(
+            $"/profiles/{profileId}/workout-sessions/{deviceCopy.Id}",
+            UpdateRequest(deviceCopy, Guid.NewGuid(), DateTimeOffset.UtcNow),
+            TestContext.Current.CancellationToken);
+        var completedOnOtherDevice = await ReadSessionAsync(completionResponse);
+
+        using var staleResponse = await client.PutAsJsonAsync(
+            $"/profiles/{profileId}/workout-sessions/{deviceCopy.Id}",
+            UpdateRequest(deviceCopy, Guid.NewGuid()),
+            TestContext.Current.CancellationToken);
+        using var serverCopyResponse = await client.GetAsync(
+            $"/profiles/{profileId}/workout-sessions/{deviceCopy.Id}",
+            TestContext.Current.CancellationToken);
+        var serverCopy = await ReadSessionAsync(serverCopyResponse);
+
+        Assert.Equal(HttpStatusCode.Conflict, staleResponse.StatusCode);
+        Assert.Equal("completed", serverCopy.Status);
+        Assert.Equal(completedOnOtherDevice.Revision, serverCopy.Revision);
+        Assert.Equal(completedOnOtherDevice.FinishedAt, serverCopy.FinishedAt);
+        Assert.True(serverCopy.Exercises[0].Sets[0].IsCompleted);
+    }
+
+    [Fact]
     public async Task UpdateRejectsMissingModeValuesAndChangedSnapshot()
     {
         using var client = CreateClient();

@@ -434,10 +434,17 @@ Acceptance:
 
 ### 7.2 Define and prove active-workout multi-device conflict recovery
 
-Status: pending
+Status: complete
 
-- Specify server-wins, device-copy, retry, and completion behavior for concurrent active-session mutations from two authenticated devices.
-- Add PostgreSQL integration and client-state coverage for the chosen conflict paths.
+- A repeated mutation identifier remains idempotent; a different stale mutation receives `409` and cannot overwrite the newer server session.
+- The device copy remains intact after a conflict until the person explicitly chooses the server copy. There is no automatic merge or last-write-wins behavior.
+- Server-copy recovery loads the stable session identifier rather than only the active-session route, so it resolves an active or completed copy from another device; accepting a completed copy opens its ordinary summary.
+
+Acceptance:
+
+- A PostgreSQL integration test proves that a stale device mutation cannot overwrite another device's completed session and that the authoritative completed copy remains retrievable.
+- A client component test proves that choosing a completed server copy transitions to the summary, while the existing idempotent retry and conflict handling remain covered.
+- The multi-device policy is documented in ADR-0009.
 
 ### 7.3 Add production observability, abuse controls, and recovery operations
 
@@ -477,4 +484,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Implement Phase 7.2: define and prove active-workout multi-device conflict recovery.
+Implement Phase 7.3: add production observability, abuse controls, and recovery operations.

@@ -6,6 +6,7 @@ import {
   ActiveWorkoutExistsError,
   discardWorkoutSession,
   getActiveWorkoutSession,
+  getWorkoutSession,
   startWorkoutSession,
   updateWorkoutSession,
   WorkoutSessionConflictError,
@@ -225,13 +226,14 @@ export function useWorkoutSession(profileId: string, workoutPlanId?: string) {
   }, [synchronize]);
 
   const reloadServerVersion = useCallback(async () => {
-    const remote = await getActiveWorkoutSession(profileId);
-    if (!remote)
-      throw new Error("The active workout no longer exists on the server.");
+    const current = sessionRef.current;
+    if (!current) throw new Error("The workout session is unavailable.");
+    const remote = await getWorkoutSession(profileId, current.id);
     const local = sessionFromApi(remote);
     setSession(local);
     setMessage(undefined);
     await persist(local);
+    return local;
   }, [persist, profileId, setSession]);
 
   const discard = useCallback(async () => {
