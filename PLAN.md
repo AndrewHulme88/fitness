@@ -359,7 +359,7 @@ Verification completed on 2026-09-01:
 
 ## Phase 6 — AI coach capability expansion
 
-Status: in progress
+Status: complete
 
 Build useful, bounded AI-assisted review and proposal experiences without giving the model direct application or database authority.
 
@@ -381,7 +381,7 @@ Verification completed on 2026-09-01:
 
 ### 6.2 Add factual, bounded progress review
 
-Status: in progress
+Status: complete
 
 - Assemble only traceable recorded progress facts for an explicitly requested exercise or bounded recent period.
 - Distinguish supplied facts from general coaching interpretation and avoid invented personal records, readiness, scores, diagnoses, or unsupported trend claims.
@@ -392,15 +392,25 @@ Verification completed on 2026-09-02:
 - The coach accepts one explicit progress scope at a time: either an owned exercise's 12 most recent completed-set appearances or factual totals for a fixed recent 7- or 28-day period. It rejects combined, ambiguous, and unbounded scopes.
 - The approved progress snapshot has traceable timestamps, workout names, set values, and period boundaries. The prompt version is `v3` and requires the coach to label supplied facts separately from general coaching interpretation; it forbids unsupported personal records, readiness, scores, causal claims, and trends.
 - The coach screen exposes the progress scopes, identifies its factual source through existing context labels, and continues to leave the independent Progress screens authoritative.
-- The complete backend suite passed 68 tests; the complete frontend suite passed 73 tests; format, strict typing, lint, and API-contract drift verification passed. Simulator visual and accessibility review remains outstanding.
+- The complete backend suite passed 68 tests; the complete frontend suite passed 73 tests; format, strict typing, lint, and API-contract drift verification passed. Simulator visual and accessibility review was completed on 2026-09-02.
 
 ### 6.3 Define scoped coach tasks and evaluation gates
 
-Status: pending
+Status: complete
 
 - Define product-level task contracts for workout review, progress review, exercise substitution, and workout-update proposals.
 - Keep model access server-owned and minimum-context; do not add unrestricted database access or direct write tools.
 - Add deterministic, adversarial, privacy, stale-data, and confirmation-path evaluations before each task is enabled.
+
+Implemented on 2026-09-02:
+
+- `docs/ai-coach-task-contracts.md` defines the enabled workout explanation, progress review, exercise-substitution, and workout-update proposal contracts, including their allowed context, prohibited claims, and action boundaries.
+- The evaluation gate documents required safety, privacy/ownership, scope, output, and confirmation evidence. Deterministic service and PostgreSQL integration coverage is the required baseline; live-provider changes also require a synthetic candidate evaluation.
+- Safety regression cases now include adversarial override wording, minor-user, pregnancy, rehabilitation, diagnosis, and medication prompts, ensuring they stop before profile context or provider access.
+
+Verification completed on 2026-09-02:
+
+- The complete backend suite passed 71 tests; the complete frontend suite passed 73 tests; format, strict typing, lint, and API-contract drift verification passed.
 
 ## Phase 7 — Beta hardening
 
@@ -426,4 +436,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Complete the Phase 6.2 simulator visual and accessibility review, then implement Phase 6.3: define scoped coach tasks and evaluation gates.
+Plan the first narrow Phase 7 beta-hardening increment.

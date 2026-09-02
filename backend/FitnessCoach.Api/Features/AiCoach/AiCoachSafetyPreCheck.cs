@@ -12,7 +12,7 @@ internal static class AiCoachSafetyPreCheck
         "acute pain", "severe pain", "unexplained pain", "head injury", "neck injury",
         "spinal injury", "post-operative", "post operative", "pregnan", "medication",
         "supplement dose", "purging", "starvation", "self-harm", "self harm", "diagnose",
-        "diagnosis", "rehabilitation", "rehab",
+        "diagnosis", "rehabilitation", "rehab", "under 18", "minor user",
     ];
 
     public static AiCoachResponse? Evaluate(string question)
