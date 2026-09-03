@@ -8,6 +8,7 @@ using FitnessCoach.Api.Features.Profiles;
 using FitnessCoach.Api.Features.Progress;
 using FitnessCoach.Api.Features.Sessions;
 using FitnessCoach.Api.Features.Workouts;
+using FitnessCoach.Api.Infrastructure;
 using FitnessCoach.Api.Persistence;
 
 using Microsoft.AspNetCore.HttpLogging;
@@ -60,6 +61,7 @@ if (cognitoConfiguration is not null)
 }
 
 builder.Services.AddHealthChecks();
+builder.Services.AddFitnessCoachRateLimiting(builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<ExerciseCatalogueImporter>();
 builder.Services.AddScoped<AiCoachService>();
@@ -133,15 +135,19 @@ if (await PrototypeProfileClaimCommand.TryRunAsync(app, args))
 app.UseHttpLogging();
 app.UseHttpsRedirection();
 
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+if (!app.Environment.IsDevelopment()) app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-if (cognitoConfiguration is not null || app.Environment.IsDevelopment())
+if (cognitoConfiguration is not null
+    || app.Environment.IsDevelopment()
+    || app.Environment.IsEnvironment("Testing"))
 {
     app.MapAccountEndpoints();
     app.MapCoachConversationEndpoints();
@@ -155,6 +161,11 @@ if (cognitoConfiguration is not null || app.Environment.IsDevelopment())
 app.MapGet("/health", GetHealthAsync)
     .WithName("GetHealth")
     .WithSummary("Check API liveness")
+    .Produces<string>(StatusCodes.Status200OK, "text/plain")
+    .Produces<string>(StatusCodes.Status503ServiceUnavailable, "text/plain");
+app.MapGet("/health/ready", GetReadinessAsync)
+    .WithName("GetReadiness")
+    .WithSummary("Check database readiness")
     .Produces<string>(StatusCodes.Status200OK, "text/plain")
     .Produces<string>(StatusCodes.Status503ServiceUnavailable, "text/plain");
 
@@ -176,6 +187,38 @@ static async Task<IResult> GetHealthAsync(
         healthReport.Status.ToString(),
         contentType: "text/plain",
         statusCode: statusCode);
+}
+
+static async Task<IResult> GetReadinessAsync(
+    IServiceProvider services,
+    HttpContext context,
+    CancellationToken cancellationToken)
+{
+    try
+    {
+        await using var scope = services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<FitnessCoachDbContext>();
+        var isReady = await dbContext.Database.CanConnectAsync(cancellationToken);
+        context.Response.Headers.CacheControl = "no-store, no-cache";
+        return Results.Text(
+            isReady ? "Ready" : "Unavailable",
+            contentType: "text/plain",
+            statusCode: isReady
+                ? StatusCodes.Status200OK
+                : StatusCodes.Status503ServiceUnavailable);
+    }
+    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+    {
+        throw;
+    }
+    catch (Exception)
+    {
+        context.Response.Headers.CacheControl = "no-store, no-cache";
+        return Results.Text(
+            "Unavailable",
+            contentType: "text/plain",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
 }
 
 public partial class Program;

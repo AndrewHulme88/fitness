@@ -220,6 +220,7 @@ The runtime document and unauthenticated local-prototype Profile, Exercise, and 
 - [docs/ai-safety.md](docs/ai-safety.md) — AI scope, safety controls, and escalation behavior.
 - [docs/ai-coach-task-contracts.md](docs/ai-coach-task-contracts.md) — enabled coach tasks and deterministic evaluation gates.
 - [docs/testing-strategy.md](docs/testing-strategy.md) — automated, manual, security, AI, and performance validation.
+- [docs/production-operations.md](docs/production-operations.md) — beta monitoring, rate-limit, backup, restore, and crash-reporting controls.
 - [docs/design-system.md](docs/design-system.md) — selected visual direction, design tokens, accessibility, and visual review requirements.
 - [docs/exercise-catalogue-policy.md](docs/exercise-catalogue-policy.md) — exercise ownership, licensing, identity, review, and media rules.
 - [docs/adr/README.md](docs/adr/README.md) — architectural decision record index.

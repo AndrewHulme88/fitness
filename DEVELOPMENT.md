@@ -165,15 +165,23 @@ Multi-device active-session synchronization keeps the existing optimistic-revisi
 
 Related ADR: [ADR-0009](docs/adr/0009-recoverable-workout-sessions.md)
 
+### D-026 — 2026-09-03 — Use privacy-minimized AWS operations with explicit in-process abuse controls
+
+Status: accepted
+
+The beta operational boundary uses private Amazon RDS PostgreSQL with 35-day automated-backup retention and an isolated restore drill, CloudWatch for server operations, and opt-in Sentry crash reports for iOS. Sentry removes user, request, context, extra, and breadcrumb data and disables tracing/session collection. The API applies configuration-based, no-queue fixed-window limits per Cognito subject: ordinary API traffic, active-session writes, and tighter coach messages. The process-local limiter is not DDoS protection; public ingress still requires WAF or equivalent per-IP controls. Liveness remains database-independent and a separate readiness endpoint reports only database availability.
+
+Related runbook: [production operations](docs/production-operations.md)
+
 ## Major issues and open risks
 
 ### I-001 — 2026-08-24 — Expo transitive UUID advisory
 
 Status: open
 
-`npm audit --omit=dev` reports ten moderate findings through Expo's native build-tool chain: Expo config plugins → `xcode@3.0.1` → `uuid@7.0.3`. The application does not call this dependency directly, while npm's automatic remediation would downgrade Expo to an incompatible release and an unverified major override could break native project generation.
+`npm audit --omit=dev` reports fourteen moderate findings: ten through Expo's native build-tool chain (Expo config plugins → `xcode@3.0.1` → `uuid@7.0.3`) and four through `expo-router` → `query-string` → `decode-uri-component`. The application does not call these dependencies directly, while npm's automatic remediation would downgrade Expo or Expo Router to incompatible releases and an unverified major override could break native project generation.
 
-Keep the supported Expo dependency graph, do not use `npm audit fix --force`, and re-check on Expo updates and before native release builds. Escalate if runtime exposure or severity changes. Last verified on 2026-08-25: 10 moderate, 0 high, 0 critical production findings.
+Keep the supported Expo dependency graph, do not use `npm audit fix --force`, and re-check on Expo updates and before native release builds. Escalate if runtime exposure or severity changes. Last verified on 2026-09-03: 14 moderate, 0 high, 0 critical production findings.
 
 ### I-002 — 2026-08-24 — Expo lint stack uses an end-of-life ESLint major
 

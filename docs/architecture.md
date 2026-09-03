@@ -205,11 +205,11 @@ Useful eventual signals include:
 - AI provider latency, time to first useful output, token usage, refusal/safety outcome, and schema-validation failures.
 - Accepted versus dismissed AI proposals, without recording unnecessary sensitive content.
 
-Provider selection for monitoring is deferred.
+CloudWatch is the approved server-side operational destination and Sentry is the approved iOS crash-reporting provider for beta. Both receive privacy-minimized operational data only; their setup, access control, retention, and alerting are release gates. See [production-operations.md](production-operations.md).
 
 ## Deployment direction
 
-Local development will use containerized PostgreSQL. The API should be container-friendly, but the hosting provider is intentionally unresolved. Avoid introducing cloud-specific services until deployment requirements and budget are known.
+Local development uses containerized PostgreSQL. Beta production uses an AWS-hosted API runtime with private Amazon RDS PostgreSQL, subject to the deployment, backup, restore, and deletion-reconciliation controls in [production-operations.md](production-operations.md). The precise runtime configuration is deferred until the deployment increment; it must not expose PostgreSQL publicly.
 
 ## Security boundaries
 
@@ -223,10 +223,8 @@ Local development will use containerized PostgreSQL. The API should be container
 ## Decisions intentionally deferred
 
 - Identity provider.
-- Cloud and region.
 - AI provider and model.
 - Client state and UI libraries.
 - Multi-device synchronization and authenticated local-cache lifecycle.
-- Analytics and crash reporting.
 - Object storage.
 - Background job mechanism.

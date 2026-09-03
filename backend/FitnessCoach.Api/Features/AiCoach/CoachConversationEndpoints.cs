@@ -5,8 +5,11 @@ using FitnessCoach.Api.Persistence;
 
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
 
 using Npgsql;
+
+using FitnessCoach.Api.Infrastructure;
 
 namespace FitnessCoach.Api.Features.AiCoach;
 
@@ -19,11 +22,14 @@ internal static class CoachConversationEndpoints
         var coach = endpoints.MapGroup("/profiles/{profileId:guid}/coach/conversation")
             .WithTags("AI coach")
             .RequireOwnedProfile()
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting(ApiRateLimitPolicies.Standard);
+        coach.ProducesProblem(StatusCodes.Status429TooManyRequests);
         coach.MapGet("/", GetAsync).WithName("GetCoachConversation").WithSummary("Get the retained coach conversation");
         coach.MapPost("/messages", SendAsync)
             .WithName("SendCoachMessage")
             .WithSummary("Ask the read-only AI coach")
+            .RequireRateLimiting(ApiRateLimitPolicies.CoachMessages)
             .ProducesProblem(StatusCodes.Status409Conflict);
         coach.MapPost("/proposals/{proposalId:guid}/confirm", ConfirmProposalAsync)
             .WithName("ConfirmCoachWorkoutProposal")

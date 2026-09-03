@@ -4,7 +4,10 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { RouteStatus } from "../components/RouteStatus";
 import { SignOutControl } from "../components/SignOutControl";
+import { initializeCrashReporting } from "../observability/crash-reporting";
 import { colors } from "../theme/tokens";
+
+initializeCrashReporting();
 
 export function SuspenseFallback() {
   return (

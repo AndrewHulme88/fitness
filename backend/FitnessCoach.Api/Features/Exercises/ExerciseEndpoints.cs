@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Microsoft.AspNetCore.RateLimiting;
+
+using FitnessCoach.Api.Infrastructure;
 
 namespace FitnessCoach.Api.Features.Exercises;
 
@@ -20,7 +23,10 @@ internal static class ExerciseEndpoints
 
     public static IEndpointRouteBuilder MapExerciseEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var exercises = endpoints.MapGroup("/exercises").WithTags("Exercises");
+        var exercises = endpoints.MapGroup("/exercises")
+            .WithTags("Exercises")
+            .RequireRateLimiting(ApiRateLimitPolicies.Standard);
+        exercises.ProducesProblem(StatusCodes.Status429TooManyRequests);
         if (endpoints.ServiceProvider.GetRequiredService<IConfiguration>().GetSection("Cognito").Exists())
         {
             exercises.RequireAuthorization();

@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Microsoft.AspNetCore.RateLimiting;
+
+using FitnessCoach.Api.Infrastructure;
 
 namespace FitnessCoach.Api.Features.Progress;
 
@@ -22,7 +25,9 @@ internal static class ProgressEndpoints
         var progress = endpoints
             .MapGroup("/profiles/{profileId:guid}/progress")
             .WithTags("Progress")
-            .RequireOwnedProfile();
+            .RequireOwnedProfile()
+            .RequireRateLimiting(ApiRateLimitPolicies.Standard);
+        progress.ProducesProblem(StatusCodes.Status429TooManyRequests);
         if (endpoints.ServiceProvider.GetRequiredService<IConfiguration>().GetSection("Cognito").Exists())
         {
             progress.RequireAuthorization();

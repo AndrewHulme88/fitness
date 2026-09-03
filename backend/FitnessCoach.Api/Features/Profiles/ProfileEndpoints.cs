@@ -3,6 +3,9 @@ using FitnessCoach.Api.Features.Identity;
 
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
+
+using FitnessCoach.Api.Infrastructure;
 
 namespace FitnessCoach.Api.Features.Profiles;
 
@@ -10,7 +13,10 @@ internal static class ProfileEndpoints
 {
     public static IEndpointRouteBuilder MapProfileEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var profiles = endpoints.MapGroup("/profiles").WithTags("Profiles");
+        var profiles = endpoints.MapGroup("/profiles")
+            .WithTags("Profiles")
+            .RequireRateLimiting(ApiRateLimitPolicies.Standard);
+        profiles.ProducesProblem(StatusCodes.Status429TooManyRequests);
         if (endpoints.ServiceProvider.GetRequiredService<IConfiguration>().GetSection("Cognito").Exists())
         {
             profiles.RequireAuthorization();

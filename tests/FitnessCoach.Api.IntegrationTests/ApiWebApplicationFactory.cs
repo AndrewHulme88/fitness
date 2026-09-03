@@ -29,10 +29,13 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         builder.ConfigureAppConfiguration((_, configuration) =>
-            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            var values = new Dictionary<string, string?>
             {
                 ["ConnectionStrings:Postgres"] = postgresConnectionString,
-            }));
+            };
+            configuration.AddInMemoryCollection(values);
+        });
     }
 
     internal WebApplicationFactory<Program> WithTestAuthentication(string environmentName = "Development")
@@ -41,18 +44,28 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
         {
             builder.UseEnvironment(environmentName);
             builder.ConfigureAppConfiguration((_, configuration) =>
-                configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                var values = new Dictionary<string, string?>
                 {
                     ["Cognito:Region"] = "ap-southeast-2",
                     ["Cognito:UserPoolId"] = "ap-southeast-2_testPool",
                     ["Cognito:AppClientId"] = "test-client",
                     ["Cognito:RequiredScope"] = "fitness-coach-api/access",
-                }));
+                };
+                configuration.AddInMemoryCollection(values);
+            });
             builder.ConfigureTestServices(services =>
+            {
                 services.AddAuthentication(TestAuthenticationHandler.SubjectHeader)
                     .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
                         TestAuthenticationHandler.SubjectHeader,
-                        _ => { }));
+                        _ => { });
+                services.PostConfigure<AuthenticationOptions>(options =>
+                {
+                    options.DefaultAuthenticateScheme = TestAuthenticationHandler.SubjectHeader;
+                    options.DefaultChallengeScheme = TestAuthenticationHandler.SubjectHeader;
+                });
+            });
         });
     }
 }

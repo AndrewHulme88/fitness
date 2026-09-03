@@ -10,8 +10,11 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Microsoft.AspNetCore.RateLimiting;
 
 using Npgsql;
+
+using FitnessCoach.Api.Infrastructure;
 
 namespace FitnessCoach.Api.Features.Sessions;
 
@@ -27,7 +30,9 @@ internal static class WorkoutSessionEndpoints
         var sessions = endpoints
             .MapGroup("/profiles/{profileId:guid}/workout-sessions")
             .WithTags("Workout sessions")
-            .RequireOwnedProfile();
+            .RequireOwnedProfile()
+            .RequireRateLimiting(ApiRateLimitPolicies.Standard);
+        sessions.ProducesProblem(StatusCodes.Status429TooManyRequests);
         if (endpoints.ServiceProvider.GetRequiredService<IConfiguration>().GetSection("Cognito").Exists())
         {
             sessions.RequireAuthorization();
@@ -36,6 +41,7 @@ internal static class WorkoutSessionEndpoints
         sessions.MapPost("/", StartSessionAsync)
             .WithName("StartWorkoutSession")
             .WithSummary("Start a workout session from an immutable plan snapshot")
+            .RequireRateLimiting(ApiRateLimitPolicies.ActiveSessionWrites)
             .ProducesProblem(StatusCodes.Status409Conflict);
         sessions.MapGet("/active", GetActiveSessionAsync)
             .WithName("GetActiveWorkoutSession")
@@ -50,6 +56,7 @@ internal static class WorkoutSessionEndpoints
         sessions.MapPut("/{sessionId:guid}", UpdateSessionAsync)
             .WithName("UpdateWorkoutSession")
             .WithSummary("Synchronize an active workout session")
+            .RequireRateLimiting(ApiRateLimitPolicies.ActiveSessionWrites)
             .ProducesProblem(StatusCodes.Status409Conflict);
         sessions.MapPut("/{sessionId:guid}/correction", CorrectSessionAsync)
             .WithName("CorrectWorkoutSession")
@@ -58,6 +65,7 @@ internal static class WorkoutSessionEndpoints
         sessions.MapDelete("/{sessionId:guid}", DiscardSessionAsync)
             .WithName("DiscardWorkoutSession")
             .WithSummary("Permanently discard an active workout session")
+            .RequireRateLimiting(ApiRateLimitPolicies.ActiveSessionWrites)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         return endpoints;

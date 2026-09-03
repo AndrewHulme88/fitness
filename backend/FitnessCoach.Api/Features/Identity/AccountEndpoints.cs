@@ -2,6 +2,9 @@ using FitnessCoach.Api.Persistence;
 
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
+
+using FitnessCoach.Api.Infrastructure;
 
 namespace FitnessCoach.Api.Features.Identity;
 
@@ -11,6 +14,8 @@ internal static class AccountEndpoints
     {
         endpoints.MapGet("/account", GetAccountAsync)
             .RequireAuthorization()
+            .RequireRateLimiting(ApiRateLimitPolicies.Standard)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .WithTags("Account")
             .WithName("GetCurrentAccount")
             .WithSummary("Get the authenticated account and its training profile")
