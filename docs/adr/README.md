@@ -29,6 +29,9 @@ ADRs capture decisions that have broad or long-lived technical consequences. `DE
 | [0013](0013-account-export-and-deletion-lifecycle.md)    | Accepted   | Export directly and coordinate irreversible account deletion     |
 | [0014](0014-retained-coach-conversations.md)             | Accepted   | Retain one user-deletable coach conversation per profile         |
 | [0015](0015-openai-responses-coach-provider.md)          | Accepted   | Use OpenAI Responses with GPT-5.6 Terra for read-only coaching  |
+| [0016](0016-ecs-fargate-production-runtime.md)           | Superseded | Use private ECS Fargate behind an ALB and AWS WAF for beta      |
+| [0017](0017-neon-mvp-postgresql.md)                       | Accepted   | Use Neon PostgreSQL for the closed MVP validation release       |
+| [0018](0018-flyio-mvp-api-hosting.md)                      | Accepted   | Host the closed MVP API on Fly.io in Sydney                     |
 
 ## Template
 

@@ -1,10 +1,10 @@
 # Production Operations
 
-This runbook defines the minimum production operation boundary for the beta. It applies only after the production AWS account, Sentry project, and deployment automation are configured. Local Compose and Testcontainers remain development/test tooling and are not production recovery systems.
+This runbook defines the minimum public-beta operation boundary. The closed MVP validation release instead follows [mvp-operations.md](mvp-operations.md) and is not approved for public beta. This AWS boundary applies only after the production AWS account, Sentry project, and deployment automation are configured. Local Compose and Testcontainers remain development/test tooling and are not production recovery systems.
 
 ## Approved services
 
-- Run the API in the existing AWS account and approved launch region. The deployment must use private networking to reach PostgreSQL.
+- Run the API in the existing AWS account and approved launch region as an ECS Fargate service in private subnets. An internet-facing Application Load Balancer terminates HTTPS and is the only public API ingress; it has an AWS WAF web ACL. The deployment uses private networking to reach PostgreSQL. See [ADR-0016](adr/0016-ecs-fargate-production-runtime.md).
 - Use Amazon RDS for PostgreSQL. Enable encryption at rest and in transit, automated backups, point-in-time recovery, and a 35-day backup-retention period. Do not retain manual snapshots beyond that period unless they are subject to the same expiry control.
 - Send server JSON logs, metrics, and traces to CloudWatch through the deployment runtime. Logs contain only operational metadata: route template, HTTP status, duration, deployment version, and bounded AI usage metadata. They must not include headers, query strings, bodies, tokens, raw prompts/responses, fitness data, account subjects, IP addresses, or database connection strings.
 - Use Sentry only for iOS crash reporting. The mobile client initializes it only for non-development builds when `EXPO_PUBLIC_SENTRY_DSN` is configured. The DSN is public configuration; the source-map upload token is an EAS secret. Disable session replay, performance tracing, automatic session tracking, breadcrumbs, user data, request context, and custom fitness context.
@@ -52,7 +52,7 @@ An unsuccessful drill, unbounded backup retention, missing deletion reconciliati
 
 ## Required external setup
 
-- Create the AWS production environment, private database networking, deploy role, Secrets Manager entries, RDS instance, backup retention, WAF/inbound controls, CloudWatch destinations, and alert recipients.
+- Create the AWS production environment, ECR repository, ECS task/execution/deploy roles, private task and database networking, ALB target group, WAF/inbound controls, Secrets Manager entries, RDS instance, backup retention, CloudWatch destinations, and alert recipients.
 - Create the Sentry iOS project, configure its data controls and retention, add only its public DSN to the mobile build configuration, and store `SENTRY_AUTH_TOKEN` only as an EAS secret for source-map uploads.
 - Verify a signed production-like iOS build reports one synthetic crash with symbolication, then remove the test path. Never test with a real user account or fitness data.
 

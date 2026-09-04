@@ -453,7 +453,8 @@ Status: in progress
 - Add privacy-safe monitoring, crash reporting, rate limits, backup configuration, and a documented restore verification drill.
 - The API now applies configurable per-account standard, active-session-write, and coach-message rate limits, returning `429` with `Retry-After` and retaining no account or IP identifier in logs.
 - Sentry crash reporting is opt-in through its public mobile DSN and removes breadcrumbs, user, request, context, and extra data before sending an event.
-- `docs/production-operations.md` defines the approved AWS RDS/CloudWatch/Sentry boundary and the required isolated restore drill; real AWS resources, Sentry configuration, alert recipients, and the synthetic production verification remain external release gates.
+- Closed MVP validation uses Neon Launch PostgreSQL in Sydney with a seven-day recovery posture; [docs/mvp-operations.md](docs/mvp-operations.md) defines its secret, recovery, and promotion controls. The 35-day private AWS RDS and CloudWatch boundary remains a public-beta release gate; Sentry setup remains required for the closed MVP.
+- Docker and Fly configuration are ready for one Sydney Fly.io Machine with public TLS, a `/health/ready` service check, a secret-held `fitness_api` connection, and no migration credential at runtime; creating the Fly app, setting secrets, and deploying remain external setup steps.
 
 ### 7.4 Complete beta security, privacy, accessibility, and AI-safety reviews
 
@@ -487,4 +488,4 @@ These are not authorized implementation scope until promoted into an active phas
 
 ## Immediate next increment
 
-Complete Phase 7.3 external production setup and run the documented synthetic restore and crash-reporting verification.
+Complete Phase 7.3 Fly.io deployment setup, then run the documented synthetic recovery and crash-reporting verification.

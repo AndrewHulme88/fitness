@@ -1,0 +1,39 @@
+# Replace this placeholder with a globally unique Fly app name before the first deploy.
+app = "fitness-coach-api-replace-me"
+primary_region = "syd"
+
+[build]
+  dockerfile = "backend/FitnessCoach.Api/Dockerfile"
+
+[env]
+  ASPNETCORE_ENVIRONMENT = "Production"
+  ASPNETCORE_FORWARDEDHEADERS_ENABLED = "true"
+  ASPNETCORE_URLS = "http://+:8080"
+  OpenAi__Model = "gpt-5.6-terra"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 25
+    hard_limit = 50
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health/ready"
+
+    [http_service.checks.headers]
+      X-Forwarded-Proto = "https"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"

@@ -209,14 +209,14 @@ CloudWatch is the approved server-side operational destination and Sentry is the
 
 ## Deployment direction
 
-Local development uses containerized PostgreSQL. Beta production uses an AWS-hosted API runtime with private Amazon RDS PostgreSQL, subject to the deployment, backup, restore, and deletion-reconciliation controls in [production-operations.md](production-operations.md). The precise runtime configuration is deferred until the deployment increment; it must not expose PostgreSQL publicly.
+Local development uses containerized PostgreSQL. The closed MVP validation release runs one Fly.io API Machine in Sydney against Neon Launch PostgreSQL in Sydney through an API-host secret and TLS; the mobile client never connects to PostgreSQL directly. It has a seven-day recovery posture and is not an approved public-beta deployment. Public beta requires the private Amazon RDS, AWS ingress, backup, restore, and deletion-reconciliation controls in [production-operations.md](production-operations.md). See [ADR-0017](adr/0017-neon-mvp-postgresql.md) and [ADR-0018](adr/0018-flyio-mvp-api-hosting.md).
 
 ## Security boundaries
 
 - Mobile input is untrusted.
 - AI input and output are untrusted.
 - Provider webhooks, if introduced, are untrusted until verified.
-- PostgreSQL and object storage are private infrastructure, never accessed directly by the mobile client.
+- PostgreSQL and object storage are server-side infrastructure, never accessed directly by the mobile client. Public beta requires private database networking; the closed MVP uses a TLS-protected Neon endpoint reachable only by the API through its secret-held credential.
 - Secrets belong in local or hosted secret stores.
 - Test and demo environments use synthetic data.
 

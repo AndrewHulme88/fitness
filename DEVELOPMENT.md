@@ -173,6 +173,30 @@ The beta operational boundary uses private Amazon RDS PostgreSQL with 35-day aut
 
 Related runbook: [production operations](docs/production-operations.md)
 
+### D-027 — 2026-09-04 — Host the beta API privately on ECS Fargate behind ALB and WAF
+
+Status: superseded
+
+The beta API will run as private ECS Fargate tasks behind an internet-facing Application Load Balancer with AWS WAF. The ALB is the public HTTPS boundary and probes `/health/ready`; only the ECS task security group may reach private RDS PostgreSQL. ECR supplies immutable images, Secrets Manager supplies task-start credentials, and a deploy role applies migrations before traffic shifts. This keeps a single API service operationally managed without publicly exposing PostgreSQL or adopting host or Kubernetes management.
+
+Related ADR: [ADR-0016](docs/adr/0016-ecs-fargate-production-runtime.md)
+
+### D-028 — 2026-09-04 — Use Neon Launch PostgreSQL for closed MVP validation
+
+Status: accepted
+
+Use Neon Launch in Sydney with standard PostgreSQL, strict TLS, and a secret-held API connection string for the closed MVP validation release. This keeps client access behind the existing API and avoids the RDS/ECS/ALB/NAT fixed cost before paid demand is proven. The accepted recovery window is seven days, with a synthetic restoration and deletion-tombstone check before invitations and monthly thereafter. This is explicitly not the public-beta posture: private RDS, 35-day recovery, AWS ingress protection, alerts, and an isolated RDS restore drill remain promotion gates.
+
+Related ADR: [ADR-0017](docs/adr/0017-neon-mvp-postgresql.md)
+
+### D-029 — 2026-09-04 — Host the closed MVP API on Fly.io in Sydney
+
+Status: accepted
+
+Run one ASP.NET Core API Machine on Fly.io in Sydney against the Neon Sydney database. Fly Proxy provides public TLS and a `/health/ready` service check while the API listens on an internal port. Cloudflare or an equivalent edge layer provides coarse per-IP protection because Fly Proxy is not a WAF; the API retains authenticated per-account rate limits. The host receives only the least-privilege application connection as a Fly secret; migrations retain a separate credential. One running Machine avoids cold-start risk during closed validation, while public-beta availability and private AWS ingress controls remain deferred.
+
+Related ADR: [ADR-0018](docs/adr/0018-flyio-mvp-api-hosting.md)
+
 ## Major issues and open risks
 
 ### I-001 — 2026-08-24 — Expo transitive UUID advisory
