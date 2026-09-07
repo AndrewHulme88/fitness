@@ -13,9 +13,9 @@ public sealed class ExerciseCatalogueManifestTests
         var errors = ExerciseCatalogueManifestValidator.Validate(manifest);
 
         Assert.Empty(errors);
-        Assert.Equal(1, manifest.CatalogueVersion);
+        Assert.Equal(2, manifest.CatalogueVersion);
         Assert.Equal(ContentReviewStatus.RequiresQualifiedReview, manifest.ReviewStatus);
-        Assert.Equal(35, manifest.Exercises.Count);
+        Assert.Equal(60, manifest.Exercises.Count);
         Assert.Equal(
             Enum.GetValues<EquipmentType>().Order().ToArray(),
             manifest.Exercises

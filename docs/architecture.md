@@ -101,7 +101,7 @@ Progress photos, if later approved, should use private object storage rather tha
 
 The project owns a curated manifest embedded in the Exercises feature. An explicit command validates the complete file before importing it into PostgreSQL; API startup never seeds or migrates the database automatically. PostgreSQL remains the runtime source of truth.
 
-The initial catalogue contains 35 common strength and cardio entries. Stable UUIDs are identity; names and slugs are presentation and search fields. Searchable and filterable relationships are normalized, while bounded setup, execution, and safety instructions remain scalar text. Search uses escaped case-insensitive matching, deterministic ordering, equipment-subset semantics, and a maximum page size of 50.
+The current version-2 catalogue contains 60 common strength and cardio entries. Stable UUIDs are identity; names and slugs are presentation and search fields. Searchable and filterable relationships are normalized, while bounded setup, execution, and safety instructions remain scalar text. Search uses escaped case-insensitive matching, deterministic ordering, equipment-subset semantics, and a maximum page size of 50.
 
 Equipment is a genuine shared domain vocabulary used by onboarding and the catalogue. Other exercise taxonomies remain owned by the Exercises feature. Media and custom exercises are not represented until their licensing, storage, accessibility, ownership, and lifecycle behavior are approved.
 

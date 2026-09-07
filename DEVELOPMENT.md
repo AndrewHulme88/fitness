@@ -197,6 +197,16 @@ Run one ASP.NET Core API Machine on Fly.io in Sydney against the Neon Sydney dat
 
 Related ADR: [ADR-0018](docs/adr/0018-flyio-mvp-api-hosting.md)
 
+### D-030 — 2026-09-07 — Expand the owned exercise catalogue within the existing equipment taxonomy
+
+Status: accepted pending qualified content review
+
+Catalogue version 2 retains all 35 version-1 exercise identities and adds 25 common strength and cardio movements, for 60 total entries. The expansion is deliberately bounded to bodyweight, bench, dumbbells, barbell/squat rack, cable machine, resistance bands, and cardio equipment already offered in onboarding. It adds no third-party content, user-created exercises, specialist equipment, rehabilitation movements, media, difficulty ratings, or goal tags.
+
+All new setup, execution, and safety text is original project draft content and the manifest remains `requiresQualifiedReview`. An appropriately qualified fitness professional must review the complete version-2 catalogue before public release; that review may correct content but must preserve the permanent identifiers of entries already imported.
+
+Related policy: [exercise catalogue policy](docs/exercise-catalogue-policy.md)
+
 ## Major issues and open risks
 
 ### I-001 — 2026-08-24 — Expo transitive UUID advisory

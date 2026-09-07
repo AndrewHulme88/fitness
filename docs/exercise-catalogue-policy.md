@@ -2,7 +2,7 @@
 
 ## Scope
 
-The initial catalogue is an internally owned, text-only set of 35 common strength and cardio exercises. It supports the first workout-planning flow without introducing a third-party content API, user-created exercises, rehabilitation content, or highly technical lifts.
+The catalogue is an internally owned, text-only set of 60 common strength and cardio exercises. Version 1 established 35 entries; version 2 adds 25 familiar movements using only the equipment already supported in onboarding. It supports the first workout-planning flow without introducing a third-party content API, user-created exercises, rehabilitation content, or highly technical lifts.
 
 The canonical authoring manifest is `backend/FitnessCoach.Api/Features/Exercises/Catalogue/exercise-catalogue.json`. PostgreSQL is the runtime source of truth after an explicit validated import.
 

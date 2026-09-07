@@ -191,7 +191,7 @@ public sealed class ExerciseEndpointTests : IClassFixture<PostgreSqlApiFixture>
         var result = await importer.ImportAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(ExerciseCatalogueImportStatus.Unchanged, result.Status);
-        Assert.Equal(35, result.ExerciseCount);
+        Assert.Equal(60, result.ExerciseCount);
         Assert.Equal(0, result.AddedCount);
     }
 

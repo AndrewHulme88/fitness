@@ -112,6 +112,44 @@ npm run ios
 
 Authentication redirects use the app's `fitness-coach://` URL scheme and therefore require an installed iOS development build, not Expo Go. Build and launch it with `npm run ios:development-build`; after the first build, use the same command when native configuration changes.
 
+## Closed-MVP iOS testing and TestFlight
+
+Use EAS Build to create a signed iOS build for testing. It is distributed privately through TestFlight; none of these steps publish the application to the App Store.
+
+One-time EAS setup, from `frontend/`:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest build:configure --platform ios
+npx eas-cli@latest credentials:configure-build --platform ios --profile production
+```
+
+`eas build:configure` creates the committed `eas.json` build profiles and links the Expo project. The credentials command prompts for the Apple Developer account and lets EAS create or manage the signing certificate and provisioning profile. Keep the existing bundle identifier, `com.moonfallsoftware.fitnesscoach`, consistent with the App Store Connect app record.
+
+Set the following **production** EAS environment variables in the Expo dashboard before building. `EXPO_PUBLIC_*` values are embedded in the app and are intentionally public; database credentials, Fly secrets, Cognito client secrets, and AI-provider keys never belong in EAS client configuration.
+
+| Name | Value / visibility |
+| --- | --- |
+| `EXPO_PUBLIC_API_URL` | `https://fitness-coach-api-andrew.fly.dev` |
+| `EXPO_PUBLIC_COGNITO_DOMAIN` | Cognito Hosted UI domain, without `https://` |
+| `EXPO_PUBLIC_COGNITO_APP_CLIENT_ID` | Public mobile app-client ID |
+| `EXPO_PUBLIC_COGNITO_SCOPE` | `fitness-coach-api/access` |
+| `EXPO_PUBLIC_SENTRY_DSN` | Public DSN of the React Native Sentry project |
+| `SENTRY_ORG` | Sentry organization slug |
+| `SENTRY_PROJECT` | Sentry project slug |
+| `SENTRY_AUTH_TOKEN` | Sentry source-map/release token with **Sensitive** visibility |
+
+Create and submit a production iOS build:
+
+```bash
+npx eas-cli@latest build --platform ios --profile production
+npx eas-cli@latest submit --platform ios --latest
+```
+
+After Apple finishes processing the build, add the intended people as internal testers in App Store Connect, install Apple's TestFlight app on the iPhone, accept the invitation, and install Fitness Coach. To diagnose an EAS build, use `npx eas-cli@latest build:list --platform ios`; open the selected build in the Expo dashboard for the full Xcode log.
+
+When Sentry source-map upload reports that an organization or project is required, set `SENTRY_ORG` and `SENTRY_PROJECT` to their slugs in the **same production environment** as `SENTRY_AUTH_TOKEN`, then create a new build. Do not suppress the upload with `SENTRY_DISABLE_AUTO_UPLOAD` or `SENTRY_ALLOW_FAILURE` for a release intended to verify crash symbolication.
+
 ## API development
 
 Prerequisites:
@@ -170,6 +208,23 @@ dotnet run --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj \
 ```
 
 The importer validates the entire embedded manifest before writing, runs transactionally, and is safe to repeat. Catalogue content changes must increment `catalogueVersion`; removal is refused until exercise retirement and workout-history behavior are designed.
+
+For the deployed Neon database, run the import explicitly with the `fitness_migrator` connection after migrations are current. Do not use the Fly runtime's `fitness_api` connection or put either connection string in a file, command history, or this repository:
+
+```bash
+read -rs "FITNESS_MIGRATOR_CONNECTION?Paste the fitness_migrator connection string: "
+echo
+export ConnectionStrings__Postgres="$FITNESS_MIGRATOR_CONNECTION"
+
+dotnet run --project backend/FitnessCoach.Api/FitnessCoach.Api.csproj \
+  --configuration Release \
+  --no-launch-profile --no-restore -- \
+  --import-exercise-catalogue
+
+unset ConnectionStrings__Postgres FITNESS_MIGRATOR_CONNECTION
+```
+
+The expected first-run result reports 60 exercises added. Importing version 2 into a database that already contains version 1 reports 25 additions. The API reads the catalogue from PostgreSQL, so no Fly deployment is required after a successful import.
 
 Start the API over loopback HTTP from the same shell for Expo simulator development:
 
@@ -237,4 +292,4 @@ The runtime document and unauthenticated local-prototype Profile, Exercise, and 
 
 ## Current status
 
-Foundation work through Phase 6 is complete. The Expo client has accessible onboarding, planning, active logging, completed history, correction, progress, Cognito managed-login flows, and a retained coach conversation with selected-workout review, exercise-level proposal diffs, explicit factual progress-review scopes, and task-specific safety gates. The .NET API persists profiles, a curated 35-exercise catalogue, revisioned workout templates, immutable plan snapshots, bounded history, correction provenance, factual progress, application accounts, authenticated profile ownership, and a provider-independent AI coach boundary through PostgreSQL. The coach minimizes approved context, applies deterministic safety limits, records privacy-safe operational usage metadata, and retains one user-deletable conversation per profile. The server-side OpenAI Responses adapter uses `gpt-5.6-terra`, low reasoning effort, bounded output, `store: false`, and a hashed safety identifier; Development continues to use a deterministic fake unless a server-side key is configured. Account export and deletion are designed, including Cognito coordination, data-minimized recovery records, retention, and backup-restoration boundaries.
+Foundation work through Phase 6 is complete. The Expo client has accessible onboarding, planning, active logging, completed history, correction, progress, Cognito managed-login flows, and a retained coach conversation with selected-workout review, exercise-level proposal diffs, explicit factual progress-review scopes, and task-specific safety gates. The .NET API persists profiles, a curated 60-exercise catalogue, revisioned workout templates, immutable plan snapshots, bounded history, correction provenance, factual progress, application accounts, authenticated profile ownership, and a provider-independent AI coach boundary through PostgreSQL. The coach minimizes approved context, applies deterministic safety limits, records privacy-safe operational usage metadata, and retains one user-deletable conversation per profile. The server-side OpenAI Responses adapter uses `gpt-5.6-terra`, low reasoning effort, bounded output, `store: false`, and a hashed safety identifier; Development continues to use a deterministic fake unless a server-side key is configured. Account export and deletion are designed, including Cognito coordination, data-minimized recovery records, retention, and backup-restoration boundaries.
