@@ -1,5 +1,4 @@
-# Replace this placeholder with a globally unique Fly app name before the first deploy.
-app = "fitness-coach-api-replace-me"
+app = "fitness-coach-api-andrew"
 primary_region = "syd"
 
 [build]

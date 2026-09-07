@@ -8,7 +8,10 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "bundleIdentifier": "com.moonfallsoftware.fitnesscoach",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "plugins": [
       "expo-router",
@@ -19,6 +22,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0590a427-24f5-4b00-ab3b-d85df057ed95"
+      }
     }
   }
 }
