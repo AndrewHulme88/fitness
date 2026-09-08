@@ -10,6 +10,11 @@ namespace FitnessCoach.Api.IntegrationTests;
 
 public sealed class ProfileEndpointTests : IClassFixture<PostgreSqlApiFixture>
 {
+    private static readonly string[] InitialGoals = ["buildStrength"];
+    private static readonly string[] InitialEquipment = ["bodyweight"];
+    private static readonly string[] UpdatedGoals = ["buildMuscle", "generalFitness"];
+    private static readonly string[] UpdatedEquipment = ["dumbbells", "bench"];
+
     private readonly PostgreSqlApiFixture fixture;
 
     public ProfileEndpointTests(PostgreSqlApiFixture fixture)
@@ -140,6 +145,47 @@ public sealed class ProfileEndpointTests : IClassFixture<PostgreSqlApiFixture>
             TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateProfileReplacesItsSelectionsAndPreservesItsCreationTime()
+    {
+        using var client = CreateClient();
+        using var createResponse = await client.PostAsJsonAsync(
+            "/profiles",
+            new
+            {
+                goals = InitialGoals,
+                experience = "beginner",
+                availableEquipment = InitialEquipment,
+                unitSystem = "metric",
+            },
+            TestContext.Current.CancellationToken);
+        var createdProfile = await createResponse.Content.ReadFromJsonAsync<ProfileDocument>(
+            TestContext.Current.CancellationToken);
+        Assert.NotNull(createdProfile);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/profiles/{createdProfile.Id}",
+            new
+            {
+                goals = UpdatedGoals,
+                experience = "advanced",
+                availableEquipment = UpdatedEquipment,
+                unitSystem = "imperial",
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        var updatedProfile = await updateResponse.Content.ReadFromJsonAsync<ProfileDocument>(
+            TestContext.Current.CancellationToken);
+        Assert.NotNull(updatedProfile);
+        Assert.Equal(createdProfile.Id, updatedProfile.Id);
+        Assert.Equal(["buildMuscle", "generalFitness"], updatedProfile.Goals);
+        Assert.Equal("advanced", updatedProfile.Experience);
+        Assert.Equal(["dumbbells", "bench"], updatedProfile.AvailableEquipment);
+        Assert.Equal("imperial", updatedProfile.UnitSystem);
+        Assert.Equal(createdProfile.CreatedAt, updatedProfile.CreatedAt);
     }
 
     [Fact]

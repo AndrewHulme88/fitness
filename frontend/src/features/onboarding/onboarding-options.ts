@@ -1,11 +1,11 @@
 import type { components } from "../../api/generated/schema";
-import type { CreateTrainingProfileRequest } from "../../api/profiles";
+import type { UpdateTrainingProfileRequest } from "../../api/profiles";
 
 export type TrainingGoal = components["schemas"]["TrainingGoal"];
 export type TrainingExperience = components["schemas"]["TrainingExperience"];
 export type EquipmentType = components["schemas"]["EquipmentType"];
 export type UnitSystem = components["schemas"]["UnitSystem"];
-export type OnboardingSubmission = CreateTrainingProfileRequest;
+export type OnboardingSubmission = UpdateTrainingProfileRequest;
 
 type Option<T extends string> = {
   description?: string;

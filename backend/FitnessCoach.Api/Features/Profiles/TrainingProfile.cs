@@ -65,6 +65,28 @@ internal sealed class TrainingProfile
 
         AccountId = accountId;
     }
+
+    public void Update(
+        IReadOnlyCollection<TrainingGoal> goals,
+        TrainingExperience experience,
+        IReadOnlyCollection<EquipmentType> availableEquipment,
+        UnitSystem unitSystem)
+    {
+        Experience = experience;
+        UnitSystem = unitSystem;
+
+        Goals.Clear();
+        foreach (var goal in goals)
+        {
+            Goals.Add(new TrainingProfileGoal(Id, goal));
+        }
+
+        AvailableEquipment.Clear();
+        foreach (var equipment in availableEquipment)
+        {
+            AvailableEquipment.Add(new TrainingProfileEquipment(Id, equipment));
+        }
+    }
 }
 
 internal sealed class TrainingProfileGoal(Guid profileId, TrainingGoal goal)

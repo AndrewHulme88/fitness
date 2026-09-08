@@ -19,7 +19,9 @@ import {
 import { SelectionControl } from "./SelectionControl";
 
 type OnboardingFormProps = {
+  initialSubmission?: OnboardingSubmission;
   onSubmit: (submission: OnboardingSubmission) => Promise<void>;
+  submitLabel?: string;
 };
 
 type FormErrors = Partial<
@@ -29,13 +31,23 @@ type FormErrors = Partial<
   >
 >;
 
-export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
-  const [goals, setGoals] = useState<TrainingGoal[]>([]);
-  const [experience, setExperience] = useState<TrainingExperience>();
-  const [availableEquipment, setAvailableEquipment] = useState<EquipmentType[]>(
-    [],
+export function OnboardingForm({
+  initialSubmission,
+  onSubmit,
+  submitLabel = "Save and continue",
+}: OnboardingFormProps) {
+  const [goals, setGoals] = useState<TrainingGoal[]>(
+    initialSubmission?.goals ?? [],
   );
-  const [unitSystem, setUnitSystem] = useState<UnitSystem>();
+  const [experience, setExperience] = useState<TrainingExperience | undefined>(
+    initialSubmission?.experience,
+  );
+  const [availableEquipment, setAvailableEquipment] = useState<EquipmentType[]>(
+    initialSubmission?.availableEquipment ?? [],
+  );
+  const [unitSystem, setUnitSystem] = useState<UnitSystem | undefined>(
+    initialSubmission?.unitSystem,
+  );
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -198,7 +210,7 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
 
           <PrimaryButton
             disabled={isSubmitting}
-            label={isSubmitting ? "Saving setup…" : "Save and continue"}
+            label={isSubmitting ? "Saving setup…" : submitLabel}
             onPress={handleSubmit}
           />
         </View>

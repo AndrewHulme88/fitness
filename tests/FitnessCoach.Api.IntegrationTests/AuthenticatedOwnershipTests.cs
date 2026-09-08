@@ -37,6 +37,14 @@ public sealed class AuthenticatedOwnershipTests : IClassFixture<PostgreSqlApiFix
             $"/profiles/{profile.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, crossAccountResponse.StatusCode);
 
+        using var anonymousUpdateResponse = await anonymous.PutAsJsonAsync(
+            $"/profiles/{profile.Id}", Request, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousUpdateResponse.StatusCode);
+
+        using var crossAccountUpdateResponse = await otherAccount.PutAsJsonAsync(
+            $"/profiles/{profile.Id}", Request, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, crossAccountUpdateResponse.StatusCode);
+
         using var accountResponse = await owner.GetAsync("/account", TestContext.Current.CancellationToken);
         var account = await accountResponse.Content.ReadFromJsonAsync<AccountDocument>(TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, accountResponse.StatusCode);

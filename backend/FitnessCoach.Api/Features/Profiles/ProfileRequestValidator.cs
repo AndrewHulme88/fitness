@@ -6,10 +6,32 @@ internal static class ProfileRequestValidator
 {
     public static Dictionary<string, string[]> Validate(CreateTrainingProfileRequest request)
     {
+        return Validate(
+            request.Goals,
+            request.Experience,
+            request.AvailableEquipment,
+            request.UnitSystem);
+    }
+
+    public static Dictionary<string, string[]> Validate(UpdateTrainingProfileRequest request)
+    {
+        return Validate(
+            request.Goals,
+            request.Experience,
+            request.AvailableEquipment,
+            request.UnitSystem);
+    }
+
+    private static Dictionary<string, string[]> Validate(
+        IReadOnlyList<TrainingGoal> goals,
+        TrainingExperience experience,
+        IReadOnlyList<EquipmentType> availableEquipment,
+        UnitSystem unitSystem)
+    {
         var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
         ValidateSelection(
-            request.Goals,
+            goals,
             maximumCount: Enum.GetValues<TrainingGoal>().Length,
             fieldName: "goals",
             requiredMessage: "Choose at least one training goal.",
@@ -17,13 +39,13 @@ internal static class ProfileRequestValidator
             duplicateMessage: "Each training goal can be selected only once.",
             errors);
 
-        if (!Enum.IsDefined(request.Experience))
+        if (!Enum.IsDefined(experience))
         {
             errors["experience"] = ["Choose a supported training experience."];
         }
 
         ValidateSelection(
-            request.AvailableEquipment,
+            availableEquipment,
             maximumCount: Enum.GetValues<EquipmentType>().Length,
             fieldName: "availableEquipment",
             requiredMessage: "Choose at least one available equipment option.",
@@ -31,7 +53,7 @@ internal static class ProfileRequestValidator
             duplicateMessage: "Each equipment option can be selected only once.",
             errors);
 
-        if (!Enum.IsDefined(request.UnitSystem))
+        if (!Enum.IsDefined(unitSystem))
         {
             errors["unitSystem"] = ["Choose a supported unit system."];
         }

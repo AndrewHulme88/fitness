@@ -26,6 +26,18 @@ Before invitations and at least monthly, use only synthetic data to:
 
 An unsuccessful check, missing alert recipient, missing secret boundary, or unreviewed provider controls blocks MVP invitations.
 
+## Sentry crash-reporting verification
+
+Before invitations, verify the signed TestFlight build reports one native synthetic crash with a symbolicated application stack:
+
+1. Confirm the Sentry project has the intended restricted access, retention, and a fatal-issue alert recipient. Keep replay, tracing, automatic session tracking, breadcrumbs, user data, request context, and custom fitness context disabled.
+2. Set the one-off EAS production build variable `EXPO_PUBLIC_SENTRY_SYNTHETIC_CRASH=true`, while retaining the ordinary public `EXPO_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, and sensitive `SENTRY_AUTH_TOKEN` configuration.
+3. Build and install a new signed TestFlight build. On first launch, the temporary test flag deliberately triggers a native crash after Sentry initializes. Launch it once more so the native SDK can submit the previous crash report.
+4. Confirm the Sentry issue is fatal, identifies the signed release, and has a symbolicated application stack. Do not add user data, fitness content, or account information to the test.
+5. Remove the EAS test variable, remove the temporary test code from `crash-reporting.ts`, build a replacement TestFlight build, and record only the release identifier, date, and pass/fail outcome in the restricted operations record.
+
+The test flag must never remain enabled for an ordinary tester build.
+
 ## Fly.io deployment
 
 The committed `backend/FitnessCoach.Api/Dockerfile` publishes the API as a non-root .NET 10 container on port 8080. `fly.toml` deploys one shared-CPU, 1 GB Machine in Sydney, forces HTTPS, trusts Fly's forwarded HTTPS scheme, and uses `GET /health/ready` as the traffic-serving check. It deliberately contains a placeholder app name and no secrets.

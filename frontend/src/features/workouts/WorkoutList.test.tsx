@@ -24,6 +24,7 @@ describe("WorkoutList", () => {
         onCreate={onCreate}
         onCoach={jest.fn()}
         onEdit={jest.fn()}
+        onEditProfile={jest.fn()}
         onHistory={jest.fn()}
         onProgress={jest.fn()}
         onStart={jest.fn()}
@@ -65,6 +66,7 @@ describe("WorkoutList", () => {
         onCreate={jest.fn()}
         onCoach={onCoach}
         onEdit={onEdit}
+        onEditProfile={jest.fn()}
         onHistory={jest.fn()}
         onProgress={jest.fn()}
         onStart={onStart}
@@ -87,6 +89,30 @@ describe("WorkoutList", () => {
     );
   });
 
+  it("opens training preferences from the workout plans", async () => {
+    const onEditProfile = jest.fn();
+    mockListWorkouts.mockResolvedValue({ items: [], nextOffset: null });
+
+    render(
+      <WorkoutList
+        onCreate={jest.fn()}
+        onCoach={jest.fn()}
+        onEdit={jest.fn()}
+        onEditProfile={onEditProfile}
+        onHistory={jest.fn()}
+        onProgress={jest.fn()}
+        onStart={jest.fn()}
+        profileId={profileId}
+      />,
+    );
+
+    fireEvent.press(
+      await screen.findByRole("button", { name: "Edit training preferences" }),
+    );
+
+    expect(onEditProfile).toHaveBeenCalledTimes(1);
+  });
+
   it("offers retry without exposing transport details", async () => {
     mockListWorkouts
       .mockRejectedValueOnce(new Error("private server detail"))
@@ -97,6 +123,7 @@ describe("WorkoutList", () => {
         onCreate={jest.fn()}
         onCoach={jest.fn()}
         onEdit={jest.fn()}
+        onEditProfile={jest.fn()}
         onHistory={jest.fn()}
         onProgress={jest.fn()}
         onStart={jest.fn()}

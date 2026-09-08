@@ -13,6 +13,7 @@ type WorkoutListProps = {
   onCreate: () => void;
   onCoach: (workoutId?: string) => void;
   onEdit: (workoutId: string) => void;
+  onEditProfile: () => void;
   onHistory: () => void;
   onProgress: () => void;
   onStart: (workoutId: string) => void;
@@ -23,6 +24,7 @@ export function WorkoutList({
   onCreate,
   onCoach,
   onEdit,
+  onEditProfile,
   onHistory,
   onProgress,
   onStart,
@@ -108,6 +110,15 @@ export function WorkoutList({
                 changes.
               </AppText>
             </View>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onEditProfile}
+              style={styles.profileLink}
+            >
+              <AppText tone="accent" variant="label">
+                Edit training preferences
+              </AppText>
+            </Pressable>
             <PrimaryButton label="Create workout" onPress={onCreate} />
             <Pressable
               accessibilityRole="button"
@@ -246,6 +257,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   coachLink: { minHeight: 44, alignItems: "center", justifyContent: "center" },
+  profileLink: {
+    minHeight: 44,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
   row: {
     minHeight: 104,
     flexDirection: "row",

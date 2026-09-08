@@ -150,6 +150,8 @@ After Apple finishes processing the build, add the intended people as internal t
 
 When Sentry source-map upload reports that an organization or project is required, set `SENTRY_ORG` and `SENTRY_PROJECT` to their slugs in the **same production environment** as `SENTRY_AUTH_TOKEN`, then create a new build. Do not suppress the upload with `SENTRY_DISABLE_AUTO_UPLOAD` or `SENTRY_ALLOW_FAILURE` for a release intended to verify crash symbolication.
 
+To perform the one required Sentry verification only, temporarily set `EXPO_PUBLIC_SENTRY_SYNTHETIC_CRASH=true` in the EAS production environment, build and install a new TestFlight build, and launch it twice. It intentionally terminates on launch; the second launch gives the native SDK an opportunity to submit the saved crash. Confirm the fatal issue and symbolicated stack in Sentry, then remove the EAS variable and the temporary test code before building again. See [the closed-MVP operations runbook](docs/mvp-operations.md#sentry-crash-reporting-verification).
+
 ## API development
 
 Prerequisites:

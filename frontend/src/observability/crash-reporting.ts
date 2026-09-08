@@ -1,6 +1,8 @@
 import * as Sentry from "@sentry/react-native";
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+const syntheticCrashEnabled =
+  process.env.EXPO_PUBLIC_SENTRY_SYNTHETIC_CRASH === "true";
 
 export function initializeCrashReporting() {
   if (!sentryDsn || __DEV__) return;
@@ -20,4 +22,8 @@ export function initializeCrashReporting() {
     sendDefaultPii: false,
     tracesSampleRate: 0,
   });
+
+  if (syntheticCrashEnabled) {
+    setTimeout(() => Sentry.nativeCrash(), 1000);
+  }
 }

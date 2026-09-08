@@ -95,8 +95,9 @@ public sealed class ExerciseEndpointTests : IClassFixture<PostgreSqlApiFixture>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(result);
-        var exercise = Assert.Single(result.Items);
-        Assert.Equal("dumbbell-bench-press", exercise.Slug);
+        Assert.Equal(
+            ["dumbbell-bench-press", "dumbbell-floor-press", "dumbbell-incline-bench-press"],
+            result.Items.Select(exercise => exercise.Slug));
     }
 
     [Fact]

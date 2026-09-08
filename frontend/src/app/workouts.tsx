@@ -34,6 +34,12 @@ export default function WorkoutsRoute() {
         } as unknown as Href)
       }
       onEdit={openPlanner}
+      onEditProfile={() =>
+        router.push({
+          pathname: "/profile",
+          params: { profileId },
+        } as unknown as Href)
+      }
       onHistory={() =>
         router.push({ pathname: "/history", params: { profileId } })
       }

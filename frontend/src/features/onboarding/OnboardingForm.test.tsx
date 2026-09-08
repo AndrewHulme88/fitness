@@ -41,6 +41,32 @@ describe("OnboardingForm", () => {
     );
   });
 
+  it("starts with saved preferences when editing", () => {
+    render(
+      <OnboardingForm
+        initialSubmission={{
+          goals: ["buildMuscle"],
+          experience: "intermediate",
+          availableEquipment: ["dumbbells", "bench"],
+          unitSystem: "imperial",
+        }}
+        onSubmit={jest.fn()}
+        submitLabel="Save preferences"
+      />,
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "Build muscle" }),
+    ).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Intermediate" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Dumbbells" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Bench" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Imperial" })).toBeChecked();
+    expect(
+      screen.getByRole("button", { name: "Save preferences" }),
+    ).toBeVisible();
+  });
+
   it("keeps selections and offers a safe retry after submission fails", async () => {
     const onSubmit = jest
       .fn()

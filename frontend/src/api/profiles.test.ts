@@ -3,6 +3,7 @@ import {
   createTrainingProfile,
   type CreateTrainingProfileRequest,
   type TrainingProfile,
+  updateTrainingProfile,
 } from "./profiles";
 
 const request: CreateTrainingProfileRequest = {
@@ -74,5 +75,38 @@ describe("createTrainingProfile", () => {
         fetch,
       }),
     ).rejects.toBeInstanceOf(AuthenticationRequiredError);
+  });
+});
+
+describe("updateTrainingProfile", () => {
+  it("puts the generated request shape to the selected profile", async () => {
+    const fetchMock = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(JSON.stringify(profile), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    );
+    const fetchImplementation: typeof globalThis.fetch = (input, init) =>
+      fetchMock(input, init);
+
+    const result = await updateTrainingProfile(profile.id, request, {
+      baseUrl: "https://api.example.test",
+      fetch: fetchImplementation,
+    });
+
+    expect(result).toEqual(profile);
+    const sentRequest = fetchMock.mock.calls[0]?.[0];
+    expect(sentRequest).toBeInstanceOf(Request);
+
+    if (!(sentRequest instanceof Request)) {
+      throw new Error("Expected openapi-fetch to send a Request instance.");
+    }
+
+    expect(sentRequest.method).toBe("PUT");
+    expect(sentRequest.url).toBe(
+      `https://api.example.test/profiles/${profile.id}`,
+    );
+    await expect(sentRequest.clone().json()).resolves.toEqual(request);
   });
 });

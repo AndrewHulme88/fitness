@@ -28,6 +28,9 @@ internal static class ProfileEndpoints
         profiles.MapGet("/{profileId:guid}", GetProfileAsync)
             .WithName("GetTrainingProfile")
             .WithSummary("Get a training profile");
+        profiles.MapPut("/{profileId:guid}", UpdateProfileAsync)
+            .WithName("UpdateTrainingProfile")
+            .WithSummary("Update training goals, experience, equipment, and units");
 
         return endpoints;
     }
@@ -89,6 +92,47 @@ internal static class ProfileEndpoints
         return profile is null
             ? TypedResults.NotFound()
             : TypedResults.Ok(MapResponse(profile));
+    }
+
+    private static async Task<Results<Ok<TrainingProfileResponse>, NotFound, ValidationProblem>>
+        UpdateProfileAsync(
+            Guid profileId,
+            UpdateTrainingProfileRequest request,
+            HttpContext context,
+            FitnessCoachDbContext dbContext,
+            TimeProvider timeProvider,
+            CancellationToken cancellationToken)
+    {
+        var validationErrors = ProfileRequestValidator.Validate(request);
+        if (validationErrors.Count > 0)
+        {
+            return TypedResults.ValidationProblem(validationErrors);
+        }
+
+        var account = context.User.Identity?.IsAuthenticated == true
+            ? await ApplicationAccountResolver.GetOrCreateAsync(
+                context.User, dbContext, timeProvider, cancellationToken)
+            : null;
+        var profile = await dbContext.Set<TrainingProfile>()
+            .Include(item => item.Goals)
+            .Include(item => item.AvailableEquipment)
+            .SingleOrDefaultAsync(
+                item => item.Id == profileId && (account == null || item.AccountId == account.Id),
+                cancellationToken);
+
+        if (profile is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        profile.Update(
+            request.Goals,
+            request.Experience,
+            request.AvailableEquipment,
+            request.UnitSystem);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.Ok(MapResponse(profile));
     }
 
     private static TrainingProfileResponse MapResponse(TrainingProfile profile)

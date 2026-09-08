@@ -3,6 +3,8 @@ import { executeApiRequest, type ApiRequestOptions } from "./request";
 
 export type CreateTrainingProfileRequest =
   components["schemas"]["CreateTrainingProfileRequest"];
+export type UpdateTrainingProfileRequest =
+  components["schemas"]["UpdateTrainingProfileRequest"];
 export type TrainingProfile = components["schemas"]["TrainingProfileResponse"];
 
 export class AuthenticationRequiredError extends Error {
@@ -46,6 +48,33 @@ export async function getTrainingProfile(
 
     if (error || !data) {
       throw new Error("The training profile could not be loaded.");
+    }
+
+    return data;
+  });
+}
+
+export async function updateTrainingProfile(
+  profileId: string,
+  request: UpdateTrainingProfileRequest,
+  options: ApiRequestOptions = {},
+): Promise<TrainingProfile> {
+  return executeApiRequest(options, async (client, signal) => {
+    const { data, error, response } = await client.PUT(
+      "/profiles/{profileId}",
+      {
+        body: request,
+        params: { path: { profileId } },
+        signal,
+      },
+    );
+
+    if (response.status === 401) {
+      throw new AuthenticationRequiredError();
+    }
+
+    if (error || !data) {
+      throw new Error("The training profile could not be updated.");
     }
 
     return data;

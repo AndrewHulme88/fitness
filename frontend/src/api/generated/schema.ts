@@ -167,7 +167,8 @@ export interface paths {
     };
     /** Get a training profile */
     get: operations["GetTrainingProfile"];
-    put?: never;
+    /** Update training goals, experience, equipment, and units */
+    put: operations["UpdateTrainingProfile"];
     post?: never;
     delete?: never;
     options?: never;
@@ -594,6 +595,12 @@ export interface components {
     };
     /** @enum {unknown} */
     UnitSystem: "metric" | "imperial";
+    UpdateTrainingProfileRequest: {
+      goals: components["schemas"]["TrainingGoal"][];
+      experience: components["schemas"]["TrainingExperience"];
+      availableEquipment: components["schemas"]["EquipmentType"][];
+      unitSystem: components["schemas"]["UnitSystem"];
+    };
     UpdateWorkoutRequest: {
       name: string;
       /** Format: int32 */
@@ -1254,6 +1261,57 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["TrainingProfileResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  UpdateTrainingProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profileId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateTrainingProfileRequest"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TrainingProfileResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
         };
       };
       /** @description Not Found */
