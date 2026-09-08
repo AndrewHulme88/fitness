@@ -4,6 +4,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -19,6 +20,11 @@ import type { TrainingProfile } from "../../api/profiles";
 import { AppText } from "../../components/AppText";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { colors, layout, radii, spacing } from "../../theme/tokens";
+import {
+  exerciseBodyPartOptions,
+  getBodyPartSearchFilters,
+  type ExerciseBodyPart,
+} from "./exercise-body-part-filters";
 
 type ExercisePickerProps = {
   excludedExerciseIds: ReadonlySet<string>;
@@ -36,6 +42,7 @@ export function ExercisePicker({
   visible,
 }: ExercisePickerProps) {
   const [query, setQuery] = useState("");
+  const [bodyPart, setBodyPart] = useState<ExerciseBodyPart>("all");
   const [items, setItems] = useState<ExerciseSummary[]>([]);
   const [selected, setSelected] = useState<ExerciseSummary>();
   const [detail, setDetail] = useState<ExerciseDetail>();
@@ -50,15 +57,20 @@ export function ExercisePicker({
     const timer = setTimeout(() => {
       setIsLoading(true);
       setError(undefined);
-      searchExercises(
-        {
-          query: query.trim() || undefined,
-          availableEquipment: profile.availableEquipment,
-          limit: 50,
-        },
-        { signal: controller.signal },
+      const baseFilters = {
+        query: query.trim() || undefined,
+        availableEquipment: profile.availableEquipment,
+        limit: 50,
+      };
+      Promise.all(
+        getBodyPartSearchFilters(bodyPart).map((bodyPartFilters) =>
+          searchExercises(
+            { ...baseFilters, ...bodyPartFilters },
+            { signal: controller.signal },
+          ),
+        ),
       )
-        .then((result) => setItems(result.items))
+        .then((results) => setItems(mergeExerciseResults(results)))
         .catch(() => {
           if (!controller.signal.aborted) {
             setError("The exercise catalogue could not be loaded.");
@@ -73,7 +85,14 @@ export function ExercisePicker({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [profile.availableEquipment, query, reloadKey, selected, visible]);
+  }, [
+    bodyPart,
+    profile.availableEquipment,
+    query,
+    reloadKey,
+    selected,
+    visible,
+  ]);
 
   useEffect(() => {
     if (!selected) return;
@@ -95,6 +114,7 @@ export function ExercisePicker({
 
   const close = () => {
     setQuery("");
+    setBodyPart("all");
     setSelected(undefined);
     setDetail(undefined);
     setError(undefined);
@@ -175,6 +195,42 @@ export function ExercisePicker({
               style={styles.search}
               value={query}
             />
+
+            <View style={styles.filterSection}>
+              <AppText variant="label">Filter by body part</AppText>
+              <ScrollView
+                contentContainerStyle={styles.filterOptions}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+              >
+                {exerciseBodyPartOptions.map((option) => {
+                  const isSelected = bodyPart === option.value;
+                  return (
+                    <Pressable
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
+                      key={option.value}
+                      onPress={() => setBodyPart(option.value)}
+                      style={({ pressed }) => [
+                        styles.filterOption,
+                        isSelected && styles.filterOptionSelected,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <AppText
+                        style={
+                          isSelected ? styles.filterLabelSelected : undefined
+                        }
+                        tone={isSelected ? undefined : "secondary"}
+                        variant="label"
+                      >
+                        {option.label}
+                      </AppText>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
 
             {error ? (
               <View style={styles.status}>
@@ -328,6 +384,22 @@ function formatMuscles(muscles: readonly string[]) {
   return muscles.map(capitalizeWords).join(" · ");
 }
 
+function mergeExerciseResults(
+  results: Awaited<ReturnType<typeof searchExercises>>[],
+) {
+  const exercises = new Map<string, ExerciseSummary>();
+  for (const result of results) {
+    for (const exercise of result.items) {
+      exercises.set(exercise.id, exercise);
+    }
+  }
+
+  return [...exercises.values()].sort(
+    (left, right) =>
+      left.name.localeCompare(right.name) || left.id.localeCompare(right.id),
+  );
+}
+
 function formatTrackingMode(value: string) {
   const labels: Record<string, string> = {
     repetitions: "Track repetitions",
@@ -384,6 +456,30 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     backgroundColor: colors.surface,
     fontSize: 17,
+  },
+  filterSection: {
+    gap: spacing.sm,
+    paddingTop: spacing.lg,
+  },
+  filterOptions: {
+    gap: spacing.sm,
+    paddingRight: spacing.lg,
+  },
+  filterOption: {
+    minHeight: layout.minimumTouchTarget,
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  filterOptionSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accent,
+  },
+  filterLabelSelected: {
+    color: colors.onAccent,
   },
   list: {
     paddingTop: spacing.lg,
