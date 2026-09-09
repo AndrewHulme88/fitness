@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -201,244 +203,265 @@ export function CoachConversation({
 
   return (
     <AppScreen>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.screen}
       >
-        <View style={styles.intro}>
-          <AppText tone="accent" variant="eyebrow">
-            AI coach
-          </AppText>
-          <AppText accessibilityRole="header" variant="display">
-            Training questions, not medical advice
-          </AppText>
-          <AppText tone="secondary">
-            The coach uses selected training details you can review below. It
-            cannot diagnose injuries or change your plans.
-          </AppText>
-        </View>
-        <View style={styles.messages}>
-          {conversation?.messages.map((message) => (
-            <View
-              key={message.id}
-              style={[
-                styles.message,
-                message.role === "coach" && styles.coachMessage,
-              ]}
-            >
-              <AppText variant="label">
-                {message.role === "coach" ? "AI coach" : "You"}
-              </AppText>
-              <AppText
-                tone={message.role === "coach" ? "primary" : "secondary"}
-              >
-                {message.content}
-              </AppText>
-              {message.contextSources.length > 0 ? (
-                <AppText tone="secondary" style={styles.basis}>
-                  Based on: {message.contextSources.join(", ")}
-                </AppText>
-              ) : null}
-            </View>
-          ))}
-          {!conversation ? (
-            <AppText tone="secondary">
-              Ask about training terms, your workouts, or your recorded
-              progress.
+        <ScrollView
+          contentContainerStyle={styles.content}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <View style={styles.intro}>
+            <AppText tone="accent" variant="eyebrow">
+              AI coach
             </AppText>
-          ) : null}
-        </View>
-        {proposals.map((proposal) => {
-          const currentWorkout = proposalWorkouts[proposal.workoutId];
-          const isConfirming = confirmingProposalId === proposal.id;
-          return (
-            <View key={proposal.id} style={styles.proposal}>
-              <AppText variant="label">Proposed workout change</AppText>
-              <AppText>{proposal.rationale}</AppText>
-              <AppText tone="secondary">
-                Current: {currentWorkout?.name ?? "Loading workout"} · revision{" "}
-                {proposal.expectedRevision}
-              </AppText>
-              <AppText tone="secondary">
-                Proposed: {proposal.name} · {proposal.exercises.length}{" "}
-                exercises,{" "}
-                {proposal.exercises.reduce(
-                  (total, exercise) => total + Number(exercise.plannedSets),
-                  0,
-                )}{" "}
-                sets
-              </AppText>
+            <AppText accessibilityRole="header" variant="display">
+              Training questions, not medical advice
+            </AppText>
+            <AppText tone="secondary">
+              The coach uses selected training details you can review below. It
+              cannot diagnose injuries or change your plans.
+            </AppText>
+          </View>
+          <View style={styles.messages}>
+            {conversation?.messages.map((message) => (
               <View
-                accessibilityLabel="Exercise-level proposal changes"
-                style={styles.changes}
-              >
-                <AppText variant="label">Exercise-level changes</AppText>
-                {proposal.changes.length === 0 ? (
-                  <AppText tone="secondary">
-                    No exercise changes were proposed.
-                  </AppText>
-                ) : (
-                  proposal.changes.map((change, index) => (
-                    <AppText key={`${change.kind}-${index}`} tone="secondary">
-                      {formatChange(change)}
-                    </AppText>
-                  ))
-                )}
-              </View>
-              <PrimaryButton
-                disabled={sending || Boolean(confirmingProposalId)}
-                label={
-                  isConfirming ? "Applying change…" : "Apply proposed change"
-                }
-                onPress={() => void confirmProposal(proposal.id)}
-              />
-              <AppText tone="secondary" style={styles.proposalNote}>
-                Applying this updates your workout. You can still edit it
-                afterwards.
-              </AppText>
-            </View>
-          );
-        })}
-        <View style={styles.reviewPicker}>
-          <AppText variant="label">Review one workout</AppText>
-          <AppText tone="secondary">
-            Choose the only workout the coach may review or propose changes to.
-          </AppText>
-          {workoutLoading ? (
-            <AppText tone="secondary">Loading workouts…</AppText>
-          ) : null}
-          {workoutError ? (
-            <AppText tone="secondary">
-              Workout selection is unavailable. Return to Plans and try again.
-            </AppText>
-          ) : null}
-          {!workoutLoading && !workoutError && workouts.length === 0 ? (
-            <AppText tone="secondary">
-              Create a workout in Plans before reviewing it.
-            </AppText>
-          ) : null}
-          {workouts.map((workout) => {
-            const selected = workout.id === selectedWorkoutId;
-            return (
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                key={workout.id}
-                onPress={() => {
-                  setSelectedWorkoutId(workout.id);
-                  setProgressExerciseId(undefined);
-                  setProgressPeriodDays(undefined);
-                }}
+                key={message.id}
                 style={[
-                  styles.workoutChoice,
-                  selected && styles.workoutChoiceSelected,
+                  styles.message,
+                  message.role === "coach" && styles.coachMessage,
                 ]}
               >
-                <AppText tone={selected ? "accent" : "primary"} variant="label">
-                  {workout.name}
+                <AppText variant="label">
+                  {message.role === "coach" ? "AI coach" : "You"}
                 </AppText>
-                <AppText tone="secondary">Revision {workout.revision}</AppText>
-              </Pressable>
+                <AppText
+                  tone={message.role === "coach" ? "primary" : "secondary"}
+                >
+                  {message.content}
+                </AppText>
+                {message.contextSources.length > 0 ? (
+                  <AppText tone="secondary" style={styles.basis}>
+                    Based on: {message.contextSources.join(", ")}
+                  </AppText>
+                ) : null}
+              </View>
+            ))}
+            {!conversation ? (
+              <AppText tone="secondary">
+                Ask about training terms, your workouts, or your recorded
+                progress.
+              </AppText>
+            ) : null}
+          </View>
+          {proposals.map((proposal) => {
+            const currentWorkout = proposalWorkouts[proposal.workoutId];
+            const isConfirming = confirmingProposalId === proposal.id;
+            return (
+              <View key={proposal.id} style={styles.proposal}>
+                <AppText variant="label">Proposed workout change</AppText>
+                <AppText>{proposal.rationale}</AppText>
+                <AppText tone="secondary">
+                  Current: {currentWorkout?.name ?? "Loading workout"} ·
+                  revision {proposal.expectedRevision}
+                </AppText>
+                <AppText tone="secondary">
+                  Proposed: {proposal.name} · {proposal.exercises.length}{" "}
+                  exercises,{" "}
+                  {proposal.exercises.reduce(
+                    (total, exercise) => total + Number(exercise.plannedSets),
+                    0,
+                  )}{" "}
+                  sets
+                </AppText>
+                <View
+                  accessibilityLabel="Exercise-level proposal changes"
+                  style={styles.changes}
+                >
+                  <AppText variant="label">Exercise-level changes</AppText>
+                  {proposal.changes.length === 0 ? (
+                    <AppText tone="secondary">
+                      No exercise changes were proposed.
+                    </AppText>
+                  ) : (
+                    proposal.changes.map((change, index) => (
+                      <AppText key={`${change.kind}-${index}`} tone="secondary">
+                        {formatChange(change)}
+                      </AppText>
+                    ))
+                  )}
+                </View>
+                <PrimaryButton
+                  disabled={sending || Boolean(confirmingProposalId)}
+                  label={
+                    isConfirming ? "Applying change…" : "Apply proposed change"
+                  }
+                  onPress={() => void confirmProposal(proposal.id)}
+                />
+                <AppText tone="secondary" style={styles.proposalNote}>
+                  Applying this updates your workout. You can still edit it
+                  afterwards.
+                </AppText>
+              </View>
             );
           })}
-        </View>
-        <View style={styles.reviewPicker}>
-          <AppText variant="label">Review recorded progress</AppText>
-          <AppText tone="secondary">
-            Select one factual source. The coach will not infer records, scores,
-            or readiness.
-          </AppText>
-          <View style={styles.progressPeriods}>
-            {[7, 28].map((days) => {
-              const selected = progressPeriodDays === days;
+          <View style={styles.reviewPicker}>
+            <AppText variant="label">Review one workout</AppText>
+            <AppText tone="secondary">
+              Choose the only workout the coach may review or propose changes
+              to.
+            </AppText>
+            {workoutLoading ? (
+              <AppText tone="secondary">Loading workouts…</AppText>
+            ) : null}
+            {workoutError ? (
+              <AppText tone="secondary">
+                Workout selection is unavailable. Return to Plans and try again.
+              </AppText>
+            ) : null}
+            {!workoutLoading && !workoutError && workouts.length === 0 ? (
+              <AppText tone="secondary">
+                Create a workout in Plans before reviewing it.
+              </AppText>
+            ) : null}
+            {workouts.map((workout) => {
+              const selected = workout.id === selectedWorkoutId;
               return (
                 <Pressable
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
-                  key={days}
+                  key={workout.id}
                   onPress={() => {
-                    setProgressPeriodDays(days as 7 | 28);
+                    setSelectedWorkoutId(workout.id);
                     setProgressExerciseId(undefined);
-                    setSelectedWorkoutId(undefined);
+                    setProgressPeriodDays(undefined);
                   }}
                   style={[
-                    styles.periodChoice,
+                    styles.workoutChoice,
                     selected && styles.workoutChoiceSelected,
                   ]}
                 >
-                  <AppText variant="label">Last {days} days</AppText>
+                  <AppText
+                    tone={selected ? "accent" : "primary"}
+                    variant="label"
+                  >
+                    {workout.name}
+                  </AppText>
+                  <AppText tone="secondary">
+                    Revision {workout.revision}
+                  </AppText>
                 </Pressable>
               );
             })}
           </View>
-          {progress?.recordedExercises.map((exercise) => {
-            const selected = progressExerciseId === exercise.exerciseId;
-            return (
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                key={exercise.exerciseId}
-                onPress={() => {
-                  setProgressExerciseId(exercise.exerciseId);
-                  setProgressPeriodDays(undefined);
-                  setSelectedWorkoutId(undefined);
-                }}
-                style={[
-                  styles.workoutChoice,
-                  selected && styles.workoutChoiceSelected,
-                ]}
-              >
-                <AppText tone={selected ? "accent" : "primary"} variant="label">
-                  {exercise.exerciseName}
-                </AppText>
-                <AppText tone="secondary">
-                  Recorded completed-set values
-                </AppText>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View style={styles.composer}>
-          <TextInput
-            accessibilityLabel="Question for the AI coach"
-            editable={!sending}
-            maxLength={1000}
-            multiline
-            onChangeText={setQuestion}
-            placeholder={
-              selectedWorkoutId
-                ? "Ask about the selected workout"
-                : "Ask a training question"
-            }
-            placeholderTextColor={colors.textSecondary}
-            style={styles.input}
-            value={question}
-          />
-          <PrimaryButton
-            disabled={sending || question.trim().length === 0}
-            label={sending ? "Asking coach…" : "Ask coach"}
-            onPress={() => void send()}
-          />
-        </View>
-        {conversation ? (
-          <Pressable
-            accessibilityRole="button"
-            disabled={sending}
-            onPress={clear}
-            style={styles.delete}
-          >
-            <AppText tone="secondary" variant="label">
-              Delete saved conversation
+          <View style={styles.reviewPicker}>
+            <AppText variant="label">Review recorded progress</AppText>
+            <AppText tone="secondary">
+              Select one factual source. The coach will not infer records,
+              scores, or readiness.
             </AppText>
-          </Pressable>
-        ) : null}
-      </ScrollView>
+            <View style={styles.progressPeriods}>
+              {[7, 28].map((days) => {
+                const selected = progressPeriodDays === days;
+                return (
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    key={days}
+                    onPress={() => {
+                      setProgressPeriodDays(days as 7 | 28);
+                      setProgressExerciseId(undefined);
+                      setSelectedWorkoutId(undefined);
+                    }}
+                    style={[
+                      styles.periodChoice,
+                      selected && styles.workoutChoiceSelected,
+                    ]}
+                  >
+                    <AppText variant="label">Last {days} days</AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {progress?.recordedExercises.map((exercise) => {
+              const selected = progressExerciseId === exercise.exerciseId;
+              return (
+                <Pressable
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  key={exercise.exerciseId}
+                  onPress={() => {
+                    setProgressExerciseId(exercise.exerciseId);
+                    setProgressPeriodDays(undefined);
+                    setSelectedWorkoutId(undefined);
+                  }}
+                  style={[
+                    styles.workoutChoice,
+                    selected && styles.workoutChoiceSelected,
+                  ]}
+                >
+                  <AppText
+                    tone={selected ? "accent" : "primary"}
+                    variant="label"
+                  >
+                    {exercise.exerciseName}
+                  </AppText>
+                  <AppText tone="secondary">
+                    Recorded completed-set values
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+          {conversation ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={sending}
+              onPress={clear}
+              style={styles.delete}
+            >
+              <AppText tone="secondary" variant="label">
+                Delete saved conversation
+              </AppText>
+            </Pressable>
+          ) : null}
+        </ScrollView>
+        <View style={styles.composer}>
+          <View style={styles.composerContent}>
+            <TextInput
+              accessibilityLabel="Question for the AI coach"
+              editable={!sending}
+              maxLength={1000}
+              multiline
+              onChangeText={setQuestion}
+              placeholder={
+                selectedWorkoutId
+                  ? "Ask about the selected workout"
+                  : "Ask a training question"
+              }
+              placeholderTextColor={colors.textSecondary}
+              style={styles.input}
+              value={question}
+            />
+            <PrimaryButton
+              disabled={sending || question.trim().length === 0}
+              label={sending ? "Asking coach…" : "Ask coach"}
+              onPress={() => void send()}
+            />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
     width: "100%",
     maxWidth: layout.readableContentWidth,
@@ -498,7 +521,18 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.accent,
     paddingLeft: spacing.sm,
   },
-  composer: { gap: spacing.md },
+  composer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  composerContent: {
+    width: "100%",
+    maxWidth: layout.readableContentWidth,
+    alignSelf: "center",
+    gap: spacing.md,
+  },
   input: {
     minHeight: 108,
     color: colors.textPrimary,

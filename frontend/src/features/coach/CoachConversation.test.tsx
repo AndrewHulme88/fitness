@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
+import { KeyboardAvoidingView, Platform } from "react-native";
 
 import { getCoachConversation, sendCoachMessage } from "../../api/coach";
 import { getWorkout, listWorkouts } from "../../api/workouts";
@@ -99,6 +100,16 @@ describe("CoachConversation", () => {
     render(<CoachConversation profileId={profileId} />);
 
     expect(await screen.findByText("Delete saved conversation")).toBeTruthy();
+  });
+
+  it("keeps the composer in an iOS keyboard-avoiding container", async () => {
+    render(<CoachConversation profileId={profileId} />);
+
+    await screen.findByText("Review recorded progress");
+
+    expect(screen.UNSAFE_getByType(KeyboardAvoidingView).props.behavior).toBe(
+      Platform.OS === "ios" ? "padding" : undefined,
+    );
   });
 
   it("shows a named exercise substitution before it can be applied", async () => {
